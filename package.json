@@ -1,0 +1,22 @@
+{
+  "name": "namy-bot",
+  "version": "2.2.0",
+  "description": "Namy Bot para WhatsApp usando Baileys — assistente fofa e inteligente",
+  "main": "index.js",
+  "scripts": {
+    "start": "node index.js",
+    "dev": "node --watch index.js"
+  },
+  "author": "Aleff (mz)",
+  "license": "ISC",
+  "dependencies": {
+    "@adiwajshing/keyed-db": "^0.2.4",
+    "@whiskeysockets/baileys": "7.0.0-rc.3",
+    "axios": "^1.7.9",
+    "dotenv": "^17.4.2",
+    "pino": "^9.6.0"
+  },
+  "engines": {
+    "node": ">=18"
+  }
+}

@@ -1,0 +1,6 @@
+node_modules/
+sessao/
+.env
+ia_estado.json
+ia_historico.json
+*.log

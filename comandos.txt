@@ -1,0 +1,66 @@
+# 🌸 Namy Bot v2.1.0 — Instalação e uso
+
+## Requisitos
+- Node.js 18 ou superior
+- Conexão com internet
+
+## Instalação (Termux / Linux / Windows)
+
+```bash
+# Termux
+termux-setup-storage
+pkg update -y && pkg upgrade -y
+pkg install nodejs git -y
+
+# Entre na pasta do bot
+cd /sdcard/NamyBot2   # ou o caminho onde extraiu
+
+# Instale as dependências
+npm install
+# ou: yarn
+
+# Inicie
+node index.js
+# ou: npm start
+```
+
+## Pareamento
+1. Ao iniciar, o bot pede seu número (com DDI, ex: 5511999999999)
+2. Digite o número e pressione Enter
+3. Abra o WhatsApp → Aparelhos conectados → Conectar com número de telefone
+4. Digite o código que aparecer no terminal
+
+## Comandos principais
+| Comando            | Descrição                          |
+|--------------------|------------------------------------|
+| !menu              | Menu completo                      |
+| !ping              | Testa latência                     |
+| !info              | Informações do bot                 |
+| !dono              | Sobre o desenvolvedor              |
+| !meme              | Envia um meme aleatório            |
+| !piada             | Conta uma piada                    |
+| !curiosidade       | Curiosidade aleatória              |
+| !conselho          | Conselho do dia                    |
+| !filme [gênero]    | Recomenda um filme                 |
+| !anime [gênero]    | Recomenda um anime                 |
+| !ia [pergunta]     | Pergunta para a IA (Gemini)        |
+| !bom-dia           | Saudação de bom dia                |
+| !boa-tarde         | Saudação de boa tarde              |
+| !boa-noite         | Saudação de boa noite              |
+
+## IA (comando !ia)
+1. Acesse https://aistudio.google.com/app/apikey
+2. Crie uma chave de API
+3. Coloque em config.js na opção `geminiApiKey`
+   ou defina a variável de ambiente:
+   `export GEMINI_API_KEY=sua_chave`
+
+## Respostas automáticas
+O bot responde a mensagens naturais como:
+oi, bom dia, boa tarde, boa noite, obrigado, tchau,
+piada, quem é você, preciso de ajuda, etc.
+
+## Dicas
+- Para resetar a sessão: apague a pasta `sessao` e reinicie
+- Não compartilhe a pasta `sessao` (contém credenciais)
+- Prefixo padrão: !
