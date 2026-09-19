@@ -1,49 +1,63 @@
 const axios = require('axios')
 const config = require('../config')
 const iaEstado = require('../funcoes/ia')
+const { systemPromptNamy } = require('../funcoes/autonomia')
+const memoria = require('../funcoes/memoria')
 
-/**
- * Prompt no estilo Grok: divertida, sincera, inteligente,
- * um pouco irreverente e muito natural no WhatsApp.
- */
-const SYSTEM_PROMPT = `
-Você é a Namy, uma assistente virtual que vive no WhatsApp.
+function capturarMemoria(jid, texto) {
+  if (!jid || !texto) return
 
-Personalidade (estilo Grok):
-- Feminina, carismática e bem humorada
-- Inteligente, curiosa e direta
-- Sincera e sem enrolação
-- Pode ser irônica ou brincar quando a situação pedir
-- Prestativa de verdade, não só "educada"
-- Fala de forma natural, como uma amiga no zap
-- Responde em português brasileiro
+  // nome
+  const nomeMatch = texto.match(
+    /(?:meu nome [eé]|me chamo|eu sou(?: a| o)?)\s+([A-Za-zÀ-ÿ]{2,20})/i
+  )
+  if (nomeMatch) {
+    memoria.atualizar(jid, { nome: nomeMatch[1] })
+  }
 
-Regras importantes:
-- Responda como se estivesse em uma conversa real de WhatsApp.
-- Seja objetiva nas perguntas simples. Não encha linguiça.
-- Use emojis com moderação (não fique spamando).
-- Nunca diga que é humana. Você é a Namy, uma IA.
-- Se não souber algo, admita de forma leve.
-- Não seja moralista nem "professora".
-- Quando a pessoa estiver só papo, entre na conversa de forma natural.
-- Evite respostas robóticas do tipo "Como posso ajudar você hoje?".
-- Lembre do contexto da conversa (você recebe o histórico).
-- Pode ser um pouco sarcástica se a pessoa estiver zoando.
-- Se a pessoa perguntar algo sério, seja séria e útil.
-`.trim()
+  // gosto de...
+  const gostoMatch = texto.match(/gosto de\s+(.+)/i)
+  if (gostoMatch) {
+    const atual = memoria.pegar(jid)
+    const gosto = gostoMatch[1].trim().replace(/[!.?]+$/, '')
+    const lista = Array.isArray(atual.gostos) ? [...atual.gostos] : []
+    if (gosto && !lista.includes(gosto)) lista.push(gosto)
+    memoria.atualizar(jid, { gostos: lista.slice(-10) })
+  }
 
-async function perguntarIA(texto, historico = []) {
+  // me interesso por... / curto...
+  const interesseMatch = texto.match(/(?:me interesso por|curto)\s+(.+)/i)
+  if (interesseMatch) {
+    const atual = memoria.pegar(jid)
+    const item = interesseMatch[1].trim().replace(/[!.?]+$/, '')
+    const lista = Array.isArray(atual.interesses) ? [...atual.interesses] : []
+    if (item && !lista.includes(item)) lista.push(item)
+    memoria.atualizar(jid, { interesses: lista.slice(-10) })
+  }
+}
+
+async function perguntarIA(texto, historico = [], jid = null) {
   if (!config.groqApiKey) {
     throw new Error('GROQ_API_KEY não configurada no .env')
   }
 
-  // Limpa histórico inválido
+  // salva memórias simples automaticamente
+  if (jid) capturarMemoria(jid, texto)
+
   const historicoLimpo = historico
     .filter(m => m && m.role && m.content)
     .slice(-(config.maxHistorico || 12))
 
+  const resumo = jid ? memoria.resumoMemoria(jid) : 'Ainda não há memória salva desta pessoa.'
+
+  const system = `
+${systemPromptNamy(texto)}
+
+${resumo}
+`.trim()
+
   const mensagens = [
-    { role: 'system', content: SYSTEM_PROMPT },
+    { role: 'system', content: system },
     ...historicoLimpo,
     { role: 'user', content: texto }
   ]
@@ -70,15 +84,8 @@ async function perguntarIA(texto, historico = []) {
   return conteudo || null
 }
 
-/**
- * Comando !ia
- * - !ia on / off / status / limpar  → controle (só donos)
- * - !ia <qualquer pergunta>         → conversa com a IA
- */
 async function comandoIA(ctx) {
   const acao = (ctx.args[0] || '').toLowerCase()
-
-  // Controle (só donos)
   const acoesControle = ['on', 'ligar', 'off', 'desligar', 'status', 'limpar', 'clear']
 
   if (acoesControle.includes(acao)) {
@@ -86,7 +93,6 @@ async function comandoIA(ctx) {
     return iaControle(ctx)
   }
 
-  // Pergunta livre
   const texto = ctx.args.join(' ').trim()
 
   if (!texto) {
@@ -103,14 +109,14 @@ async function comandoIA(ctx) {
   try {
     await ctx.client.sendPresenceUpdate('composing', ctx.from).catch(() => {})
 
+    const jid = ctx.senderJid || ctx.from
     const historico = iaEstado.obterHistorico(ctx.from)
-    const resposta = await perguntarIA(texto, historico)
+    const resposta = await perguntarIA(texto, historico, jid)
 
     if (!resposta) {
       return ctx.reply('🤔 Travou aqui... tenta de novo?')
     }
 
-    // Salva no histórico
     const max = config.maxHistorico || 12
     iaEstado.adicionarMensagem(ctx.from, 'user', texto, max)
     iaEstado.adicionarMensagem(ctx.from, 'assistant', resposta, max)

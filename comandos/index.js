@@ -7,10 +7,12 @@ const responda = require('./responda')
 const pegarMeme = require('./memes')
 const { recomendarFilme, recomendarAnime } = require('./recomendacoes')
 const { bomDia, boaNoite, boaTarde } = require('./saudacoes')
-const ia = require('./ia')               // comando principal de IA
+const ia = require('./ia')
 const piada = require('./piada')
 const curiosidade = require('./curiosidade')
 const conselho = require('./conselho')
+const play = require('./play')
+const sticker = require('./sticker')
 
 module.exports = {
     // Menu / ajuda
@@ -18,9 +20,9 @@ module.exports = {
     ajuda: menu,
     help: menu,
 
-    // IA (pergunta + controle)
+    // IA
     ia,
-    gemini: ia,   // alias antigo
+    gemini: ia,
 
     // Utilitários
     ping,
@@ -39,11 +41,19 @@ module.exports = {
     filme: recomendarFilme,
     anime: recomendarAnime,
 
-    // Saudações (comandos explícitos)
+    // Saudações
     'bom-dia': bomDia,
-    'bomdia': bomDia,
+    bomdia: bomDia,
     'boa-noite': boaNoite,
-    'boanoite': boaNoite,
+    boanoite: boaNoite,
     'boa-tarde': boaTarde,
-    'boatarde': boaTarde
+    boatarde: boaTarde,
+
+    // Download / figurinha
+    play,
+    musica: play,
+    s: sticker,
+    sticker,
+    f: sticker,
+    figurinha: sticker
 }

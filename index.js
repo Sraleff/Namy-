@@ -22,7 +22,6 @@ const iaEstado = require('./funcoes/ia')
 const { perguntarIA } = require('./comandos/ia')
 const pino = require('pino')
 const readline = require('readline')
-
 const config = require('./config')
 const { criarContexto } = require('./funcoes/mensagens')
 const comandos = require('./comandos')
@@ -120,7 +119,8 @@ async function ligarbot() {
                             await client.sendPresenceUpdate('composing', from).catch(() => {})
 
                             const historico = iaEstado.obterHistorico(from)
-                            const resposta = await perguntarIA(ctx.body, historico)
+                            const jid = ctx.senderJid || from
+                            const resposta = await perguntarIA(ctx.body, historico, jid)
 
                             if (resposta) {
                                 const max = config.maxHistorico || 12
@@ -190,9 +190,7 @@ async function ligarbot() {
                     // ═══════════════════════════════════════════════
                     if (!ctx.body || !ctx.isCmd) continue
 
-                    const comando =
-                        comandos[ctx.comando]
-
+                    const comando = comandos[ctx.comando]
                     if (!comando) continue
 
                     await comando(ctx)
