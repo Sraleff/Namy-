@@ -1,6 +1,9 @@
 node_modules/
 sessao/
+tmp/
 .env
-ia_estado.json
+dados/memorias.json
 ia_historico.json
-*.log
+ia_estado.json
+*.mp3
+test.*
