@@ -122,17 +122,47 @@ async function ligarbot() {
                             const jid = ctx.senderJid || from
                             const resposta = await perguntarIA(ctx.body, historico, jid)
 
-                            if (resposta) {
-                                const max = config.maxHistorico || 12
-                                iaEstado.adicionarMensagem(from, 'user', ctx.body, max)
-                                iaEstado.adicionarMensagem(from, 'assistant', resposta, max)
+if (resposta) {
+    const max = config.maxHistorico || 12
+    iaEstado.adicionarMensagem(from, 'user', ctx.body, max)
+    iaEstado.adicionarMensagem(from, 'assistant', resposta, max)
 
-                                await client.sendMessage(
-                                    from,
-                                    { text: resposta },
-                                    { quoted: info }
-                                )
-                            }
+    const textoCurto = resposta.length <= 220 // \~1 a 2 frases
+
+    if (textoCurto) {
+        // só áudio
+        try {
+            const { textoParaAudio } = require('./funcoes/tts')
+            const audio = await textoParaAudio(resposta)
+
+            if (audio) {
+                await client.sendMessage(
+                    from,
+                    {
+                        audio,
+                        mimetype: 'audio/ogg; codecs=opus',
+                        ptt: true
+                    },
+                    { quoted: info }
+                )
+            } else {
+                await client.sendMessage(from, { text: resposta }, { quoted: info })
+            }
+        } catch (e) {
+            console.error('Erro TTS:', e.message)
+            await client.sendMessage(from, { text: resposta }, { quoted: info })
+        }
+    } else {
+        // texto longo = só texto
+        await client.sendMessage(
+            from,
+            { text: resposta },
+            { quoted: info }
+        )
+    }
+}
+       
+        
                         } catch (erro) {
                             console.error(
                                 '❌ Erro na IA automática:',
