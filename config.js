@@ -1,3 +1,4 @@
+
 require('dotenv').config()
 
 const prefix = '!'
@@ -15,14 +16,12 @@ module.exports = {
     ],
 
     groqApiKey: process.env.GROQ_API_KEY,
+    xaiApiKey: process.env.XAI_API_KEY,
 
-    // Modelo da Groq (rápido e bom)
-    // Alternativas: 'llama-3.3-70b-versatile', 'openai/gpt-oss-20b', 'llama-3.1-8b-instant'
-    iaModel: 'openai/gpt-oss-20b',
+    // modelos
+    iaModelGroq: 'openai/gpt-oss-20b',
+    iaModelXai: 'grok-4.6',
 
-    // Quantidade máxima de mensagens de histórico por chat
     maxHistorico: 12,
-
-    // Delay do "digitando..." em ms
     esperar: 700
 }

@@ -3,6 +3,7 @@ const path = require('path')
 
 const arquivoEstado = path.join(__dirname, '..', 'ia_estado.json')
 const arquivoHistorico = path.join(__dirname, '..', 'ia_historico.json')
+const arquivoModo = path.join(__dirname, '..', 'ia_modo.json')
 
 function carregar(arquivo) {
   try {
@@ -22,10 +23,6 @@ function salvar(arquivo, dados) {
   }
 }
 
-// ═══════════════════════════════════════════════
-// ESTADO (liga/desliga por chat)
-// ═══════════════════════════════════════════════
-
 function estaAtiva(chatId) {
   const dados = carregar(arquivoEstado)
   return dados[chatId] === true
@@ -43,10 +40,6 @@ function desativar(chatId) {
   salvar(arquivoEstado, dados)
 }
 
-// ═══════════════════════════════════════════════
-// HISTÓRICO DE CONVERSA (memória por chat)
-// ═══════════════════════════════════════════════
-
 function obterHistorico(chatId) {
   const dados = carregar(arquivoHistorico)
   return dados[chatId] || []
@@ -58,7 +51,6 @@ function adicionarMensagem(chatId, role, content, max = 12) {
 
   dados[chatId].push({ role, content })
 
-  // Mantém só as últimas N mensagens
   if (dados[chatId].length > max) {
     dados[chatId] = dados[chatId].slice(-max)
   }
@@ -72,11 +64,24 @@ function limparHistorico(chatId) {
   salvar(arquivoHistorico, dados)
 }
 
+function obterModo(chatId) {
+  const dados = carregar(arquivoModo)
+  return dados[chatId] === 'grok' ? 'grok' : 'groq'
+}
+
+function definirModo(chatId, modo) {
+  const dados = carregar(arquivoModo)
+  dados[chatId] = modo === 'grok' ? 'grok' : 'groq'
+  salvar(arquivoModo, dados)
+}
+
 module.exports = {
   estaAtiva,
   ativar,
   desativar,
   obterHistorico,
   adicionarMensagem,
-  limparHistorico
+  limparHistorico,
+  obterModo,
+  definirModo
 }

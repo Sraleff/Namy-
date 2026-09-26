@@ -20,6 +20,7 @@ const {
 
 const iaEstado = require('./funcoes/ia')
 const { perguntarIA } = require('./comandos/ia')
+const memoria = require('./funcoes/memoria')
 const pino = require('pino')
 const readline = require('readline')
 const config = require('./config')
@@ -69,11 +70,6 @@ async function ligarbot() {
             console.log('👤 Setando contatos...')
         })
 
-        /*
-         * ═══════════════════════════════════════════════
-         * 📩 MENSAGENS
-         * ═══════════════════════════════════════════════
-         */
         client.ev.on('messages.upsert', async ({ messages, type }) => {
             if (type !== 'notify') return
 
@@ -83,7 +79,6 @@ async function ligarbot() {
                     if (info.key?.fromMe) continue
                     if (info.key?.remoteJid === 'status@broadcast') continue
 
-                    // Grupo de suporte original da base (ignorar)
                     if (
                         info.key?.remoteJid ===
                         '120363142999607164@g.us'
@@ -91,7 +86,6 @@ async function ligarbot() {
 
                     const from = info.key.remoteJid
 
-                    // Marca como lida
                     try {
                         await client.readMessages([{
                             remoteJid: from,
@@ -108,7 +102,7 @@ async function ligarbot() {
                     })
 
                     // ═══════════════════════════════════════════════
-                    // 🤖 IA AUTOMÁTICA (com memória)
+                    // 🤖 IA AUTOMÁTICA
                     // ═══════════════════════════════════════════════
                     if (
                         ctx.body &&
@@ -118,51 +112,101 @@ async function ligarbot() {
                         try {
                             await client.sendPresenceUpdate('composing', from).catch(() => {})
 
-                            const historico = iaEstado.obterHistorico(from)
-                            const jid = ctx.senderJid || from
-                            const resposta = await perguntarIA(ctx.body, historico, jid)
+                            const jid = ctx.senderJid || ctx.participant || from
+                            const isGroup = from.endsWith('@g.us')
+                            const modo = iaEstado.obterModo(from)
 
-if (resposta) {
-    const max = config.maxHistorico || 12
-    iaEstado.adicionarMensagem(from, 'user', ctx.body, max)
-    iaEstado.adicionarMensagem(from, 'assistant', resposta, max)
+                            // histórico por pessoa no grupo
+                            const chaveHistorico = isGroup ? `\( {from}: \){jid}` : from
+                            const historico = iaEstado.obterHistorico(chaveHistorico)
 
-    const textoCurto = resposta.length <= 220 // \~1 a 2 frases
+                            // memória individual
+                            const dadosPessoa = memoria.pegar(jid)
+                            const nomePessoa = dadosPessoa.nome || 'desconhecido'
 
-    if (textoCurto) {
-        // só áudio
-        try {
-            const { textoParaAudio } = require('./funcoes/tts')
-            const audio = await textoParaAudio(resposta)
+                            // contexto do grupo
+                            let contextoGrupo = ''
+                            if (isGroup) {
+                                contextoGrupo = iaEstado
+                                    .obterHistorico(`grupo:${from}`)
+                                    .slice(-8)
+                                    .map(m => m.content)
+                                    .join('\n')
+                            }
 
-            if (audio) {
-                await client.sendMessage(
-                    from,
-                    {
-                        audio,
-                        mimetype: 'audio/ogg; codecs=opus',
-                        ptt: true
-                    },
-                    { quoted: info }
-                )
-            } else {
-                await client.sendMessage(from, { text: resposta }, { quoted: info })
-            }
-        } catch (e) {
-            console.error('Erro TTS:', e.message)
-            await client.sendMessage(from, { text: resposta }, { quoted: info })
-        }
-    } else {
-        // texto longo = só texto
-        await client.sendMessage(
-            from,
-            { text: resposta },
-            { quoted: info }
-        )
-    }
-}
-       
-        
+                            const resposta = await perguntarIA(
+                                ctx.body,
+                                historico,
+                                jid,
+                                from,
+                                {
+                                    nomePessoa,
+                                    memoriaTxt: memoria.resumoMemoria(jid),
+                                    contextoGrupo
+                                }
+                            )
+
+                            if (resposta) {
+                                const max = config.maxHistorico || 12
+
+                                iaEstado.adicionarMensagem(chaveHistorico, 'user', ctx.body, max)
+                                iaEstado.adicionarMensagem(chaveHistorico, 'assistant', resposta, max)
+
+                                if (isGroup) {
+                                    iaEstado.adicionarMensagem(
+                                        `grupo:${from}`,
+                                        'user',
+                                        `${nomePessoa}: ${ctx.body}`,
+                                        16
+                                    )
+                                    iaEstado.adicionarMensagem(
+                                        `grupo:${from}`,
+                                        'assistant',
+                                        `Namy: ${resposta}`,
+                                        16
+                                    )
+                                }
+
+                                const textoCurto = resposta.length <= 220
+
+                                if (textoCurto) {
+                                    try {
+                                        const { textoParaAudio } = require('./funcoes/tts')
+                                        const audio = await textoParaAudio(resposta, modo)
+
+                                        if (audio) {
+                                            await client.sendMessage(
+                                                from,
+                                                {
+                                                    audio,
+                                                    mimetype: 'audio/ogg; codecs=opus',
+                                                    ptt: true
+                                                },
+                                                { quoted: info }
+                                            )
+                                        } else {
+                                            await client.sendMessage(
+                                                from,
+                                                { text: resposta },
+                                                { quoted: info }
+                                            )
+                                        }
+                                    } catch (e) {
+                                        console.error('Erro TTS:', e.message)
+                                        await client.sendMessage(
+                                            from,
+                                            { text: resposta },
+                                            { quoted: info }
+                                        )
+                                    }
+                                } else {
+                                    await client.sendMessage(
+                                        from,
+                                        { text: resposta },
+                                        { quoted: info }
+                                    )
+                                }
+                            }
                         } catch (erro) {
                             console.error(
                                 '❌ Erro na IA automática:',
@@ -174,28 +218,22 @@ if (resposta) {
                     }
 
                     // ═══════════════════════════════════════════════
-                    // 💬 RESPOSTAS AUTOMÁTICAS POR INTENÇÃO
+                    // 💬 INTENÇÕES
                     // ═══════════════════════════════════════════════
                     if (ctx.body && !ctx.isCmd) {
                         let encontrouIntencao = false
-
                         const texto = ctx.body.toLowerCase()
 
-                        for (
-                            const [, intencao]
-                            of Object.entries(intencoes)
-                        ) {
-                            const encontrou =
-                                intencao.padroes.some(
-                                    (padrao) => padrao.test(texto)
-                                )
+                        for (const [, intencao] of Object.entries(intencoes)) {
+                            const encontrou = intencao.padroes.some(
+                                (padrao) => padrao.test(texto)
+                            )
 
                             if (encontrou) {
                                 const resposta =
                                     intencao.respostas[
                                         Math.floor(
-                                            Math.random() *
-                                            intencao.respostas.length
+                                            Math.random() * intencao.respostas.length
                                         )
                                     ]
 
@@ -210,9 +248,7 @@ if (resposta) {
                             }
                         }
 
-                        if (encontrouIntencao) {
-                            continue
-                        }
+                        if (encontrouIntencao) continue
                     }
 
                     // ═══════════════════════════════════════════════
@@ -234,17 +270,8 @@ if (resposta) {
             }
         })
 
-        /*
-         * ═══════════════════════════════════════════════
-         * 🌐 CONEXÃO
-         * ═══════════════════════════════════════════════
-         */
         client.ev.on('connection.update', async (update) => {
-            const {
-                connection,
-                lastDisconnect,
-                qr
-            } = update
+            const { connection, lastDisconnect, qr } = update
 
             if (
                 qr &&
@@ -257,112 +284,61 @@ if (resposta) {
                     '🌸 Por favor, me diga seu número (com DDI, ex: 5511999999999):\n'
                 )
 
-                const Numero =
-                    Pergunta.replace(/[^0-9]/g, '')
+                const Numero = Pergunta.replace(/[^0-9]/g, '')
 
                 if (!Numero || Numero.length < 10) {
-                    console.log(
-                        '❌ Número inválido. Reinicie o bot e tente novamente.'
-                    )
-
+                    console.log('❌ Número inválido. Reinicie o bot e tente novamente.')
                     jaPareou = false
                     isConnecting = false
                     return
                 }
 
                 try {
-                    let codigo =
-                        await client.requestPairingCode(Numero)
+                    let codigo = await client.requestPairingCode(Numero)
+                    codigo = codigo?.match(/.{1,4}/g)?.join('-') || codigo
 
-                    codigo =
-                        codigo?.match(/.{1,4}/g)?.join('-') ||
-                        codigo
-
-                    console.log(
-                        `\n🔐 Código de Pareamento: ${codigo}\n`
-                    )
-
-                    console.log(
-                        'Abra o WhatsApp > Aparelhos conectados > Conectar com número\n'
-                    )
-
+                    console.log(`\n🔐 Código de Pareamento: ${codigo}\n`)
+                    console.log('Abra o WhatsApp > Aparelhos conectados > Conectar com número\n')
                 } catch (err) {
-                    console.error(
-                        '❌ Erro ao solicitar código de pareamento:',
-                        err?.message || err
-                    )
-
+                    console.error('❌ Erro ao solicitar código de pareamento:', err?.message || err)
                     jaPareou = false
                 }
             }
 
             if (connection === 'open') {
                 isConnecting = false
-
-                console.log(
-                    '╭────────────────────────────╮'
-                )
-                console.log(
-                    '│ 🌸 NAMY CONECTADA!          │'
-                )
-                console.log(
-                    `│ 📦 Versão: ${config.version.padEnd(16)}│`
-                )
-                console.log(
-                    '│ 🤖 Bot pronto para uso.     │'
-                )
-                console.log(
-                    '╰────────────────────────────╯'
-                )
+                console.log('╭────────────────────────────╮')
+                console.log('│ 🌸 NAMY CONECTADA!          │')
+                console.log(`│ 📦 Versão: ${config.version.padEnd(16)}│`)
+                console.log('│ 🤖 Bot pronto para uso.     │')
+                console.log('╰────────────────────────────╯')
             }
 
             if (connection === 'close') {
                 isConnecting = false
+                const statusCode = lastDisconnect?.error?.output?.statusCode
 
-                const statusCode =
-                    lastDisconnect?.error?.output?.statusCode
+                console.log('❌ Conexão fechada. Código:', statusCode)
 
-                console.log(
-                    '❌ Conexão fechada. Código:',
-                    statusCode
-                )
-
-                if (
-                    statusCode !==
-                    DisconnectReason.loggedOut
-                ) {
-                    console.log(
-                        '🔄 Reconectando em 3 segundos...'
-                    )
-
+                if (statusCode !== DisconnectReason.loggedOut) {
+                    console.log('🔄 Reconectando em 3 segundos...')
                     setTimeout(() => {
                         jaPareou = false
                         ligarbot()
                     }, 3000)
-
                 } else {
-                    console.log(
-                        '🚪 Sessão encerrada. Apague a pasta "sessao" e pareie novamente.'
-                    )
+                    console.log('🚪 Sessão encerrada. Apague a pasta "sessao" e pareie novamente.')
                 }
             }
         })
 
     } catch (erro) {
         isConnecting = false
-
-        console.error(
-            '💥 Erro ao iniciar a Namy:',
-            erro
-        )
-
+        console.error('💥 Erro ao iniciar a Namy:', erro)
         setTimeout(() => ligarbot(), 5000)
     }
 }
 
 ligarbot().catch((erro) => {
-    console.error(
-        '💥 Erro fatal ao iniciar a Namy:',
-        erro
-    )
+    console.error('💥 Erro fatal ao iniciar a Namy:', erro)
 })
