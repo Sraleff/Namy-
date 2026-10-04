@@ -1,3 +1,20 @@
+<img src="https://readme-typing-svg.herokuapp.com/?font=mono&size=30&duration=4000&color=FF0000&center=falso&vCenter=falso&lines=Namy-bot.AI;ASS+BOT+AI+𝐁𝐑;Sraleff">
+
+<h1 align="center">
+<p>
+<img src="https://github.com/Sraleff/Namy-/blob/main/media/namy.jpg?raw=true" alt="Namy" width="720">
+</p>
+</h1>
+
+<p align="center">
+<a href="#"><img title="BOT MULTI DEVICE" src="https://img.shields.io/badge/BOT%20MULTI%20DEVICE-blue?&style=for-the-badge"></a>
+</p>
+
+<p align="center">
+<img title="Autor" src="https://img.shields.io/badge/Autor-Sraleff-orange.svg?style=for-the-badge&logo=github">
+<img title="Versão" src="https://img.shields.io/badge/Versão-3.0.0-orange.svg?style=for-the-badge&logo=github">
+</p>
+
 # Namy 3.0
 
 Assistente de WhatsApp com cérebro modular, fallback Groq → xAI → Gemini, memória em camadas, IA automática inteligente, grupos, lembretes, jogos, plugins e divulgação opcional da Shopee Afiliados.
@@ -54,20 +71,21 @@ Siga o arquivo **`INSTALAR-TERMUX.md`**. Ele instala Node, ffmpeg (figurinhas), 
 
 **Já tem a Namy no celular?** Não reinstale. O topo do `INSTALAR-TERMUX.md` tem o bloco “Atualize por cima”: para o bot, extrai o zip novo **por cima do código**, e **não toca** em `sessao/`, `.env` nem `dados/`.
 
-Resumo (instalação nova):
+Pelo GitHub:
 
 ```bash
-pkg update -y && pkg upgrade -y
+cd ~
+git clone https://github.com/Sraleff/Namy-.git
+cd Namy-
 pkg install nodejs-lts git python ffmpeg -y
 pip install -U yt-dlp edge-tts
-cd ~/Namy3
 npm install
 cp .env.example .env
 nano .env
 node index.js
 ```
 
-**Não rode `npm install` no `/sdcard`.** O Android bloqueia symlink e a instalação quebra. Extraia em `~/Namy3`.
+**Não rode `npm install` no `/sdcard`.** O Android bloqueia symlink e a instalação quebra.
 
 Se você já tinha a 2.3 pareada, **copie a pasta `sessao/`** para cá. Não apague.
 
