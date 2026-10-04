@@ -2,8 +2,15 @@ node_modules/
 sessao/
 tmp/
 .env
+dados/namy.json
 dados/memorias.json
+dados/shopee.json
+dados/shopee.json.bak
+dados/shopee.json.tmp
 ia_historico.json
 ia_estado.json
+ia_modo.json
+ia_provedor.json
 *.mp3
 test.*
+.DS_Store

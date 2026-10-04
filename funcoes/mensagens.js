@@ -1,62 +1,36 @@
-/**
- * Utilitários de mensagem e contexto do bot.
- */
-
 function obterTipoMensagem(message) {
     if (!message) return null
-
     const tipos = Object.keys(message)
 
-    // Mensagens de grupo às vezes vêm com senderKeyDistributionMessage primeiro
-    if (
-        tipos[0] === 'senderKeyDistributionMessage' &&
-        tipos[1] === 'messageContextInfo'
-    ) {
+    if (tipos[0] === 'senderKeyDistributionMessage' && tipos[1] === 'messageContextInfo') {
         return tipos[2] || null
     }
-
     if (tipos[0] === 'senderKeyDistributionMessage') {
         return tipos[1] || null
     }
-
     return tipos[0]
 }
 
 function obterBody(info) {
     const message = info?.message
     if (!message) return ''
-
     const type = obterTipoMensagem(message)
 
     switch (type) {
         case 'conversation':
             return message.conversation || ''
-
         case 'extendedTextMessage':
             return message.extendedTextMessage?.text || ''
-
         case 'imageMessage':
             return message.imageMessage?.caption || ''
-
         case 'videoMessage':
             return message.videoMessage?.caption || ''
-
         case 'buttonsResponseMessage':
             return message.buttonsResponseMessage?.selectedButtonId || ''
-
         case 'listResponseMessage':
-            return (
-                message.listResponseMessage
-                    ?.singleSelectReply
-                    ?.selectedRowId || ''
-            )
-
+            return message.listResponseMessage?.singleSelectReply?.selectedRowId || ''
         case 'templateButtonReplyMessage':
-            return (
-                message.templateButtonReplyMessage
-                    ?.selectedId || ''
-            )
-
+            return message.templateButtonReplyMessage?.selectedId || ''
         case 'messageContextInfo':
             return (
                 message.buttonsResponseMessage?.selectedButtonId ||
@@ -64,45 +38,46 @@ function obterBody(info) {
                 message.extendedTextMessage?.text ||
                 ''
             )
-
         default:
             return ''
     }
 }
 
-/**
- * Extrai um nome legível do remetente.
- */
 function obterNomeRemetente(info) {
     const pushName = info.pushName || info.verifiedBizName
-    if (pushName && String(pushName).trim()) {
-        return String(pushName).trim()
-    }
-
+    if (pushName && String(pushName).trim()) return String(pushName).trim()
     const jid = info.key?.participant || info.key?.remoteJid || ''
-    const numero = jid.split('@')[0]
-    return numero || 'amigo(a)'
+    return jid.split('@')[0] || 'amigo(a)'
 }
 
-/**
- * Cria o objeto de contexto passado para todos os comandos.
- */
+function obterContextInfo(info) {
+    const msg = info?.message || {}
+    return (
+        msg.extendedTextMessage?.contextInfo ||
+        msg.imageMessage?.contextInfo ||
+        msg.videoMessage?.contextInfo ||
+        msg.conversation?.contextInfo ||
+        {}
+    )
+}
+
 function criarContexto({ client, info, prefix, esperar }) {
     const from = info.key.remoteJid
     const body = obterBody(info).trim()
     const isCmd = body.startsWith(prefix)
-
     const partes = isCmd
         ? body.slice(prefix.length).trim().split(/\s+/).filter(Boolean)
         : []
-
     const comando = (partes.shift() || '').toLowerCase()
     const args = partes
     const texto = args.join(' ')
-
     const isGroup = from.endsWith('@g.us')
     const senderName = obterNomeRemetente(info)
     const senderJid = info.key.participant || from
+    const contextInfo = obterContextInfo(info)
+    const mentionedJid = contextInfo.mentionedJid || []
+    const quotedParticipant = contextInfo.participant || null
+    const quotedMessage = contextInfo.quotedMessage || null
 
     const reply = async (textoResposta) => {
         return client.sendMessage(
@@ -112,14 +87,10 @@ function criarContexto({ client, info, prefix, esperar }) {
         )
     }
 
-    /** Envia mensagem com efeito "digitando..." */
     const escrever = async (textoResposta) => {
         try {
             await client.sendPresenceUpdate('composing', from)
-        } catch (_) {
-            // presença é opcional
-        }
-
+        } catch (_) {}
         await new Promise((resolve) => setTimeout(resolve, esperar))
         return reply(textoResposta)
     }
@@ -137,6 +108,11 @@ function criarContexto({ client, info, prefix, esperar }) {
         isGroup,
         senderName,
         senderJid,
+        participant: senderJid,
+        mentionedJid,
+        quotedParticipant,
+        quotedMessage,
+        contextInfo,
         reply,
         escrever
     }
@@ -146,5 +122,6 @@ module.exports = {
     criarContexto,
     obterBody,
     obterTipoMensagem,
-    obterNomeRemetente
+    obterNomeRemetente,
+    obterContextInfo
 }

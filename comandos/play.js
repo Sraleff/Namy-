@@ -18,13 +18,11 @@ function limparArquivo(arquivo) {
 
 module.exports = async function play(ctx) {
     const query = (ctx.texto || ctx.args.join(' ') || '').trim()
-
     if (!query) {
         return ctx.reply('🎧 Uso: *!play nome da música*\nEx: !play believer')
     }
 
     garantirTmp()
-
     const id = Date.now()
     const outTemplate = path.join(tmpDir, `play_${id}.%(ext)s`)
 
@@ -46,15 +44,14 @@ module.exports = async function play(ctx) {
         })
 
         const arquivos = fs.readdirSync(tmpDir)
-            .filter(f => f.startsWith(`play_${id}`))
-            .map(f => path.join(tmpDir, f))
+            .filter((f) => f.startsWith(`play_${id}`))
+            .map((f) => path.join(tmpDir, f))
 
         if (!arquivos.length) {
             return ctx.reply('❌ Não encontrei essa música.')
         }
 
         const arquivo = arquivos[0]
-
         await ctx.client.sendMessage(ctx.from, {
             audio: fs.readFileSync(arquivo),
             mimetype: 'audio/mpeg',
@@ -63,7 +60,18 @@ module.exports = async function play(ctx) {
 
         limparArquivo(arquivo)
     } catch (erro) {
-        console.error('Erro no !play:', erro.message || erro)
+        const msg = String(erro?.message || erro)
+        console.error('Erro no !play:', msg)
+        if (/ENOENT|not found|yt-dlp/i.test(msg)) {
+            return ctx.reply(
+                '❌ *yt-dlp* não está instalado.\n\n' +
+                'No Termux:\n`pkg install python ffmpeg`\n`pip install -U yt-dlp`\n\n' +
+                'Depois: `!play believer`'
+            )
+        }
+        if (/ffmpeg/i.test(msg)) {
+            return ctx.reply('❌ Falta *ffmpeg*. No Termux: `pkg install ffmpeg`')
+        }
         await ctx.reply('❌ Falhou ao baixar. Tenta outro nome.')
     }
 }

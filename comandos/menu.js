@@ -4,64 +4,80 @@ const path = require('path')
 
 module.exports = async function menu(ctx) {
     const caminhoImagem = path.join(__dirname, '..', 'media', 'namy.jpg')
+    const p = config.prefix
 
     const menuTexto = `
 ╭━━━━━━━━━━━━━━━━━━╮
-┃  🌸 *NAMY BOT* 🌸
-┃  ✨ Assistente Inteligente
+┃  NAMY BOT  ·  v${config.version}
+┃  Assistente modular
 ╰━━━━━━━━━━━━━━━━━━╯
 
-╭━━━〔 📌 INFORMAÇÕES 〕━━━╮
-┃ ➤ ${config.prefix}menu
-┃ ➤ ${config.prefix}ping
-┃ ➤ ${config.prefix}info
-┃ ➤ ${config.prefix}dono
+╭━━ INFORMAÇÕES ━━╮
+┃ ${p}menu  ${p}ping  ${p}info  ${p}dono  ${p}stats
 ╰━━━━━━━━━━━━━━━━━━╯
 
-╭━━━〔 😂 DIVERSÃO 〕━━━╮
-┃ ➤ ${config.prefix}meme
-┃ ➤ ${config.prefix}piada
-┃ ➤ ${config.prefix}curiosidade
-┃ ➤ ${config.prefix}conselho
+╭━━ IA ━━━━━━━━━━━╮
+┃ ${p}ia [pergunta]
+┃ ${p}ia on / off / status
+┃ ${p}ia modo auto | grok | groq | gemini
+┃ ${p}ia nivel 50
+┃ ${p}memoria  ·  ${p}memoria limpar
+┃ ${p}memoria esquecer nome
 ╰━━━━━━━━━━━━━━━━━━╯
 
-╭━━━〔 🎬 RECOMENDAÇÕES 〕━━━╮
-┃ ➤ ${config.prefix}filme [gênero]
-┃ ➤ ${config.prefix}anime [gênero]
+╭━━ MÍDIA ━━━━━━━━╮
+┃ ${p}s / ${p}sticker  (imagem/gif)
+┃ ${p}play [música]
 ╰━━━━━━━━━━━━━━━━━━╯
 
-╭━━━〔 🤖 IA 〕━━━╮
-┃ ➤ ${config.prefix}ia [pergunta]
-┃ ➤ ${config.prefix}ia on / off
-┃ ➤ ${config.prefix}ia limpar
+╭━━ GRUPO ━━━━━━━━╮
+┃ ${p}ban  ${p}kick  ${p}unban
+┃ ${p}promover  ${p}rebaixar
+┃ ${p}admins  ${p}membros  ${p}grupo
+┃ ${p}bemvindo on  ${p}despedida on
+┃ ${p}antilink on  ${p}antispam on
 ╰━━━━━━━━━━━━━━━━━━╯
 
-╭━━━〔 💬 CONVERSA 〕━━━╮
-┃ ➤ Diga "oi", "bom dia", "boa tarde"
-┃ ➤ Diga "obrigado", "tchau", "piada"
-┃ ➤ ${config.prefix}bom-dia / ${config.prefix}boa-noite
+╭━━ UTILIDADES ━━━╮
+┃ ${p}clima Serra
+┃ ${p}cotacao dolar
+┃ ${p}cep 29160000
+┃ ${p}traduzir en olá
+┃ ${p}wiki inteligência artificial
+┃ ${p}noticias tecnologia
+┃ ${p}lembrar 30m tomar água
+┃ ${p}lembretes
 ╰━━━━━━━━━━━━━━━━━━╯
 
-╭━━━━━━━━━━━━━━━━━━╮
-┃ ✨ *STATUS DA NAMY*
-┃ 📦 Versão: ${config.version}
-┃ 👨‍💻 Dev: ${config.developer}
-┃ ⚡ Energia: 100%
-┃ 😊 Humor: 98%
-┃ 📶 Status: Online
+╭━━ SHOPEE ━━━━━━━╮
+┃ ${p}shopee status
+┃ ${p}shopee cadastrar  (no grupo)
+┃ ${p}shopee on / off
+┃ ${p}shopee todos on   (só cadastrados)
 ╰━━━━━━━━━━━━━━━━━━╯
 
-🌸 *Namy v${config.version} — sempre evoluindo!*
+╭━━ JOGOS ━━━━━━━━╮
+┃ ${p}quiz  ${p}forca  ${p}jokenpo
+┃ ${p}numero  ${p}velha  ${p}adivinhe
+┃ ${p}verdade  ${p}desafio  ${p}rank
+╰━━━━━━━━━━━━━━━━━━╯
+
+╭━━ DIVERSÃO ━━━━━╮
+┃ ${p}meme  ${p}piada  ${p}curiosidade
+┃ ${p}conselho  ${p}filme  ${p}anime
+╰━━━━━━━━━━━━━━━━━━╯
+
+Chama "Namy" no grupo com a IA ligada.
+Ela decide se entra — não responde cada kkkk.
+
+Dev: ${config.developer}
 `.trim()
 
     try {
         if (fs.existsSync(caminhoImagem)) {
             await ctx.client.sendMessage(
                 ctx.from,
-                {
-                    image: { url: caminhoImagem },
-                    caption: menuTexto
-                },
+                { image: { url: caminhoImagem }, caption: menuTexto },
                 { quoted: ctx.info }
             )
         } else {

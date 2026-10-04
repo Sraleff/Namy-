@@ -1,7 +1,7 @@
 {
   "name": "namy-bot",
-  "version": "2.2.0",
-  "description": "Namy Bot para WhatsApp usando Baileys — assistente fofa e inteligente",
+  "version": "3.0.0",
+  "description": "Namy 3.0 — assistente WhatsApp com cérebro modular, fallback Groq/xAI/Gemini, grupos, jogos e plugins",
   "main": "index.js",
   "scripts": {
     "start": "node index.js",
