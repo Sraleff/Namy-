@@ -1,41 +1,49 @@
-# Namy 3.1 — base multi-tenant (Painel Master via WhatsApp)
+# Namy 3.1 — aluguel do bot (cada cliente com a própria API)
 
-Primeira etapa da plataforma SaaS de afiliados. Ainda **não** existe painel web; o controle Master é feito pelos donos (`OWNERS`) com `!cliente`.
+## Configurar (uma vez)
 
-## Regra
+No `.env`:
 
-Tudo que pertence à plataforma (clientes, planos, limites, vencimento) fica no Master. Grupo sem cliente vinculado continua sendo da plataforma — o comportamento antigo da Shopee não muda.
-
-## Dados
-
-`dados/saas.json` (escrita atômica, `.bak`, permissão 600). Separado de `namy.json` e `shopee.json`. Não compartilhe.
-
-```
-tenants: { <id>: { nome, plano, ativo, venceEm, criadoEm } }
-grupos:  { <jid do grupo>: <id do cliente> }
-uso:     { <id>: { 'AAAA-MM-DD': publicações } }  (últimos 30 dias)
+```env
+SAAS_MASTER_KEY=<gere com: node -e "console.log(require('crypto').randomBytes(32).toString('hex'))">
 ```
 
-## O que é aplicado
-
-- Cliente inativo ou vencido → o scheduler da Shopee pula os grupos dele.
-- Limite diário de anúncios do plano somado entre todos os grupos do cliente.
-- Limite de grupos do plano ao vincular.
-- Um grupo pertence a no máximo um cliente.
+Guarde essa chave fora do celular também. Perdeu/trocou = clientes recadastram as chaves.
 
 ## Fluxo
 
+Dono (Painel Master):
 ```
 !cliente criar joao pro João Silva
-(no grupo) !cliente vincular joao
-(no grupo) !shopee cadastrar
-(no grupo) !shopee on
+!cliente admin joao 5511999999999
 ```
 
-## Próximas etapas
+Cliente, no PRIVADO com o bot:
+```
+!minhaconta shopee <AppId> <Secret>   (validado na Shopee antes de salvar)
+!minhaconta ia groq <chave>
+!minhaconta status
+```
 
-1. Credenciais Shopee por cliente (criptografadas com chave do `.env`).
-2. Camada `AffiliateProvider` (Shopee, Mercado Livre, Amazon...).
-3. Painel web do cliente com login próprio, vendo só os dados dele.
-4. Banco real (SQLite/Postgres) com `tenant_id` em toda tabela quando passar de um processo.
-5. Cobrança/assinatura automática.
+Cliente, dentro do grupo dele (precisa ser admin do grupo):
+```
+!minhaconta vincular
+!minhaconta ligar
+!minhaconta intervalo 2h | limite 10 | horario 09:00-22:00 | keyword fone
+```
+
+## Regras
+
+- Grupo de cliente usa SOMENTE as chaves do cliente. Chaves da casa só com `!minhaconta casa on` e plano que permite (Pro/Premium).
+- Sem chave Shopee → grupo pausado, nunca cai na sua conta.
+- Sem chave de IA → ofertas saem com template local; IA não responde no grupo.
+- Chave recusada pela Shopee → só aquele grupo pausa 6h; outros clientes seguem.
+- Cliente inativo/vencido → sem publicações e sem IA nos grupos dele.
+- Chaves cifradas AES-256-GCM em `dados/saas.json`; nunca aparecem inteiras (só `gsk_…a1b2`).
+- Chave mandada em grupo é apagada (se o bot for admin) e recusada.
+
+## Próximo
+
+- Ligar o painel Namy Cloud a este mesmo cofre (API HTTP autenticada).
+- Banco real com `tenant_id` quando houver mais de um processo.
+- Cobrança automática.
