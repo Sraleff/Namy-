@@ -6,6 +6,8 @@ const publisher = require('./publisher')
 const wa = require('./wa')
 const { log } = require('./log')
 const saas = require('../saas/tenants')
+const credenciais = require('../saas/credenciais')
+const contexto = require('../saas/contexto')
 
 let timer = null
 let kickTimer = null
@@ -59,11 +61,11 @@ function resetDia(g) {
     return g
 }
 
-function permitidoPeloPlano(jid) {
+// Plano + chaves do grupo. Erro no controle nunca libera publicação por engano.
+function resolver(jid) {
     try {
-        return saas.podePublicar(jid)
+        return credenciais.paraGrupoShopee(jid)
     } catch (e) {
-        // Falha no controle de clientes nunca libera publicação de grupo vinculado por engano
         log('saas indisponível:', e.message)
         return { ok: false, motivo: 'saas_erro' }
     }
@@ -82,32 +84,20 @@ function proximoGrupo() {
         if ((g.postsHoje || 0) >= (g.limiteDiario || 5)) continue
         const next = Number(g.nextRunAt || 0)
         if (next > agora) continue
-        if (!permitidoPeloPlano(jid).ok) continue
+        const r = resolver(jid)
+        if (!r.ok) continue
+        // trava de auth da casa só bloqueia grupos da casa
+        if (!r.creds && s.authFailed) continue
         if (!melhor || next < melhor.next) melhor = { jid, g, next }
     }
     return melhor
 }
 
-async function publicarGrupo(jid, g) {
-    if (!wa.aberto(clientRef)) {
-        const err = new Error('whatsapp_offline')
-        err.code = 'WA'
-        throw err
-    }
-    const plano = permitidoPeloPlano(jid)
-    if (!plano.ok) {
-        log(`Bloqueado pelo plano (${plano.motivo})`)
-        grupos.patch(jid, { nextRunAt: Date.now() + 30 * 60 * 1000, lastError: plano.motivo })
-        return
-    }
-    log(`Grupo autorizado`)
+async function publicarComCreds(jid, g) {
     log(`Publicando em ${g.nome || jid}`)
     const produto = await produtos.selecionar(jid, g)
     if (!produto) {
-        grupos.patch(jid, {
-            nextRunAt: Date.now() + 15 * 60 * 1000,
-            lastError: 'sem_produto'
-        })
+        grupos.patch(jid, { nextRunAt: Date.now() + 15 * 60 * 1000, lastError: 'sem_produto' })
         log('nenhum produto válido agora')
         return
     }
@@ -116,7 +106,6 @@ async function publicarGrupo(jid, g) {
         grupos.patch(jid, { nextRunAt: Date.now() + 5 * 60 * 1000 })
         return
     }
-
     if (!wa.aberto(clientRef) || !online) {
         const err = new Error('whatsapp_offline')
         err.code = 'WA'
@@ -126,10 +115,9 @@ async function publicarGrupo(jid, g) {
     await publisher.publicar(clientRef, jid, produto)
     try { saas.registrarPublicacao(jid) } catch (e) { log('uso não registrado:', e.message) }
     const intervalo = Math.max(15, Number(g.intervaloMinutos) || 120)
-    const posts = (g.postsHoje || 0) + 1
     const next = Date.now() + intervalo * 60 * 1000
     grupos.patch(jid, {
-        postsHoje: posts,
+        postsHoje: (g.postsHoje || 0) + 1,
         dia: hojeSP(),
         lastPublishAt: Date.now(),
         nextRunAt: next,
@@ -139,12 +127,25 @@ async function publicarGrupo(jid, g) {
     log(`Próxima publicação: ${new Date(next).toLocaleString('pt-BR')}`)
 }
 
+async function publicarGrupo(jid, g) {
+    if (!wa.aberto(clientRef)) {
+        const err = new Error('whatsapp_offline')
+        err.code = 'WA'
+        throw err
+    }
+    const r = resolver(jid)
+    if (!r.ok) {
+        log(`Bloqueado (${r.motivo})`)
+        grupos.patch(jid, { nextRunAt: Date.now() + 30 * 60 * 1000, lastError: r.motivo })
+        return
+    }
+    return contexto.executar(r.creds, () => publicarComCreds(jid, g))
+}
+
 async function tick() {
     if (!online || ocupado || !clientRef) return
     if (!cfg.habilitado()) return
     if (!wa.aberto(clientRef)) return
-    const s = store.carregar()
-    if (s.authFailed) return
 
     const alvo = proximoGrupo()
     if (!alvo) return
@@ -167,12 +168,18 @@ async function tick() {
             log('Erro na API')
             return
         }
+        if (code === 'AUTH_TENANT' || code === 'NO_CREDS') {
+            // chave do cliente inválida/ausente: pausa só este grupo por 6h
+            grupos.patch(alvo.jid, {
+                cooldownUntil: Date.now() + 6 * 60 * 60 * 1000,
+                nextRunAt: Date.now() + 6 * 60 * 60 * 1000,
+                lastError: code === 'AUTH_TENANT' ? 'credencial_invalida' : 'sem_credenciais'
+            })
+            return
+        }
         if (code === 'WA' || wa.queda(erro)) {
             log('WhatsApp offline, publicação adiada')
-            grupos.patch(alvo.jid, {
-                nextRunAt: Date.now() + 20 * 1000,
-                lastError: 'whatsapp'
-            })
+            grupos.patch(alvo.jid, { nextRunAt: Date.now() + 20 * 1000, lastError: 'whatsapp' })
             return
         }
         const cooldown = code === 'RATE' ? 15 : 10
