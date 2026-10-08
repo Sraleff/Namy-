@@ -1,7 +1,7 @@
 /*
 ╭──────────────────────────────────────────────╮
 │                 NAMY BOT                     │
-│              Versão 3.0.0                    │
+│              Versão 3.1.0                    │
 │                                              │
 │ Base original: Rony / Spectrum              │
 │ Pairing/conexão preservados                 │
@@ -27,11 +27,17 @@ const router = require('./funcoes/ia/router')
 const grupo = require('./funcoes/grupo')
 const stats = require('./funcoes/stats')
 const lembretes = require('./funcoes/lembretes')
+const ratelimit = require('./funcoes/ratelimit')
 let shopee = { iniciar: async () => ({ ok: false, motivo: 'ausente' }), parar: () => {} }
 try {
     shopee = require('./shopee')
 } catch (e) {
     console.error('[SHOPEE] modulo indisponivel (bot segue):', e?.message || e)
+}
+try {
+    if (!comandos.cliente) comandos.cliente = require('./saas/commands')
+} catch (e) {
+    console.error('[SAAS] modulo indisponivel (bot segue):', e?.message || e)
 }
 const { migrarSePreciso } = require('./funcoes/migrar')
 const { imprimir: imprimirDeps } = require('./funcoes/deps')
@@ -48,6 +54,19 @@ const rl = readline.createInterface({
 })
 
 const question = (text) => new Promise((resolve) => rl.question(text, resolve))
+
+process.on('unhandledRejection', (e) => {
+    console.error('⚠️  Promise não tratada (bot segue):', e?.message || e)
+})
+
+function dentroDoLimite(ctx) {
+    if (ehDono(ctx, config)) return true
+    return ratelimit.permitir(
+        ctx.senderJid || ctx.from,
+        config.rateLimitMax,
+        config.rateLimitJanelaSeg * 1000
+    )
+}
 
 async function responderIA(client, ctx, info, from, texto) {
     await client.sendPresenceUpdate('composing', from).catch(() => {})
@@ -129,7 +148,7 @@ async function ligarbot() {
                     if (!info?.message) continue
                     if (info.key?.fromMe) continue
                     if (info.key?.remoteJid === 'status@broadcast') continue
-                    if (info.key?.remoteJid === '120363142999607164@g.us') continue
+                    if (config.ignorarJids.includes(info.key?.remoteJid)) continue
 
                     const from = info.key.remoteJid
 
@@ -176,6 +195,7 @@ async function ligarbot() {
                     if (ctx.body && ctx.isCmd) {
                         const comando = comandos[ctx.comando]
                         if (comando) {
+                            if (!dentroDoLimite(ctx)) continue
                             stats.registrarComando(ctx.comando)
                             await comando(ctx)
                             continue
@@ -192,6 +212,7 @@ async function ligarbot() {
                         if (ferramenta && (avaliacao.sim || !ctx.isGroup)) {
                             const handler = comandos[ferramenta]
                             if (handler) {
+                                if (!dentroDoLimite(ctx)) continue
                                 ctx.args = ctx.body.split(/\s+/).slice(1)
                                 ctx.texto = ctx.args.join(' ')
                                 await handler(ctx)
@@ -199,12 +220,12 @@ async function ligarbot() {
                             }
                         }
 
-                        if (avaliacao.sim) {
+                        if (avaliacao.sim && dentroDoLimite(ctx)) {
                             let respondeuIA = false
                             try {
                                 respondeuIA = await responderIA(client, ctx, info, from, ctx.body)
                             } catch (erro) {
-                                console.error('❌ Erro na IA automática:', erro.response?.data || erro.message)
+                                console.error('❌ Erro na IA automática:', erro.response?.status || erro.message)
                             }
                             if (respondeuIA) continue
                         }
@@ -270,7 +291,7 @@ async function ligarbot() {
                     console.error('[SHOPEE] falha ao iniciar (bot segue):', e?.message || e)
                 })
                 console.log('╭────────────────────────────╮')
-                console.log('│  NAMY CONECTADA  3.0        │')
+                console.log('│  NAMY CONECTADA  3.1        │')
                 console.log(`│  Versão: ${config.version.padEnd(17)}│`)
                 console.log('│  Cérebro modular pronto.    │')
                 console.log('╰────────────────────────────╯')

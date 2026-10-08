@@ -5,6 +5,7 @@ const produtos = require('./produtos')
 const publisher = require('./publisher')
 const wa = require('./wa')
 const { log } = require('./log')
+const saas = require('../saas/tenants')
 
 let timer = null
 let kickTimer = null
@@ -58,6 +59,16 @@ function resetDia(g) {
     return g
 }
 
+function permitidoPeloPlano(jid) {
+    try {
+        return saas.podePublicar(jid)
+    } catch (e) {
+        // Falha no controle de clientes nunca libera publicação de grupo vinculado por engano
+        log('saas indisponível:', e.message)
+        return { ok: false, motivo: 'saas_erro' }
+    }
+}
+
 function proximoGrupo() {
     const s = store.carregar()
     if (s.global.pausado) return null
@@ -71,6 +82,7 @@ function proximoGrupo() {
         if ((g.postsHoje || 0) >= (g.limiteDiario || 5)) continue
         const next = Number(g.nextRunAt || 0)
         if (next > agora) continue
+        if (!permitidoPeloPlano(jid).ok) continue
         if (!melhor || next < melhor.next) melhor = { jid, g, next }
     }
     return melhor
@@ -81,6 +93,12 @@ async function publicarGrupo(jid, g) {
         const err = new Error('whatsapp_offline')
         err.code = 'WA'
         throw err
+    }
+    const plano = permitidoPeloPlano(jid)
+    if (!plano.ok) {
+        log(`Bloqueado pelo plano (${plano.motivo})`)
+        grupos.patch(jid, { nextRunAt: Date.now() + 30 * 60 * 1000, lastError: plano.motivo })
+        return
     }
     log(`Grupo autorizado`)
     log(`Publicando em ${g.nome || jid}`)
@@ -106,6 +124,7 @@ async function publicarGrupo(jid, g) {
     }
 
     await publisher.publicar(clientRef, jid, produto)
+    try { saas.registrarPublicacao(jid) } catch (e) { log('uso não registrado:', e.message) }
     const intervalo = Math.max(15, Number(g.intervaloMinutos) || 120)
     const posts = (g.postsHoje || 0) + 1
     const next = Date.now() + intervalo * 60 * 1000
