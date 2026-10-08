@@ -1,3 +1,5 @@
+const { lerResposta } = require('./menuLista')
+
 function obterTipoMensagem(message) {
     if (!message) return null
     const tipos = Object.keys(message)
@@ -14,6 +16,11 @@ function obterTipoMensagem(message) {
 function obterBody(info) {
     const message = info?.message
     if (!message) return ''
+
+    // Resposta da lista interativa (single_select)
+    const escolhaLista = lerResposta(message)
+    if (escolhaLista) return escolhaLista
+
     const type = obterTipoMensagem(message)
 
     switch (type) {
