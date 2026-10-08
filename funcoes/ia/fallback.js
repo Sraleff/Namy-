@@ -14,7 +14,7 @@ async function perguntarComFallback({ mensagens, modo, chatId }) {
     const ultimo = chatId ? db.get('settings', `provedor:${chatId}`, null) : null
     const provedores = montarLista(modo, ultimo)
     if (!provedores.length) {
-        throw new Error('Nenhuma chave de IA configurada. Configure GROQ_API_KEY, XAI_API_KEY ou GEMINI_API_KEY no .env.')
+        throw new Error('Nenhuma chave de IA configurada para este chat.')
     }
 
     let ultimoErro = null
@@ -29,7 +29,8 @@ async function perguntarComFallback({ mensagens, modo, chatId }) {
             }
         } catch (erro) {
             ultimoErro = erro
-            console.error(`IA ${provedor.nome} falhou:`, erro.response?.data || erro.message)
+            // só status/mensagem curta: nunca o request (que carrega a chave)
+            console.error(`IA ${provedor.nome} falhou:`, erro.response?.status || erro.code || erro.message)
             if (!erroDeFallback(erro) && modo !== 'auto') throw erro
         }
     }

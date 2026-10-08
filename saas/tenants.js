@@ -1,5 +1,6 @@
 const store = require('./store')
 const planos = require('./planos')
+const { ehDono, extrairNumero } = require('../funcoes/jid')
 
 const ID_VALIDO = /^[a-z0-9_-]{2,32}$/
 const DIA_MS = 24 * 60 * 60 * 1000
@@ -23,6 +24,10 @@ function obter(id) {
     return listar()[id] || null
 }
 
+function ativoEmDia(t) {
+    return Boolean(t && t.ativo && !(t.venceEm && Date.now() > t.venceEm))
+}
+
 function gruposDo(id, s = store.carregar()) {
     return Object.entries(s.grupos).filter(([, t]) => t === id).map(([jid]) => jid)
 }
@@ -43,7 +48,10 @@ function criar(id, nome, planoId = 'basico') {
             plano: planoId.toLowerCase(),
             ativo: true,
             venceEm: Date.now() + 30 * DIA_MS,
-            criadoEm: Date.now()
+            criadoEm: Date.now(),
+            admins: [],
+            usarChaveCasa: false,
+            cred: ''
         }
         return s
     })
@@ -77,6 +85,35 @@ function renovar(id, dias) {
     const venceEm = base + dias * DIA_MS
     patch(id, { venceEm })
     return venceEm
+}
+
+// Um número administra no máximo um cliente (evita misturar dados entre clientes).
+function adicionarAdmin(id, numero) {
+    const n = extrairNumero(numero)
+    if (!n || n.length < 10) return { ok: false, erro: 'numero_invalido' }
+    const s = store.carregar()
+    for (const [outro, t] of Object.entries(s.tenants)) {
+        if (outro !== id && (t.admins || []).includes(n)) return { ok: false, erro: 'numero_de_outro_cliente' }
+    }
+    if (!s.tenants[id]) return { ok: false, erro: 'cliente_inexistente' }
+    const admins = Array.from(new Set([...(s.tenants[id].admins || []), n]))
+    patch(id, { admins })
+    return { ok: true, numero: n }
+}
+
+function removerAdmin(id, numero) {
+    const n = extrairNumero(numero)
+    const t = obter(id)
+    if (!t) return false
+    patch(id, { admins: (t.admins || []).filter((x) => x !== n) })
+    return true
+}
+
+function tenantDoRemetente(ctx) {
+    for (const [id, t] of Object.entries(listar())) {
+        if ((t.admins || []).length && ehDono(ctx, { owners: t.admins })) return id
+    }
+    return null
 }
 
 function vincularGrupo(jid, id) {
@@ -122,7 +159,6 @@ function registrarPublicacao(jid) {
         const id = s.grupos[jid]
         if (!id) return s
         const uso = s.uso[id] || {}
-        // guarda só os últimos 30 dias
         const dias = Object.keys(uso).sort().slice(-29)
         const novo = {}
         for (const d of dias) novo[d] = uso[d]
@@ -133,7 +169,8 @@ function registrarPublicacao(jid) {
 }
 
 module.exports = {
-    validarId, listar, obter, criar, patch, remover, renovar,
+    validarId, listar, obter, ativoEmDia, criar, patch, remover, renovar,
+    adicionarAdmin, removerAdmin, tenantDoRemetente,
     vincularGrupo, desvincularGrupo, donoDoGrupo, gruposDo,
     podePublicar, registrarPublicacao, usoHoje, hojeSP
 }

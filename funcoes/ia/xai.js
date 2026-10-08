@@ -1,5 +1,6 @@
 const axios = require('axios')
 const config = require('../../config')
+const { chaveIA } = require('../../saas/contexto')
 
 module.exports = {
     nome: 'xai',
@@ -15,7 +16,7 @@ module.exports = {
             },
             {
                 headers: {
-                    Authorization: `Bearer ${config.xaiApiKey}`,
+                    Authorization: `Bearer ${chaveIA('xai')}`,
                     'Content-Type': 'application/json'
                 },
                 timeout: 35000
