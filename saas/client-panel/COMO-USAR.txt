@@ -1,0 +1,27 @@
+PAINEL DO CLIENTE
+=================
+
+Voce (dono) sobe:
+  cd saas/client-panel
+  npm install
+  npm start
+
+Cliente abre no navegador:
+  http://127.0.0.1:3847
+  (na mesma maquina)
+  ou http://IP-DO-PC:3847 na rede
+
+Telas:
+  Inicio    status
+  WhatsApp  numero (codigo real ainda e no terminal do bot)
+  Shopee    App ID, Secret, palavra-chave
+  Anuncios  intervalo, limite, horario, link
+  Conta     plano e sair
+
+Depois de criar a conta, copie botToken de:
+  saas/client-panel/api/data/configs.json
+para o .env da raiz:
+  NAMY_BOT_TOKEN=...
+  NAMY_SAAS_URL=http://127.0.0.1:3847
+
+Reinicie o bot (node index.js) para o !link funcionar.
