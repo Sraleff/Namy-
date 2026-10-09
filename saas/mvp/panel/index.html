@@ -1,0 +1,162 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Namy - Painel Afiliado</title>
+  <style>
+    :root { --bg:#0f1419; --card:#1a2332; --accent:#7c3aed; --ok:#22c55e; --text:#e7ecf3; --muted:#94a3b8; }
+    * { box-sizing: border-box; }
+    body { margin:0; font-family: system-ui, sans-serif; background:var(--bg); color:var(--text); min-height:100vh; }
+    .wrap { max-width:520px; margin:0 auto; padding:24px 16px 48px; }
+    h1 { font-size:1.4rem; margin:0 0 4px; }
+    .sub { color:var(--muted); font-size:.9rem; margin-bottom:24px; }
+    .card { background:var(--card); border-radius:12px; padding:20px; margin-bottom:16px; }
+    label { display:block; font-size:.8rem; color:var(--muted); margin:12px 0 4px; }
+    input, select, textarea { width:100%; padding:10px 12px; border-radius:8px; border:1px solid #334155; background:#0f172a; color:var(--text); }
+    textarea { min-height:70px; resize:vertical; }
+    button { margin-top:14px; width:100%; padding:12px; border:0; border-radius:8px; background:var(--accent); color:#fff; font-weight:600; cursor:pointer; }
+    button.secondary { background:#334155; }
+    .err { color:#f87171; font-size:.85rem; margin-top:8px; }
+    .ok { color:var(--ok); font-size:.85rem; margin-top:8px; }
+    .row { display:flex; gap:8px; }
+    .row button { flex:1; }
+    .badge { display:inline-block; padding:2px 8px; border-radius:999px; font-size:.75rem; background:#334155; }
+    .badge.on { background:#14532d; color:#86efac; }
+    .token { font-family:ui-monospace,monospace; font-size:.75rem; word-break:break-all; background:#0f172a; padding:10px; border-radius:8px; }
+    .hidden { display:none; }
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <h1>Namy SaaS</h1>
+    <p class="sub">Painel do afiliado - MVP local</p>
+
+    <div id="auth" class="card">
+      <div class="row">
+        <button type="button" id="tabLogin">Entrar</button>
+        <button type="button" class="secondary" id="tabReg">Cadastrar</button>
+      </div>
+      <label>Email</label>
+      <input id="email" type="email" placeholder="voce@email.com" />
+      <label>Senha</label>
+      <input id="password" type="password" placeholder="****" />
+      <button type="button" id="btnAuth">Entrar</button>
+      <div id="authMsg"></div>
+    </div>
+
+    <div id="dash" class="hidden">
+      <div class="card">
+        <div style="display:flex;justify-content:space-between;align-items:center">
+          <strong id="userEmail"></strong>
+          <span class="badge" id="licBadge">trial</span>
+        </div>
+        <p class="sub" id="licInfo" style="margin:8px 0 0"></p>
+        <p style="margin:12px 0 4px;font-size:.85rem;color:var(--muted)">Token do bot (cole no .env da Namy)</p>
+        <div class="token" id="botToken"></div>
+        <button type="button" class="secondary" id="btnCopy">Copiar token</button>
+        <button type="button" class="secondary" id="btnOut">Sair</button>
+      </div>
+
+      <div class="card">
+        <strong>Configuracao afiliado</strong>
+        <label>Nome do bot</label>
+        <input id="botName" />
+        <label>Link de afiliado</label>
+        <input id="affLink" placeholder="https://..." />
+        <label>Template da mensagem (!link)</label>
+        <textarea id="affTpl"></textarea>
+        <label>Modo IA</label>
+        <select id="aiMode">
+          <option value="auto">auto (fallback)</option>
+          <option value="groq">groq</option>
+          <option value="grok">grok</option>
+          <option value="gemini">gemini</option>
+        </select>
+        <button type="button" id="btnSave">Salvar</button>
+        <div id="saveMsg"></div>
+      </div>
+    </div>
+  </div>
+  <script>
+    const API = location.origin
+    let mode = 'login'
+    let token = localStorage.getItem('namy_token') || ''
+
+    const $ = (id) => document.getElementById(id)
+    const authMsg = $('authMsg')
+    const saveMsg = $('saveMsg')
+
+    function showDash(cfg, email) {
+      $('auth').classList.add('hidden')
+      $('dash').classList.remove('hidden')
+      $('userEmail').textContent = email || cfg.email
+      $('botToken').textContent = cfg.botToken
+      $('botName').value = cfg.botName || 'Namy'
+      $('affLink').value = (cfg.affiliate && cfg.affiliate.link) || ''
+      $('affTpl').value = (cfg.affiliate && cfg.affiliate.template) || 'Meu link: {link}'
+      $('aiMode').value = (cfg.ai && cfg.ai.mode) || 'auto'
+      const exp = cfg.license && cfg.license.expiresAt ? new Date(cfg.license.expiresAt).toLocaleDateString('pt-BR') : '-'
+      $('licBadge').textContent = (cfg.license && cfg.license.plan) || 'trial'
+      $('licBadge').classList.add('on')
+      $('licInfo').textContent = 'Licenca ate ' + exp
+    }
+
+    async function loadMe() {
+      if (!token) return
+      const r = await fetch(API + '/me', { headers: { Authorization: 'Bearer ' + token } })
+      if (!r.ok) { token = ''; localStorage.removeItem('namy_token'); return }
+      const data = await r.json()
+      showDash(data.config, data.user.email)
+    }
+
+    $('tabLogin').onclick = () => { mode = 'login'; $('btnAuth').textContent = 'Entrar' }
+    $('tabReg').onclick = () => { mode = 'register'; $('btnAuth').textContent = 'Cadastrar' }
+
+    $('btnAuth').onclick = async () => {
+      authMsg.textContent = ''
+      authMsg.className = ''
+      const body = { email: $('email').value.trim(), password: $('password').value }
+      const r = await fetch(API + (mode === 'login' ? '/auth/login' : '/auth/register'), {
+        method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body)
+      })
+      const data = await r.json()
+      if (!r.ok) { authMsg.className = 'err'; authMsg.textContent = data.error || 'Erro'; return }
+      token = data.token
+      localStorage.setItem('namy_token', token)
+      showDash(data.config, data.user.email)
+    }
+
+    $('btnSave').onclick = async () => {
+      saveMsg.textContent = ''
+      const body = {
+        botName: $('botName').value,
+        affiliate: { link: $('affLink').value, template: $('affTpl').value },
+        ai: { mode: $('aiMode').value }
+      }
+      const r = await fetch(API + '/config', {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json', Authorization: 'Bearer ' + token },
+        body: JSON.stringify(body)
+      })
+      const data = await r.json()
+      if (!r.ok) { saveMsg.className = 'err'; saveMsg.textContent = data.error || 'Erro'; return }
+      saveMsg.className = 'ok'
+      saveMsg.textContent = 'Salvo!'
+    }
+
+    $('btnCopy').onclick = () => {
+      navigator.clipboard.writeText($('botToken').textContent)
+      saveMsg.className = 'ok'
+      saveMsg.textContent = 'Token copiado'
+    }
+    $('btnOut').onclick = () => {
+      token = ''
+      localStorage.removeItem('namy_token')
+      location.reload()
+    }
+
+    loadMe()
+  </script>
+</body>
+</html>
