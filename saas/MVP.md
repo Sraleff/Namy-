@@ -1,49 +1,21 @@
-# Namy SaaS
+# SaaS Namy
 
-## MVP do painel afiliado
+## Painel do CLIENTE (use este)
 
-Pasta: [`saas/mvp/`](mvp/)
-
-### Subir no PC / Termux
+Pasta: **[client-panel/](client-panel/)**
 
 ```bash
-cd saas/mvp
+cd saas/client-panel
 npm install
 npm start
 ```
 
-Painel: **http://localhost:3847**
+Cliente abre: **http://localhost:3847**
 
-1. Cadastre email/senha
-2. Salve o link de afiliado
-3. Copie o **botToken**
+Telas: Login, Status, WhatsApp, Shopee, Anuncios, Conta.
 
-### Ligar na Namy
+O cliente **nao** usa terminal.
 
-No `.env` da raiz do bot:
+## MVP antigo (dev)
 
-```env
-NAMY_SAAS_URL=http://localhost:3847
-NAMY_BOT_TOKEN=cole_o_token_do_painel
-```
-
-Copie `saas/mvp/bot-plugin/link.js` → `comandos/link.js` e registre no `comandos/index.js`:
-
-```js
-const link = require('./link')
-// module.exports: link,
-```
-
-No WhatsApp: `!link`
-
-### O que está incluso
-
-- API (login, config, licença trial 30 dias)
-- Painel web
-- Plugin `!link`
-
-### Ainda não incluso
-
-- Mercado Pago / Stripe
-- Multi-worker na nuvem
-- App APK
+Pasta [mvp/](mvp/) — referencia tecnica.
