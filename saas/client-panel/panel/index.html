@@ -1,0 +1,167 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1"/>
+<title>Namy - Minha conta</title>
+<style>
+:root{--bg:#0b0f14;--card:#151b24;--card2:#1c2430;--line:#2a3444;--p:#8b5cf6;--p2:#a78bfa;--ok:#22c55e;--t:#eef2ff;--m:#94a3b8;--r:16px}
+*{box-sizing:border-box}body{margin:0;font-family:system-ui,sans-serif;background:var(--bg);color:var(--t);min-height:100vh}
+.hidden{display:none!important}.app{max-width:480px;margin:0 auto;min-height:100vh;padding-bottom:72px}
+header{padding:20px 16px 12px;display:flex;align-items:center;justify-content:space-between;position:sticky;top:0;background:rgba(11,15,20,.92);z-index:5}
+header h1{font-size:1.15rem;margin:0}.sub{color:var(--m);font-size:.75rem}
+.badge{font-size:.7rem;padding:4px 10px;border-radius:999px;background:#1e293b}
+.badge.on{background:#14532d;color:#86efac}.badge.off{background:#450a0a;color:#fca5a5}.badge.pair{background:#422006;color:#fcd34d}
+nav{position:fixed;bottom:0;left:0;right:0;max-width:480px;margin:0 auto;background:var(--card);border-top:1px solid var(--line);display:flex;z-index:10}
+nav button{flex:1;background:none;border:0;color:var(--m);padding:10px 4px 12px;font-size:.68rem;cursor:pointer}
+nav button.active{color:var(--p2)}nav button span{display:block;font-size:1.15rem;margin-bottom:2px}
+.page{padding:8px 16px 24px}.card{background:var(--card);border:1px solid var(--line);border-radius:var(--r);padding:16px;margin-bottom:12px}
+.card h2{margin:0 0 4px;font-size:1rem}.card p{margin:0 0 12px;color:var(--m);font-size:.85rem;line-height:1.4}
+label{display:block;font-size:.75rem;color:var(--m);margin:10px 0 4px}
+input,select,textarea{width:100%;padding:12px;border-radius:10px;border:1px solid var(--line);background:var(--card2);color:var(--t);font-size:1rem}
+textarea{min-height:80px}.btn{width:100%;margin-top:12px;padding:13px;border:0;border-radius:12px;background:var(--p);color:#fff;font-weight:600;cursor:pointer}
+.btn.sec{background:var(--card2);border:1px solid var(--line)}.row{display:flex;gap:8px}.row .btn{flex:1}
+.msg{margin-top:10px;font-size:.85rem}.msg.err{color:#fca5a5}.msg.ok{color:#86efac}
+.stat{display:grid;grid-template-columns:1fr 1fr;gap:8px}.stat .box{background:var(--card2);border-radius:12px;padding:12px}.stat .box b{display:block;font-size:1.1rem}.stat .box span{font-size:.7rem;color:var(--m)}
+.auth-wrap{padding:40px 16px;max-width:400px;margin:0 auto}.auth-wrap h1{text-align:center;font-size:1.6rem;margin-bottom:4px}.auth-wrap .tag{text-align:center;color:var(--m);margin-bottom:28px}
+.switch{display:flex;align-items:center;gap:10px;margin-top:12px}.switch input{width:auto}
+.list-item{display:flex;justify-content:space-between;padding:12px 0;border-bottom:1px solid var(--line)}
+.code-box{font-family:monospace;font-size:1.6rem;letter-spacing:.2em;text-align:center;padding:16px;background:var(--card2);border-radius:12px;margin:12px 0}
+.hint{font-size:.8rem;color:var(--m);margin-top:8px;line-height:1.35}
+</style>
+</head>
+<body>
+<div id="screen-auth" class="auth-wrap">
+  <h1>Namy</h1>
+  <p class="tag">Painel do afiliado - configure tudo aqui</p>
+  <div class="card">
+    <div class="row">
+      <button type="button" class="btn" id="tabLogin">Entrar</button>
+      <button type="button" class="btn sec" id="tabReg">Criar conta</button>
+    </div>
+    <label>Email</label><input id="email" type="email" placeholder="seu@email.com"/>
+    <label>Senha</label><input id="password" type="password" placeholder="********"/>
+    <button type="button" class="btn" id="btnAuth">Entrar</button>
+    <div class="msg" id="authMsg"></div>
+  </div>
+</div>
+<div id="screen-app" class="app hidden">
+  <header>
+    <div><h1>Namy</h1><div class="sub" id="hdrEmail"></div></div>
+    <span class="badge off" id="hdrStatus">Offline</span>
+  </header>
+  <div class="page" id="page-home">
+    <div class="card">
+      <h2>Status do bot</h2>
+      <p>WhatsApp, plano e Shopee.</p>
+      <div class="stat">
+        <div class="box"><b id="stBot">-</b><span>WhatsApp</span></div>
+        <div class="box"><b id="stPlan">-</b><span>Plano</span></div>
+        <div class="box"><b id="stDays">-</b><span>Dias restantes</span></div>
+        <div class="box"><b id="stShopee">-</b><span>Shopee</span></div>
+      </div>
+    </div>
+    <div class="card">
+      <h2>Acoes rapidas</h2>
+      <button type="button" class="btn" id="btnGoPair">Conectar WhatsApp</button>
+      <button type="button" class="btn sec" id="btnGoShopee">Configurar Shopee</button>
+      <button type="button" class="btn sec" id="btnGoAds">Anuncios automaticos</button>
+    </div>
+  </div>
+  <div class="page hidden" id="page-wa">
+    <div class="card">
+      <h2>Conectar WhatsApp</h2>
+      <p>Numero com DDI que vai rodar o bot.</p>
+      <label>Numero</label><input id="waPhone" inputmode="numeric" placeholder="5511999999999"/>
+      <button type="button" class="btn" id="btnPair">Gerar codigo de pareamento</button>
+      <div id="pairResult" class="hidden"><div class="code-box" id="pairCode">----</div>
+      <p class="hint">WhatsApp - Aparelhos conectados - Conectar com numero - digite o codigo.</p></div>
+      <div class="msg" id="waMsg"></div>
+    </div>
+    <div class="card">
+      <h2>Nome do bot</h2>
+      <label>Como a Namy se apresenta</label><input id="botName" placeholder="Namy"/>
+      <button type="button" class="btn sec" id="btnSaveBot">Salvar nome</button>
+    </div>
+  </div>
+  <div class="page hidden" id="page-shopee">
+    <div class="card">
+      <h2>API Shopee Afiliados</h2>
+      <p>Painel oficial Shopee Open API.</p>
+      <label>App ID</label><input id="shopeeAppId"/>
+      <label>Secret</label><input id="shopeeSecret" type="password"/>
+      <label>Palavra-chave</label><input id="shopeeKeyword" placeholder="fone bluetooth"/>
+      <button type="button" class="btn" id="btnSaveShopee">Salvar Shopee</button>
+      <div class="msg" id="shopeeMsg"></div>
+      <p class="hint">Chaves so na sua conta.</p>
+    </div>
+  </div>
+  <div class="page hidden" id="page-ads">
+    <div class="card">
+      <h2>Anuncios automaticos</h2>
+      <div class="switch"><input type="checkbox" id="adsOn"/><label for="adsOn" style="margin:0">Publicacoes ligadas</label></div>
+      <label>Intervalo</label>
+      <select id="adsInterval"><option value="1h">1 hora</option><option value="2h" selected>2 horas</option><option value="3h">3 horas</option><option value="6h">6 horas</option></select>
+      <label>Limite por dia</label><input id="adsLimit" type="number" min="1" max="50" value="5"/>
+      <label>Horario Brasilia</label>
+      <div class="row"><input id="adsFrom" value="09:00"/><input id="adsTo" value="22:00"/></div>
+      <label>Link afiliado (!link)</label><input id="affLink" placeholder="https://..."/>
+      <label>Mensagem !link</label><textarea id="affTpl">Meu link: {link}</textarea>
+      <button type="button" class="btn" id="btnSaveAds">Salvar anuncios</button>
+      <div class="msg" id="adsMsg"></div>
+    </div>
+  </div>
+  <div class="page hidden" id="page-account">
+    <div class="card">
+      <h2>Minha conta</h2>
+      <div class="list-item"><span>Email</span><strong id="accEmail">-</strong></div>
+      <div class="list-item"><span>Plano</span><strong id="accPlan">-</strong></div>
+      <div class="list-item"><span>Validade</span><strong id="accExp">-</strong></div>
+    </div>
+    <div class="card">
+      <h2>Ajuda</h2>
+      <p class="hint">1. Crie conta<br/>2. Conecte WhatsApp<br/>3. Cole API Shopee<br/>4. Ajuste anuncios<br/>5. Autorize o bot no grupo</p>
+      <button type="button" class="btn sec" id="btnLogout">Sair</button>
+    </div>
+  </div>
+  <nav>
+    <button type="button" class="active" data-page="home"><span>🏠</span>Inicio</button>
+    <button type="button" data-page="wa"><span>📱</span>WhatsApp</button>
+    <button type="button" data-page="shopee"><span>🛒</span>Shopee</button>
+    <button type="button" data-page="ads"><span>📢</span>Anuncios</button>
+    <button type="button" data-page="account"><span>👤</span>Conta</button>
+  </nav>
+</div>
+<script>
+const API=location.origin;let token=localStorage.getItem('namy_client_token')||'';let mode='login';let cfg=null;
+const $=id=>document.getElementById(id);const show=(el,on)=>el.classList.toggle('hidden',!on);
+function setStatusBadge(status){const b=$('hdrStatus');b.className='badge';if(status==='online'){b.classList.add('on');b.textContent='Online'}else if(status==='pairing'){b.classList.add('pair');b.textContent='Pareando'}else{b.classList.add('off');b.textContent='Offline'}}
+function fillUI(c){cfg=c;$('hdrEmail').textContent=c.email||'';setStatusBadge(c.status||'offline');
+$('stBot').textContent=c.status==='online'?'Online':(c.status==='pairing'?'Pareando':'Offline');
+$('stPlan').textContent=(c.license&&c.license.plan)||'trial';
+const exp=c.license&&c.license.expiresAt?new Date(c.license.expiresAt):null;
+$('stDays').textContent=exp?Math.max(0,Math.ceil((exp-Date.now())/86400000)):'-';
+$('stShopee').textContent=(c.shopee&&c.shopee.appId)?'OK':'Falta';
+$('waPhone').value=c.phone||'';$('botName').value=c.botName||'Namy';
+$('shopeeAppId').value=(c.shopee&&c.shopee.appId)||'';$('shopeeSecret').value='';$('shopeeKeyword').value=(c.shopee&&c.shopee.keyword)||'';
+const ads=c.ads||{};$('adsOn').checked=!!ads.enabled;$('adsInterval').value=ads.interval||'2h';$('adsLimit').value=ads.dailyLimit||5;
+$('adsFrom').value=(ads.window&&ads.window.from)||'09:00';$('adsTo').value=(ads.window&&ads.window.to)||'22:00';
+$('affLink').value=(c.affiliate&&c.affiliate.link)||'';$('affTpl').value=(c.affiliate&&c.affiliate.template)||'Meu link: {link}';
+$('accEmail').textContent=c.email||'-';$('accPlan').textContent=(c.license&&c.license.plan)||'-';$('accExp').textContent=exp?exp.toLocaleDateString('pt-BR'):'-'}
+async function api(path,opts={}){const headers=Object.assign({'Content-Type':'application/json'},opts.headers||{});if(token)headers.Authorization='Bearer '+token;const r=await fetch(API+path,Object.assign({},opts,{headers}));const data=await r.json().catch(()=>({}));if(!r.ok)throw new Error(data.error||('Erro '+r.status));return data}
+async function boot(){if(!token)return;try{const data=await api('/me');show($('screen-auth'),false);show($('screen-app'),true);fillUI(data.config)}catch(e){token='';localStorage.removeItem('namy_client_token')}}
+$('tabLogin').onclick=()=>{mode='login';$('btnAuth').textContent='Entrar'};$('tabReg').onclick=()=>{mode='register';$('btnAuth').textContent='Criar conta'};
+$('btnAuth').onclick=async()=>{$('authMsg').textContent='';try{const data=await api(mode==='login'?'/auth/login':'/auth/register',{method:'POST',body:JSON.stringify({email:$('email').value.trim(),password:$('password').value})});token=data.token;localStorage.setItem('namy_client_token',token);show($('screen-auth'),false);show($('screen-app'),true);fillUI(data.config)}catch(e){$('authMsg').className='msg err';$('authMsg').textContent=e.message}};
+document.querySelectorAll('nav button').forEach(btn=>{btn.onclick=()=>{document.querySelectorAll('nav button').forEach(b=>b.classList.remove('active'));btn.classList.add('active');const p=btn.dataset.page;['home','wa','shopee','ads','account'].forEach(id=>show($('page-'+id),id===p))}});
+$('btnGoPair').onclick=()=>document.querySelector('nav button[data-page=wa]').click();
+$('btnGoShopee').onclick=()=>document.querySelector('nav button[data-page=shopee]').click();
+$('btnGoAds').onclick=()=>document.querySelector('nav button[data-page=ads]').click();
+$('btnPair').onclick=async()=>{$('waMsg').textContent='';try{const data=await api('/bot/pair',{method:'POST',body:JSON.stringify({phone:$('waPhone').value})});show($('pairResult'),true);$('pairCode').textContent=data.code||'...';$('waMsg').className='msg ok';$('waMsg').textContent=data.message||'Codigo gerado';if(cfg){cfg.status='pairing';setStatusBadge('pairing')}}catch(e){$('waMsg').className='msg err';$('waMsg').textContent=e.message}};
+$('btnSaveBot').onclick=async()=>{try{const c=await api('/config',{method:'PUT',body:JSON.stringify({botName:$('botName').value,phone:$('waPhone').value})});fillUI(c);$('waMsg').className='msg ok';$('waMsg').textContent='Nome salvo'}catch(e){$('waMsg').className='msg err';$('waMsg').textContent=e.message}};
+$('btnSaveShopee').onclick=async()=>{$('shopeeMsg').textContent='';try{const c=await api('/config',{method:'PUT',body:JSON.stringify({shopee:{appId:$('shopeeAppId').value.trim(),secret:$('shopeeSecret').value.trim(),keyword:$('shopeeKeyword').value.trim()}})});fillUI(c);$('shopeeMsg').className='msg ok';$('shopeeMsg').textContent='Shopee salva'}catch(e){$('shopeeMsg').className='msg err';$('shopeeMsg').textContent=e.message}};
+$('btnSaveAds').onclick=async()=>{$('adsMsg').textContent='';try{const c=await api('/config',{method:'PUT',body:JSON.stringify({ads:{enabled:$('adsOn').checked,interval:$('adsInterval').value,dailyLimit:Number($('adsLimit').value)||5,window:{from:$('adsFrom').value,to:$('adsTo').value}},affiliate:{link:$('affLink').value.trim(),template:$('affTpl').value}})});fillUI(c);$('adsMsg').className='msg ok';$('adsMsg').textContent='Anuncios salvos'}catch(e){$('adsMsg').className='msg err';$('adsMsg').textContent=e.message}};
+$('btnLogout').onclick=()=>{token='';localStorage.removeItem('namy_client_token');location.reload()};
+boot();
+</script>
+</body>
+</html>
