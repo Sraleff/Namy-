@@ -18,12 +18,11 @@ const {
 
 const DATA = path.join(__dirname, 'data')
 const SESSIONS = path.join(DATA, 'sessions')
-
 const sockets = new Map()
 let versionCache = null
 
 function ensure() {
-  if (!fs.existsSync(SESSIONS)) fs.mkdirSync(SESSIONS, { recursive: true })
+  fs.mkdirSync(SESSIONS, { recursive: true })
 }
 
 function get(userId) {
@@ -47,9 +46,12 @@ function publicState(userId) {
 
 async function baileysVersion() {
   if (versionCache) return versionCache
-  const { version } = await fetchLatestBaileysVersion()
-  versionCache = version
-  return version
+  const result = await fetchLatestBaileysVersion()
+  if (!result || !Array.isArray(result.version)) {
+    throw new Error('Baileys nao retornou uma versao valida do WhatsApp Web')
+  }
+  versionCache = result.version
+  return versionCache
 }
 
 function setStatus(userId, status, extra = {}) {
@@ -63,20 +65,24 @@ function setStatus(userId, status, extra = {}) {
 }
 
 async function start(userId, phone, onStatus) {
+  if (!userId || typeof userId !== 'string') throw new Error('Conta invalida')
   ensure()
+
+  const cleanPhone = String(phone || '').replace(/\D/g, '')
   const existing = get(userId)
-  if (existing && (existing.status === 'connecting' || existing.status === 'waiting_code' || existing.status === 'connected')) {
-    if (phone) existing.phone = String(phone).replace(/\D/g, '')
+  if (existing && ['connecting', 'waiting_code', 'connected'].includes(existing.status)) {
+    if (cleanPhone) existing.phone = cleanPhone
     return publicState(userId)
   }
-  if (existing && existing.sock) {
-    try { existing.sock.end() } catch (_) {}
+  if (existing) {
+    try {
+      if (existing.sock) existing.sock.end()
+    } catch (_) {}
     sockets.delete(userId)
   }
 
-  const cleanPhone = String(phone || '').replace(/\D/g, '')
   const authDir = path.join(SESSIONS, userId)
-  if (!fs.existsSync(authDir)) fs.mkdirSync(authDir, { recursive: true })
+  fs.mkdirSync(authDir, { recursive: true })
 
   const entry = {
     userId,
@@ -91,90 +97,116 @@ async function start(userId, phone, onStatus) {
   }
   sockets.set(userId, entry)
 
-  const { state, saveCreds } = await useMultiFileAuthState(authDir)
-  const version = await baileysVersion()
+  try {
+    const { state, saveCreds } = await useMultiFileAuthState(authDir)
+    const version = await baileysVersion()
 
-  const sock = makeWASocket({
-    version,
-    auth: state,
-    logger: pino({ level: 'silent' }),
-    browser: Browsers.ubuntu('Chrome'),
-    printQRInTerminal: false,
-    syncFullHistory: false,
-    markOnlineOnConnect: true
-  })
-  entry.sock = sock
+    // A entrada pode ter sido removida enquanto aguardavamos I/O.
+    if (get(userId) !== entry) throw new Error('Inicializacao da sessao cancelada')
 
-  sock.ev.on('creds.update', saveCreds)
+    const sock = makeWASocket({
+      version,
+      auth: state,
+      logger: pino({ level: 'silent' }),
+      browser: Browsers.ubuntu('Chrome'),
+      printQRInTerminal: false,
+      syncFullHistory: false,
+      markOnlineOnConnect: true
+    })
+    entry.sock = sock
 
-  sock.ev.on('connection.update', async (update) => {
-    const { connection, lastDisconnect, qr } = update
-    const cur = get(userId)
-    if (!cur || cur.sock !== sock) return
+    sock.ev.on('creds.update', saveCreds)
 
-    if (qr && !sock.authState.creds.registered) {
-      try {
-        cur.qrDataUrl = await QRCode.toDataURL(qr, { margin: 1, width: 280 })
-      } catch (_) {
-        cur.qrDataUrl = null
-      }
-      if (cur.phone && cur.phone.length >= 10 && !cur.askedCode) {
-        cur.askedCode = true
+    sock.ev.on('connection.update', async (update) => {
+      const { connection, lastDisconnect, qr } = update
+      const cur = get(userId)
+      if (!cur || cur.sock !== sock) return
+
+      if (qr && !sock.authState.creds.registered) {
         try {
-          let codigo = await sock.requestPairingCode(cur.phone)
-          codigo = codigo?.match(/.{1,4}/g)?.join('-') || codigo
-          cur.pairingCode = codigo
+          cur.qrDataUrl = await QRCode.toDataURL(qr, { margin: 1, width: 280 })
         } catch (err) {
-          cur.askedCode = false
-          cur.error = err?.message || 'Falha ao pedir codigo'
+          cur.qrDataUrl = null
+          cur.error = 'Nao foi possivel gerar o QR Code'
+        }
+
+        if (cur.phone && cur.phone.length >= 10 && !cur.askedCode) {
+          cur.askedCode = true
+          try {
+            let code = await sock.requestPairingCode(cur.phone)
+            code = code?.match(/.{1,4}/g)?.join('-') || code
+            cur.pairingCode = code
+            cur.error = null
+          } catch (err) {
+            cur.askedCode = false
+            cur.error = err?.message || 'Falha ao pedir codigo de pareamento'
+          }
+        }
+        setStatus(userId, 'waiting_code')
+      }
+
+      if (connection === 'open') {
+        cur.qrDataUrl = null
+        cur.pairingCode = null
+        cur.error = null
+        setStatus(userId, 'connected')
+      }
+
+      if (connection === 'close') {
+        const code = lastDisconnect?.error?.output?.statusCode
+        const loggedOut = code === DisconnectReason.loggedOut
+        cur.sock = null
+        if (loggedOut) {
+          setStatus(userId, 'disconnected', { error: 'Sessao encerrada no WhatsApp' })
+          sockets.delete(userId)
+        } else if (get(userId) === cur) {
+          setStatus(userId, 'error', {
+            error: 'Conexao caiu (' + (code || '?') + '). Toque em reconectar.'
+          })
         }
       }
-      setStatus(userId, 'waiting_code')
-    }
+    })
 
-    if (connection === 'open') {
-      cur.qrDataUrl = null
-      cur.pairingCode = null
-      cur.error = null
-      setStatus(userId, 'connected')
-    }
-
-    if (connection === 'close') {
-      const code = lastDisconnect?.error?.output?.statusCode
-      const loggedOut = code === DisconnectReason.loggedOut
-      cur.sock = null
-      if (loggedOut) {
-        setStatus(userId, 'disconnected', { error: 'Sessao encerrada no WhatsApp' })
-        sockets.delete(userId)
-      } else if (get(userId)) {
-        setStatus(userId, 'error', { error: 'Conexao caiu (' + (code || '?') + '). Toque em reconectar.' })
+    sock.ev.on('messages.upsert', async ({ messages }) => {
+      // O painel ainda tem somente o comando de verificacao !ping.
+      for (const message of messages || []) {
+        if (!message.message || message.key.fromMe) continue
+        const text = message.message.conversation || message.message.extendedTextMessage?.text || ''
+        if (String(text).trim().toLowerCase() === '!ping') {
+          try {
+            await sock.sendMessage(message.key.remoteJid, { text: 'pong - Namy conectada pelo painel' })
+          } catch (_) {}
+        }
       }
-    }
-  })
+    })
 
-  sock.ev.on('messages.upsert', async ({ messages }) => {
-    for (const m of messages || []) {
-      if (!m.message || m.key.fromMe) continue
-      const text = m.message.conversation || m.message.extendedTextMessage?.text || ''
-      if (String(text).trim().toLowerCase() === '!ping') {
-        try {
-          await sock.sendMessage(m.key.remoteJid, { text: 'pong - Namy conectada pelo painel' })
-        } catch (_) {}
-      }
+    return publicState(userId)
+  } catch (err) {
+    // Nunca deixar a conta presa em "connecting" se auth/version/socket falhar.
+    if (get(userId) === entry) {
+      try { if (entry.sock) entry.sock.end() } catch (_) {}
+      setStatus(userId, 'error', {
+        sock: null,
+        pairingCode: null,
+        qrDataUrl: null,
+        error: err?.message || 'Falha ao iniciar a sessao WhatsApp'
+      })
     }
-  })
-
-  return publicState(userId)
+    throw err
+  }
 }
 
 async function stop(userId, logout) {
   const s = get(userId)
   if (!s) return publicState(userId)
+
+  // Remover primeiro evita que eventos tardios ressuscitem o estado da sessao.
+  sockets.delete(userId)
   try {
     if (logout && s.sock) await s.sock.logout()
     else if (s.sock) s.sock.end()
   } catch (_) {}
-  sockets.delete(userId)
+
   if (logout) {
     const dir = path.join(SESSIONS, userId)
     try { fs.rmSync(dir, { recursive: true, force: true }) } catch (_) {}
@@ -185,18 +217,20 @@ async function stop(userId, logout) {
 function restoreRegistered(onStatus) {
   ensure()
   let dirs = []
-  try { dirs = fs.readdirSync(SESSIONS) } catch { return }
+  try { dirs = fs.readdirSync(SESSIONS, { withFileTypes: true }).filter((item) => item.isDirectory()).map((item) => item.name) } catch { return }
+
   for (const id of dirs) {
     const creds = path.join(SESSIONS, id, 'creds.json')
     if (!fs.existsSync(creds)) continue
     let registered = false
     try {
-      const j = JSON.parse(fs.readFileSync(creds, 'utf8'))
-      registered = !!j.registered
+      const json = JSON.parse(fs.readFileSync(creds, 'utf8'))
+      registered = !!json.registered
     } catch { continue }
     if (!registered) continue
-    start(id, '', onStatus).catch((e) => {
-      console.error('[SESSAO] restore', id.slice(0, 8), e.message)
+
+    start(id, '', onStatus).catch((err) => {
+      console.error('[SESSAO] restore', id.slice(0, 8), err.message)
     })
   }
 }
