@@ -51,9 +51,12 @@ function publicState(userId) {
 
 async function baileysVersion() {
   if (versionCache) return versionCache
-  const { version } = await fetchLatestBaileysVersion()
-  versionCache = version
-  return version
+  const result = await fetchLatestBaileysVersion()
+  if (!result || !Array.isArray(result.version)) {
+    throw new Error('Baileys nao retornou uma versao valida do WhatsApp Web')
+  }
+  versionCache = result.version
+  return versionCache
 }
 
 function setStatus(userId, status, extra = {}) {
@@ -97,19 +100,40 @@ async function start(userId, phone, onStatus) {
   }
   sockets.set(userId, entry)
 
-  const { state, saveCreds } = await useMultiFileAuthState(authDir)
-  const version = await baileysVersion()
+  let state
+  let saveCreds
+  let version
+  let sock
+  try {
+    const authState = await useMultiFileAuthState(authDir)
+    state = authState.state
+    saveCreds = authState.saveCreds
+    version = await baileysVersion()
 
-  const sock = makeWASocket({
-    version,
-    auth: state,
-    logger: pino({ level: 'silent' }),
-    browser: Browsers.ubuntu('Chrome'),
-    printQRInTerminal: false,
-    syncFullHistory: false,
-    markOnlineOnConnect: true
-  })
-  entry.sock = sock
+    // O usuario pode ter desconectado enquanto as credenciais/versao eram carregadas.
+    if (get(userId) !== entry) throw new Error('Inicializacao da sessao cancelada')
+
+    sock = makeWASocket({
+      version,
+      auth: state,
+      logger: pino({ level: 'silent' }),
+      browser: Browsers.ubuntu('Chrome'),
+      printQRInTerminal: false,
+      syncFullHistory: false,
+      markOnlineOnConnect: true
+    })
+    entry.sock = sock
+  } catch (err) {
+    if (get(userId) === entry) {
+      setStatus(userId, 'error', {
+        sock: null,
+        pairingCode: null,
+        qrDataUrl: null,
+        error: err?.message || 'Falha ao iniciar a sessao WhatsApp'
+      })
+    }
+    throw err
+  }
 
   sock.ev.on('creds.update', saveCreds)
 
