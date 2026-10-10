@@ -30,6 +30,10 @@ textarea{min-height:80px}.btn{width:100%;margin-top:12px;padding:13px;border:0;b
 .hint{font-size:.8rem;color:var(--m);margin-top:8px;line-height:1.35}
 .qr-box{text-align:center;margin:12px 0}.qr-box img{max-width:220px;border-radius:8px;background:#fff;padding:8px}
 .status-line{font-size:.9rem;margin:8px 0;padding:8px;background:var(--card2);border-radius:8px}
+.group-item{display:flex;align-items:center;gap:10px;padding:10px 0;border-bottom:1px solid var(--line)}
+.group-item input{width:auto;margin:0}
+.group-item .name{flex:1;font-size:.9rem}
+.group-item .meta{font-size:.7rem;color:var(--m)}
 </style>
 </head>
 <body>
@@ -102,8 +106,9 @@ textarea{min-height:80px}.btn{width:100%;margin-top:12px;padding:13px;border:0;b
       <label>Secret</label><input id="shopeeSecret" type="password"/>
       <label>Palavra-chave</label><input id="shopeeKeyword" placeholder="fone bluetooth"/>
       <button type="button" class="btn" id="btnSaveShopee">Salvar Shopee</button>
+      <button type="button" class="btn sec" id="btnTestShopee">Testar API</button>
       <div class="msg" id="shopeeMsg"></div>
-      <p class="hint">Chaves so na sua conta.</p>
+      <p class="hint">Chaves so na sua conta. O teste faz uma consulta simples na API.</p>
     </div>
   </div>
   <div class="page hidden" id="page-ads">
@@ -120,6 +125,17 @@ textarea{min-height:80px}.btn{width:100%;margin-top:12px;padding:13px;border:0;b
       <button type="button" class="btn" id="btnSaveAds">Salvar anuncios</button>
       <div class="msg" id="adsMsg"></div>
     </div>
+    <div class="card">
+      <h2>Grupos para anuncios</h2>
+      <p>O WhatsApp precisa estar conectado. O bot precisa estar no grupo.</p>
+      <button type="button" class="btn sec" id="btnLoadGroups">Listar grupos</button>
+      <div id="groupsList"></div>
+      <button type="button" class="btn" id="btnSaveGroups">Salvar grupos selecionados</button>
+      <label>Enviar teste para</label>
+      <select id="testJid"><option value="">-- escolha um grupo --</option></select>
+      <button type="button" class="btn" id="btnTestAd">Enviar teste agora</button>
+      <div class="msg" id="groupsMsg"></div>
+    </div>
   </div>
   <div class="page hidden" id="page-account">
     <div class="card">
@@ -130,7 +146,7 @@ textarea{min-height:80px}.btn{width:100%;margin-top:12px;padding:13px;border:0;b
     </div>
     <div class="card">
       <h2>Ajuda</h2>
-      <p class="hint">1. Crie conta<br/>2. Conecte WhatsApp (QR ou codigo)<br/>3. Cole API Shopee<br/>4. Ajuste anuncios<br/>5. Autorize o bot no grupo</p>
+      <p class="hint">1. Crie conta<br/>2. Conecte WhatsApp (QR ou codigo)<br/>3. Cole API Shopee e teste<br/>4. Ajuste anuncios<br/>5. Liste e selecione grupos<br/>6. Envie um teste</p>
       <button type="button" class="btn sec" id="btnLogout">Sair</button>
     </div>
   </div>
@@ -143,7 +159,7 @@ textarea{min-height:80px}.btn{width:100%;margin-top:12px;padding:13px;border:0;b
   </nav>
 </div>
 <script>
-const API=location.origin;let token=localStorage.getItem('namy_client_token')||'';let mode='login';let cfg=null;let pollTimer=null;
+const API=location.origin;let token=localStorage.getItem('namy_client_token')||'';let mode='login';let cfg=null;let pollTimer=null;let loadedGroups=[];
 const $=id=>document.getElementById(id);const show=(el,on)=>el.classList.toggle('hidden',!on);
 function setStatusBadge(status){const b=$('hdrStatus');b.className='badge';if(status==='online'||status==='connected'){b.classList.add('on');b.textContent='Online'}else if(status==='pairing'||status==='waiting_code'||status==='connecting'){b.classList.add('pair');b.textContent='Pareando'}else if(status==='error'){b.classList.add('err');b.textContent='Erro'}else{b.classList.add('off');b.textContent='Offline'}}
 function fillUI(c){cfg=c;$('hdrEmail').textContent=c.email||'';setStatusBadge(c.status||'offline');
@@ -177,6 +193,25 @@ async function pollStatus(){
   }catch(e){}
 }
 function startPoll(){if(pollTimer)clearInterval(pollTimer);pollTimer=setInterval(pollStatus,3000);pollStatus();}
+function renderGroups(groups, selected){
+  const sel=new Set((selected||[]).map(g=>g.jid));
+  const box=$('groupsList');
+  box.innerHTML='';
+  const select=$('testJid');
+  select.innerHTML='<option value="">-- escolha um grupo --</option>';
+  groups.forEach(g=>{
+    const id='g_'+btoa(g.jid).replace(/[^a-z0-9]/gi,'');
+    const div=document.createElement('div');
+    div.className='group-item';
+    div.innerHTML=`<input type="checkbox" id="${id}" data-jid="${g.jid}" data-name="${(g.name||'').replace(/"/g,'')}" ${sel.has(g.jid)?'checked':''}/><label for="${id}" class="name">${g.name||g.jid}<div class="meta">${g.participants||0} participantes</div></label>`;
+    box.appendChild(div);
+    const opt=document.createElement('option');
+    opt.value=g.jid;
+    opt.textContent=g.name||g.jid;
+    select.appendChild(opt);
+  });
+  loadedGroups=groups;
+}
 async function boot(){if(!token)return;try{const data=await api('/me');show($('screen-auth'),false);show($('screen-app'),true);fillUI(data.config);startPoll();}catch(e){token='';localStorage.removeItem('namy_client_token')}}
 $('tabLogin').onclick=()=>{mode='login';$('btnAuth').textContent='Entrar'};$('tabReg').onclick=()=>{mode='register';$('btnAuth').textContent='Criar conta'};
 $('btnAuth').onclick=async()=>{$('authMsg').textContent='';try{const data=await api(mode==='login'?'/auth/login':'/auth/register',{method:'POST',body:JSON.stringify({email:$('email').value.trim(),password:$('password').value})});token=data.token;localStorage.setItem('namy_client_token',token);show($('screen-auth'),false);show($('screen-app'),true);fillUI(data.config);startPoll();}catch(e){$('authMsg').className='msg err';$('authMsg').textContent=e.message}};
@@ -189,7 +224,11 @@ $('btnReconnect').onclick=async()=>{$('waMsg').textContent='';try{const data=awa
 $('btnDisconnect').onclick=async()=>{$('waMsg').textContent='';try{const data=await api('/whatsapp/disconnect',{method:'POST',body:JSON.stringify({logout:true})});updateWaUI(data);$('waMsg').className='msg ok';$('waMsg').textContent='Desconectado.';}catch(e){$('waMsg').className='msg err';$('waMsg').textContent=e.message}};
 $('btnSaveBot').onclick=async()=>{try{const c=await api('/config',{method:'PUT',body:JSON.stringify({botName:$('botName').value,phone:$('waPhone').value})});fillUI(c);$('waMsg').className='msg ok';$('waMsg').textContent='Nome salvo'}catch(e){$('waMsg').className='msg err';$('waMsg').textContent=e.message}};
 $('btnSaveShopee').onclick=async()=>{$('shopeeMsg').textContent='';try{const c=await api('/config',{method:'PUT',body:JSON.stringify({shopee:{appId:$('shopeeAppId').value.trim(),secret:$('shopeeSecret').value.trim(),keyword:$('shopeeKeyword').value.trim()}})});fillUI(c);$('shopeeMsg').className='msg ok';$('shopeeMsg').textContent='Shopee salva'}catch(e){$('shopeeMsg').className='msg err';$('shopeeMsg').textContent=e.message}};
+$('btnTestShopee').onclick=async()=>{$('shopeeMsg').textContent='Testando...';try{const data=await api('/shopee/test',{method:'POST',body:'{}'});$('shopeeMsg').className='msg ok';$('shopeeMsg').textContent=(data.message||'OK')+(data.sample?' | Exemplo: '+data.sample:'');}catch(e){$('shopeeMsg').className='msg err';$('shopeeMsg').textContent=e.message}};
 $('btnSaveAds').onclick=async()=>{$('adsMsg').textContent='';try{const c=await api('/config',{method:'PUT',body:JSON.stringify({ads:{enabled:$('adsOn').checked,interval:$('adsInterval').value,dailyLimit:Number($('adsLimit').value)||5,window:{from:$('adsFrom').value,to:$('adsTo').value}},affiliate:{link:$('affLink').value.trim(),template:$('affTpl').value}})});fillUI(c);$('adsMsg').className='msg ok';$('adsMsg').textContent='Anuncios salvos'}catch(e){$('adsMsg').className='msg err';$('adsMsg').textContent=e.message}};
+$('btnLoadGroups').onclick=async()=>{$('groupsMsg').textContent='Carregando grupos...';try{const data=await api('/whatsapp/groups');renderGroups(data.groups||[],data.selected||[]);$('groupsMsg').className='msg ok';$('groupsMsg').textContent='Grupos carregados. Marque os que recebem anuncios.';}catch(e){$('groupsMsg').className='msg err';$('groupsMsg').textContent=e.message}};
+$('btnSaveGroups').onclick=async()=>{$('groupsMsg').textContent='';const checks=document.querySelectorAll('#groupsList input[type=checkbox]:checked');const groups=Array.from(checks).map(cb=>({jid:cb.dataset.jid,name:cb.dataset.name}));try{await api('/whatsapp/groups',{method:'POST',body:JSON.stringify({groups})});$('groupsMsg').className='msg ok';$('groupsMsg').textContent='Grupos salvos ('+groups.length+').';}catch(e){$('groupsMsg').className='msg err';$('groupsMsg').textContent=e.message}};
+$('btnTestAd').onclick=async()=>{$('groupsMsg').textContent='';const jid=$('testJid').value;if(!jid){$('groupsMsg').className='msg err';$('groupsMsg').textContent='Escolha um grupo para o teste.';return;}try{const data=await api('/ads/test',{method:'POST',body:JSON.stringify({jid})});$('groupsMsg').className='msg ok';$('groupsMsg').textContent=data.message||'Teste enviado.';}catch(e){$('groupsMsg').className='msg err';$('groupsMsg').textContent=e.message}};
 $('btnLogout').onclick=()=>{if(pollTimer)clearInterval(pollTimer);token='';localStorage.removeItem('namy_client_token');location.reload()};
 boot();
 </script>
