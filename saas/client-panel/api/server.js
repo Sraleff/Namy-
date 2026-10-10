@@ -181,24 +181,7 @@ app.get('/subscription', auth, (req, res) => {
   })
 })
 
-app.post('/bot/pair', auth, (req, res) => {
-  const phone = String((req.body && req.body.phone) || '').replace(/\D/g, '')
-  if (phone.length < 10) return res.status(400).json({ error: 'Numero invalido. Use DDI+DDD+numero.' })
-  const configs = readJson(CONFIGS, {})
-  const cur = configs[req.user.id]
-  if (!cur) return res.status(404).json({ error: 'Conta nao encontrada' })
-  cur.phone = phone
-  cur.status = 'pairing'
-  cur.updatedAt = new Date().toISOString()
-  configs[req.user.id] = cur
-  writeJson(CONFIGS, configs)
-  const code = (Math.random().toString(36).slice(2, 6) + '-' + Math.random().toString(36).slice(2, 6)).toUpperCase()
-  res.json({
-    ok: true,
-    code,
-    message: 'Digite este codigo no WhatsApp. Em producao o worker Baileys gera o codigo real.'
-  })
-})
+const wa = require('./waRoutes')(app, { auth, readJson, writeJson, CONFIGS })
 
 app.get('/bot/config', (req, res) => {
   const token = req.headers['x-bot-token'] || req.query.token
@@ -240,5 +223,9 @@ app.listen(PORT, () => {
   console.log('')
   console.log('Namy Client Panel')
   console.log('  Cliente abre: http://localhost:' + PORT)
+  console.log('  WhatsApp: sessao real no servidor')
   console.log('')
+  if (process.env.RESTORE_SESSIONS === '1') {
+    require('./sessions').restoreRegistered(wa.gravarStatus)
+  }
 })
