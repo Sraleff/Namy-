@@ -1,0 +1,20 @@
+{
+  "name": "namy-client-panel",
+  "version": "1.1.0",
+  "private": true,
+  "description": "Painel do afiliado com sessao WhatsApp real",
+  "scripts": {
+    "start": "node api/server.js"
+  },
+  "dependencies": {
+    "@adiwajshing/keyed-db": "^0.2.4",
+    "@whiskeysockets/baileys": "7.0.0-rc.3",
+    "bcryptjs": "^2.4.3",
+    "cors": "^2.8.5",
+    "express": "^4.21.2",
+    "jsonwebtoken": "^9.0.2",
+    "pino": "^9.6.0",
+    "qrcode": "^1.5.4",
+    "uuid": "^11.0.5"
+  }
+}

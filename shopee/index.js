@@ -9,17 +9,13 @@ let jaLigou = false
 async function iniciar(client) {
     try {
         store.carregar()
-        if (!cfg.credenciaisOk()) {
-            log('Credenciais não configuradas. Módulo desativado.')
-            return { ok: false, motivo: 'sem_credenciais' }
-        }
         if (!cfg.habilitado()) {
-            log('SHOPEE_ENABLED=false. Módulo desativado.')
+            log('Sem chaves da casa e sem clientes (ou SHOPEE_ENABLED=false). Módulo desativado.')
             return { ok: false, motivo: 'desligado' }
         }
         const n = Object.keys(grupos.listar()).length
         if (!jaLigou) {
-            log('API conectada')
+            log(cfg.credenciaisOk() ? 'API da casa configurada' : 'Sem chaves da casa: só grupos de clientes')
             log(`${n} grupo(s) na lista`)
             jaLigou = true
         } else {
