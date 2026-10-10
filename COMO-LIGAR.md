@@ -6,10 +6,10 @@ Dois processos. O cliente so abre o navegador. Voce (dono) sobe os dois.
 
 | Processo | Pasta | Comando | Porta |
 |----------|-------|---------|-------|
-| Painel do afiliado | `saas/client-panel` | `npm start` | http://localhost:3847 |
-| Bot WhatsApp | raiz do repo | `node index.js` | terminal (pareamento) |
+| Painel do afiliado + sessões WhatsApp | `saas/client-panel` | `npm start` | http://localhost:3847 |
+| Bot WhatsApp (modo casa/admin) | raiz do repo | `node index.js` | terminal (pareamento opcional) |
 
-O painel **nao** substitui o bot. Sem `node index.js` o WhatsApp nao conecta.
+O painel **gerencia as sessões WhatsApp dos clientes** via Baileys (QR Code e codigo de pareamento reais). Sem `node index.js` o modo casa não sobe, mas os clientes do painel conectam pelo navegador.
 
 ---
 
@@ -42,11 +42,11 @@ NAMY_SAAS_URL=http://127.0.0.1:3847
 NAMY_BOT_TOKEN=
 ```
 
-O `NAMY_BOT_TOKEN` voce copia **depois** de criar a conta no painel.
+O `NAMY_BOT_TOKEN` voce copia **depois** de criar a conta no painel (opcional para modo casa).
 
 ### 2. Ligar os dois (toda vez)
 
-Terminal 1 — painel:
+Terminal 1 — painel (gerencia sessões dos clientes):
 
 ```bash
 cd ~/Namy-saas/saas/client-panel
@@ -59,24 +59,18 @@ Deixe aberto. No celular abra o navegador em:
 http://127.0.0.1:3847
 ```
 
-Crie a conta, salve Shopee / anuncios / link. Copie o token se a tela mostrar (ou veja `saas/client-panel/api/data/configs.json` — campo `botToken`).
+Crie a conta, aba WhatsApp → Conectar → escaneie o QR ou use o codigo. Status fica Online.
 
-Cole no `.env`:
+Salve Shopee / anuncios / link.
 
-```env
-NAMY_BOT_TOKEN=o_token_copiado
-```
-
-Terminal 2 — bot (nova sessao Termux: deslize da esquerda → New session):
+Terminal 2 — bot casa (opcional, nova sessao Termux):
 
 ```bash
 cd ~/Namy-saas
 node index.js
 ```
 
-Digite o numero com DDI. No WhatsApp: Aparelhos conectados → Conectar com numero → codigo do terminal.
-
-Quando aparecer `NAMY CONECTADA`, teste `!ping` e `!link`.
+Digite o numero com DDI se quiser o bot da casa. Quando aparecer `NAMY CONECTADA`, teste `!ping` e `!link`.
 
 ### Atalho
 
@@ -136,24 +130,16 @@ npm start
 
 Abra o navegador: http://localhost:3847
 
-Crie a conta, configure Shopee / anuncios / link.
+Crie a conta, aba WhatsApp → Conectar WhatsApp → escaneie QR ou codigo. Configure Shopee / anuncios / link.
 
-Token do bot: no painel, aba Conta, ou no arquivo:
-
-```text
-saas\client-panel\api\data\configs.json
-```
-
-Campo `botToken`. Cole no `.env` como `NAMY_BOT_TOKEN=`.
-
-**Janela 2** (bot):
+**Janela 2** (bot casa, opcional):
 
 ```powershell
 cd $env:USERPROFILE\Documents\Namy-saas
 node index.js
 ```
 
-Pareie o WhatsApp com o codigo do terminal.
+Pareie o WhatsApp com o codigo do terminal se quiser o modo casa.
 
 Atalho (dois processos):
 
@@ -166,16 +152,18 @@ cd $env:USERPROFILE\Documents\Namy-saas
 
 ## Uso do cliente (afiliado)
 
-O cliente **nao** instala Node.
+O cliente **nao** instala Node, **nao** acessa terminal e **nao** executa comandos.
 
 1. Abre o link que voce mandou (no seu PC/celular: `http://IP-DA-MAQUINA:3847`)
-2. Cria conta
-3. Aba Shopee: App ID + Secret + palavra-chave → Salvar
-4. Aba Anuncios: intervalo, limite, horario, link → Salvar
-5. Voce pareia o WhatsApp no terminal do bot (codigo real)
-6. No grupo: bot admin, `!shopee cadastrar` / `!shopee on` (dono) ou fluxo `!minhaconta` da 3.1
+2. Cria conta e entra
+3. Aba WhatsApp: digita o numero → Conectar WhatsApp → escaneia o QR Code real ou digita o codigo de pareamento no WhatsApp
+4. Vê o status real (conectando / aguardando / conectado / erro) no painel
+5. Aba Shopee: App ID + Secret + palavra-chave → Salvar
+6. Aba Anuncios: intervalo, limite, horario, link → Salvar
+7. Pode desconectar / reconectar pelo painel
+8. No grupo: bot admin, `!shopee cadastrar` / `!shopee on` (dono) ou fluxo `!minhaconta` da 3.1
 
-O codigo da aba WhatsApp do painel ainda e **demonstracao**. O pareamento real e o do `node index.js`.
+O pareamento é **real**, gerado pelo Baileys no servidor do painel. Cada conta tem sessão isolada em `data/sessions/<userId>` (nunca vai pro Git).
 
 ---
 
@@ -186,7 +174,7 @@ O codigo da aba WhatsApp do painel ainda e **demonstracao**. O pareamento real e
 | `!ping` | testa se o bot esta vivo |
 | `!menu` | lista comandos |
 | `!ia on` | IA automatica neste chat |
-| `!link` | manda o link salvo no painel (precisa NAMY_BOT_TOKEN) |
+| `!link` | manda o link salvo no painel (precisa NAMY_BOT_TOKEN no modo casa) |
 | `!shopee status` | estado afiliados (dono) |
 
 ---
@@ -198,8 +186,9 @@ O codigo da aba WhatsApp do painel ainda e **demonstracao**. O pareamento real e
 | `Cannot find module dotenv` | `npm install` na raiz, nao na pasta do usuario |
 | `git` nao reconhecido | instale Git e abra terminal novo |
 | `EALLOWGIT` | instale Git + `npm config set git-protocol https` |
-| Painel abre, zap nao | faltou `node index.js` |
-| `!link` diz SaaS nao configurado | painel ligado + `NAMY_BOT_TOKEN` no `.env` + reinicie o bot |
+| Painel abre, zap nao conecta | verifique licenca ativa e numero com DDI |
+| QR não aparece | aguarde alguns segundos (polling) ou reconecte |
+| `!link` diz SaaS nao configurado | painel ligado + `NAMY_BOT_TOKEN` no `.env` (modo casa) |
 | npm no /sdcard quebra | rode so em `~/Namy-saas` |
 
-Nunca compartilhe `.env`, pasta `sessao/` nem `api/data/configs.json`.
+Nunca compartilhe `.env`, pasta `sessao/` nem `api/data/configs.json` nem `api/data/sessions/`.
