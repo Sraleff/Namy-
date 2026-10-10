@@ -2,6 +2,10 @@
  * Sessoes WhatsApp reais (Baileys) por conta do painel.
  * Uma sessao por userId. Auth fica em data/sessions/<userId> (nunca no Git).
  * Nao inicia dois sockets para a mesma conta.
+ *
+ * 515 (DisconnectReason.restartRequired) e sinal NORMAL do WhatsApp
+ * apos pareamento bem-sucedido: fecha o socket e pede para recriar
+ * com as credenciais ja salvas. Nao e erro terminal.
  */
 const fs = require('fs')
 const path = require('path')
@@ -65,14 +69,15 @@ function setStatus(userId, status, extra = {}) {
 async function start(userId, phone, onStatus) {
   ensure()
   const existing = get(userId)
-  if (existing && (existing.status === 'connecting' || existing.status === 'waiting_code' || existing.status === 'connected')) {
+  // Permite reinicio se estiver em erro ou reconectando; bloqueia apenas se ja estiver ativo de verdade
+  if (existing && existing.sock && (existing.status === 'connecting' || existing.status === 'waiting_code' || existing.status === 'connected')) {
     if (phone) existing.phone = String(phone).replace(/\D/g, '')
     return publicState(userId)
   }
   if (existing && existing.sock) {
     try { existing.sock.end() } catch (_) {}
-    sockets.delete(userId)
   }
+  if (existing) sockets.delete(userId)
 
   const cleanPhone = String(phone || '').replace(/\D/g, '')
   const authDir = path.join(SESSIONS, userId)
@@ -87,7 +92,8 @@ async function start(userId, phone, onStatus) {
     error: null,
     sock: null,
     askedCode: false,
-    onStatus
+    onStatus,
+    restartCount: (existing && existing.restartCount) || 0
   }
   sockets.set(userId, entry)
 
@@ -136,6 +142,7 @@ async function start(userId, phone, onStatus) {
       cur.qrDataUrl = null
       cur.pairingCode = null
       cur.error = null
+      cur.restartCount = 0
       setStatus(userId, 'connected')
     }
 
@@ -143,12 +150,33 @@ async function start(userId, phone, onStatus) {
       const code = lastDisconnect?.error?.output?.statusCode
       const loggedOut = code === DisconnectReason.loggedOut
       cur.sock = null
+
       if (loggedOut) {
         setStatus(userId, 'disconnected', { error: 'Sessao encerrada no WhatsApp' })
         sockets.delete(userId)
-      } else if (get(userId)) {
-        setStatus(userId, 'error', { error: 'Conexao caiu (' + (code || '?') + '). Toque em reconectar.' })
+        return
       }
+
+      // 515 = restartRequired: sinal NORMAL apos pareamento. Recria o socket com as creds ja salvas.
+      if (code === DisconnectReason.restartRequired || code === 515) {
+        if (cur.restartCount >= 5) {
+          setStatus(userId, 'error', { error: 'Muitas tentativas de reinicio (515). Toque em reconectar.' })
+          return
+        }
+        cur.restartCount = (cur.restartCount || 0) + 1
+        setStatus(userId, 'connecting', { error: null, qrDataUrl: null, pairingCode: null })
+        console.log('[SESSAO]', userId.slice(0, 8), '515 restartRequired — reconectando com credenciais salvas')
+        setTimeout(() => {
+          start(userId, cur.phone, cur.onStatus).catch((e) => {
+            console.error('[SESSAO] restart 515 falhou', e.message)
+            setStatus(userId, 'error', { error: 'Falha ao reiniciar: ' + (e.message || 'erro') })
+          })
+        }, 800)
+        return
+      }
+
+      // Outros fechamentos transientes: deixa o usuario reconectar manualmente
+      setStatus(userId, 'error', { error: 'Conexao caiu (' + (code || '?') + '). Toque em reconectar.' })
     }
   })
 
