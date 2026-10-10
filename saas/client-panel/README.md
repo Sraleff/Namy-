@@ -7,10 +7,10 @@ O afiliado **nao** usa terminal. Ele so abre o site.
 1. Abre o link do painel
 2. Cria conta / entra (trial de 30 dias)
 3. Conecta WhatsApp (QR ou codigo na tela)
-4. Cola App ID e Secret da Shopee (o secret nao volta para a tela)
-5. Salva o link de afiliado e o horario dos anuncios
+4. Cola App ID e Secret da Shopee e a palavra-chave (o secret nao volta para a tela)
+5. Liga anuncios automaticos (intervalo de 5 minutos ate 6 horas)
 6. Lista os grupos, marca e salva
-7. Toca em **Testar bot agora** e ve sucesso ou falha por grupo
+7. Toca em **Publicar oferta agora**. O grupo recebe um produto da API desta conta (nome, preco e link de afiliado)
 8. Na aba Conta, assina mensal ou trimestral quando o servidor tiver Mercado Pago
 
 ## Como voce sobe (uma vez)

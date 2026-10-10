@@ -15,8 +15,8 @@ Cliente abre no navegador:
 Telas:
   Inicio     status, passos, teste do bot, ultimos envios
   WhatsApp   QR ou codigo real (sem terminal)
-  Shopee     App ID, Secret, palavra-chave, teste da API
-  Anuncios   intervalo, limite, horario, link, grupos
+  Shopee     App ID, Secret, palavra-chave. Publicar oferta agora manda o produto da API
+  Anuncios   intervalo (5 min ate 6 h), limite, horario, grupos. O texto e a oferta da API
   Conta      plano, assinar mensal/trimestral, sair
 
 O cliente nao mexe em terminal, .env nem Git.

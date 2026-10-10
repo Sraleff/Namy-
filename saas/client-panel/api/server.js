@@ -87,7 +87,7 @@ function horaOk(v) {
   return /^([01]\d|2[0-3]):[0-5]\d$/.test(String(v || ''))
 }
 
-const INTERVALOS = new Set(['1h', '2h', '3h', '6h'])
+const INTERVALOS = new Set(['5m', '15m', '30m', '1h', '2h', '3h', '6h'])
 
 const app = express()
 app.use(cors())
@@ -190,7 +190,7 @@ app.put('/config', auth, (req, res) => {
     }
     if (body.ads.dailyLimit != null) {
       const n = Number(body.ads.dailyLimit)
-      cur.ads.dailyLimit = Number.isFinite(n) ? Math.min(50, Math.max(1, Math.round(n))) : cur.ads.dailyLimit
+      cur.ads.dailyLimit = Number.isFinite(n) ? Math.min(200, Math.max(1, Math.round(n))) : cur.ads.dailyLimit
     }
     if (body.ads.window) {
       const from = horaOk(body.ads.window.from) ? body.ads.window.from : (cur.ads.window && cur.ads.window.from) || '09:00'
@@ -331,6 +331,7 @@ app.get('/logs', auth, (req, res) => {
 })
 
 const wa = require('./waRoutes')(app, { auth, readJson, writeJson, CONFIGS, DATA, logs })
+require('./scheduler').start({ readJson, writeJson, CONFIGS, DATA, logs })
 
 app.get('/bot/config', (req, res) => {
   const token = req.headers['x-bot-token'] || req.query.token

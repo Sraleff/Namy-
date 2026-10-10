@@ -2,8 +2,10 @@
  * Rotas reais de WhatsApp. Montadas pelo server.js.
  * Sessao isolada por req.user.id (JWT). Nunca aceita userId do body.
  */
-const crypto = require('crypto')
 const sessions = require('./sessions')
+const ofertas = require('./ofertas')
+const { publicarOferta } = require('./divulgar')
+const { registrarEnvio } = require('./scheduler')
 
 function jidGrupo(jid) {
   return /^[0-9A-Za-z._-]+@g\.us$/.test(String(jid || ''))
@@ -23,15 +25,6 @@ function licencaAtiva(cfg) {
   if (!cfg || !cfg.license) return false
   const exp = new Date(cfg.license.expiresAt)
   return cfg.license.active && exp > new Date()
-}
-
-function assinarShopee(appId, secret, payload) {
-  const timestamp = String(Math.floor(Date.now() / 1000))
-  const signature = crypto
-    .createHash('sha256')
-    .update(appId + timestamp + payload + secret)
-    .digest('hex')
-  return `SHA256 Credential=${appId}, Timestamp=${timestamp}, Signature=${signature}`
 }
 
 module.exports = function mount(app, { auth, readJson, writeJson, CONFIGS, DATA, logs }) {
@@ -127,21 +120,27 @@ module.exports = function mount(app, { auth, readJson, writeJson, CONFIGS, DATA,
     const configs = readJson(CONFIGS, {})
     const cur = configs[req.user.id]
     if (!cur) return res.status(404).json({ error: 'Conta nao encontrada' })
-    const link = (cur.affiliate && cur.affiliate.link) || ''
-    const tpl = (cur.affiliate && cur.affiliate.template) || 'Meu link: {link}'
-    if (!link) return res.status(400).json({ error: 'Salve um link afiliado antes de testar.' })
-    const text = tpl.replace(/\{link\}/g, link).slice(0, 4000)
+    if (!licencaAtiva(cur)) return res.status(403).json({ error: 'Licenca expirada ou inativa.' })
     const jid = String((req.body && req.body.jid) || '')
     if (!jidGrupo(jid)) return res.status(400).json({ error: 'Escolha um grupo valido para o teste.' })
+    if (!sessions.publicState(req.user.id).connected) {
+      return res.status(400).json({ error: 'WhatsApp nao esta conectado.' })
+    }
     if (!podeTestar(req.user.id)) return res.status(429).json({ error: 'Espere 20 segundos entre testes.' })
     const nome = ((cur.groups || []).find((g) => g.jid === jid) || {}).name || jid
     try {
-      await sessions.sendText(req.user.id, jid, text)
-      if (logs) logs.append(DATA, req.user.id, { source: 'anuncio', level: 'info', ok: true, group: nome, jid, message: 'Teste enviado.' })
-      res.json({ ok: true, message: 'Teste enviado.', results: [{ jid, name: nome, ok: true }] })
+      const out = await publicarOferta({
+        userId: req.user.id,
+        cfg: cur,
+        groups: [{ jid, name: nome }],
+        dataDir: DATA,
+        logs,
+        sessions
+      })
+      if (out.enviados) registrarEnvio({ readJson, writeJson, CONFIGS }, req.user.id)
+      res.json(out)
     } catch (e) {
-      if (logs) logs.append(DATA, req.user.id, { source: 'anuncio', level: 'error', ok: false, group: nome, jid, message: e.message || 'Falha' })
-      res.status(400).json({ error: e.message || 'Falha ao enviar teste' })
+      res.status(e.status || 400).json({ error: e.message || 'Falha ao publicar oferta' })
     }
   })
 
@@ -150,109 +149,64 @@ module.exports = function mount(app, { auth, readJson, writeJson, CONFIGS, DATA,
     const cur = configs[req.user.id]
     if (!cur) return res.status(404).json({ error: 'Conta nao encontrada' })
     if (!licencaAtiva(cur)) return res.status(403).json({ error: 'Licenca expirada ou inativa.' })
-    const st = sessions.publicState(req.user.id)
-    if (!st.connected) return res.status(400).json({ error: 'WhatsApp nao esta conectado.' })
-    const groups = (Array.isArray(cur.groups) ? cur.groups : []).filter((g) => jidGrupo(g.jid))
-    if (!groups.length) return res.status(400).json({ error: 'Salve pelo menos um grupo na aba Anuncios.' })
-    const link = (cur.affiliate && cur.affiliate.link) || ''
-    if (!link) return res.status(400).json({ error: 'Salve um link afiliado antes de testar.' })
-    const tpl = (cur.affiliate && cur.affiliate.template) || 'Meu link: {link}'
-    const text = tpl.replace(/\{link\}/g, link).slice(0, 4000)
-    if (!podeTestar(req.user.id)) return res.status(429).json({ error: 'Espere 20 segundos entre testes.' })
-    const results = []
-    for (const g of groups) {
-      try {
-        await sessions.sendText(req.user.id, g.jid, text)
-        results.push({ jid: g.jid, name: g.name, ok: true })
-        if (logs) logs.append(DATA, req.user.id, { source: 'anuncio', level: 'info', ok: true, group: g.name, jid: g.jid, message: 'Anuncio de teste enviado.' })
-      } catch (e) {
-        results.push({ jid: g.jid, name: g.name, ok: false, error: e.message || 'erro' })
-        if (logs) logs.append(DATA, req.user.id, { source: 'anuncio', level: 'error', ok: false, group: g.name, jid: g.jid, message: e.message || 'Falha no envio' })
-      }
+    if (!sessions.publicState(req.user.id).connected) {
+      return res.status(400).json({ error: 'WhatsApp nao esta conectado.' })
     }
-    const okN = results.filter((r) => r.ok).length
-    res.json({
-      ok: okN > 0,
-      message: 'Enviado em ' + okN + ' de ' + results.length + ' grupo(s).',
-      connected: true,
-      results
-    })
+    if (!podeTestar(req.user.id)) return res.status(429).json({ error: 'Espere 20 segundos entre testes.' })
+    try {
+      const out = await publicarOferta({
+        userId: req.user.id,
+        cfg: cur,
+        dataDir: DATA,
+        logs,
+        sessions
+      })
+      if (out.enviados) registrarEnvio({ readJson, writeJson, CONFIGS }, req.user.id)
+      res.json(Object.assign({ connected: true }, out))
+    } catch (e) {
+      res.status(e.status || 400).json({ error: e.message || 'Falha ao publicar oferta' })
+    }
   })
 
   app.post('/shopee/test', auth, async (req, res) => {
     const configs = readJson(CONFIGS, {})
     const cur = configs[req.user.id]
-    if (!cur || !cur.shopee || !cur.shopee.appId || !cur.shopee.secret) {
-      return res.status(400).json({ error: 'Salve App ID e Secret da Shopee antes de testar.' })
-    }
-
-    const query = '{ productOfferV2(listType: 0, sortType: 5, page: 1, limit: 1) { nodes { productName } } }'
-    const payload = JSON.stringify({ query })
-    const authHeader = assinarShopee(cur.shopee.appId, cur.shopee.secret, payload)
-
-    let sample = null
+    if (!cur) return res.status(404).json({ error: 'Conta nao encontrada' })
+    if (!podeTestar(req.user.id)) return res.status(429).json({ error: 'Espere 20 segundos entre testes.' })
+    let oferta
     try {
-      const r = await fetch('https://open-api.affiliate.shopee.com.br/graphql', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          Authorization: authHeader
-        },
-        body: payload
-      })
-      const data = await r.json().catch(() => ({}))
-      if (data.errors && data.errors.length) {
-        const msg = data.errors[0].message || 'Erro na API'
-        return res.status(400).json({ ok: false, error: msg })
-      }
-      const nodes = data.data && data.data.productOfferV2 && data.data.productOfferV2.nodes
-      sample = Array.isArray(nodes) && nodes[0] ? nodes[0].productName : null
+      oferta = await ofertas.preparar(DATA, req.user.id, cur.shopee)
     } catch (e) {
-      return res.status(500).json({ error: e.message || 'Falha ao testar API' })
+      return res.status(e.status || 400).json({ error: e.message || 'Falha na API Shopee' })
     }
-
-    // API ok → envia anúncio para os grupos selecionados
-    const groups = Array.isArray(cur.groups) ? cur.groups : []
-    const link = (cur.affiliate && cur.affiliate.link) || ''
-    const tpl = (cur.affiliate && cur.affiliate.template) || 'Meu link: {link}'
-    const text = link ? tpl.replace('{link}', link) : null
-
-    let enviados = 0
-    const erros = []
-    const results = []
-
-    if (text && groups.length) {
-      for (const g of groups) {
-        if (!jidGrupo(g.jid)) continue
-        try {
-          await sessions.sendText(req.user.id, g.jid, text)
-          enviados++
-          results.push({ jid: g.jid, name: g.name, ok: true })
-          if (logs) logs.append(DATA, req.user.id, { source: 'shopee', level: 'info', ok: true, group: g.name, jid: g.jid, message: 'Anuncio apos teste da API.' })
-        } catch (e) {
-          erros.push((g.name || g.jid) + ': ' + (e.message || 'erro'))
-          results.push({ jid: g.jid, name: g.name, ok: false, error: e.message || 'erro' })
-          if (logs) logs.append(DATA, req.user.id, { source: 'shopee', level: 'error', ok: false, group: g.name, jid: g.jid, message: e.message || 'Falha' })
-        }
-      }
+    const groups = (Array.isArray(cur.groups) ? cur.groups : []).filter((g) => jidGrupo(g.jid))
+    const conectado = sessions.publicState(req.user.id).connected
+    if (!groups.length || !conectado) {
+      const porque = !groups.length
+        ? 'Salve um grupo na aba Anuncios para publicar.'
+        : 'WhatsApp nao esta conectado.'
+      return res.json({
+        ok: true,
+        message: 'Oferta da sua API: ' + oferta.nome + '. ' + porque,
+        sample: oferta.nome,
+        results: []
+      })
     }
-
-    const partes = ['API Shopee respondeu.']
-    if (sample) partes.push('Exemplo: ' + sample)
-    if (enviados) partes.push('Anúncio enviado para ' + enviados + ' grupo(s).')
-    else if (groups.length && !text) partes.push('API ok, mas salve um link afiliado para enviar anúncio.')
-    else if (!groups.length) partes.push('API ok. Selecione e salve grupos na aba Anúncios para enviar o teste.')
-    if (erros.length) partes.push('Erros: ' + erros.slice(0, 3).join(' | '))
-
-    res.json({
-      ok: true,
-      message: partes.join(' '),
-      sample,
-      enviados,
-      totalGrupos: groups.length,
-      erros,
-      results
-    })
+    try {
+      const out = await publicarOferta({
+        userId: req.user.id,
+        cfg: cur,
+        groups,
+        dataDir: DATA,
+        logs,
+        sessions,
+        oferta
+      })
+      if (out.enviados) registrarEnvio({ readJson, writeJson, CONFIGS }, req.user.id)
+      res.json(out)
+    } catch (e) {
+      res.status(e.status || 400).json({ error: e.message || 'Falha ao publicar oferta' })
+    }
   })
 
   app.post('/bot/pair', auth, async (req, res) => {

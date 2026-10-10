@@ -87,7 +87,7 @@ textarea{min-height:80px}.btn{width:100%;margin-top:12px;padding:13px;border:0;b
       <button type="button" class="btn" id="btnGoPair">Conectar WhatsApp</button>
       <button type="button" class="btn sec" id="btnGoShopee">Configurar Shopee</button>
       <button type="button" class="btn sec" id="btnGoAds">Anuncios automaticos</button>
-      <button type="button" class="btn" id="btnTestBotHome">Testar bot agora</button>
+      <button type="button" class="btn" id="btnTestBotHome">Publicar oferta agora</button>
       <div class="msg" id="homeTestMsg"></div>
       <div id="homeTestResults"></div>
     </div>
@@ -132,22 +132,32 @@ textarea{min-height:80px}.btn{width:100%;margin-top:12px;padding:13px;border:0;b
       <label>Secret</label><input id="shopeeSecret" type="password" autocomplete="new-password" placeholder="cole de novo so se for trocar"/>
       <label>Palavra-chave</label><input id="shopeeKeyword" placeholder="fone bluetooth"/>
       <button type="button" class="btn" id="btnSaveShopee">Salvar Shopee</button>
-      <button type="button" class="btn sec" id="btnTestShopee">Testar API + Enviar anuncio</button>
+      <button type="button" class="btn sec" id="btnTestShopee">Publicar oferta da API agora</button>
       <div class="msg" id="shopeeMsg"></div>
       <div id="shopeeResults"></div>
-      <p class="hint">Testa as chaves na API Shopee e, se estiver ok, envia o anuncio (link salvo) para todos os grupos selecionados na aba Anuncios. WhatsApp precisa estar conectado e grupos salvos.</p>
+      <p class="hint">Busca uma oferta real na API Shopee desta conta (usa a palavra-chave) e publica agora nos grupos salvos. O link e o de afiliado da oferta, nao um texto fixo.</p>
     </div>
   </div>
   <div class="page hidden" id="page-ads">
     <div class="card">
       <h2>Anuncios automaticos</h2>
+      <p>Ligado, o painel busca ofertas na API Shopee desta conta e publica nos grupos salvos, no intervalo abaixo.</p>
       <div class="switch"><input type="checkbox" id="adsOn"/><label for="adsOn" style="margin:0">Publicacoes ligadas</label></div>
       <label>Intervalo</label>
-      <select id="adsInterval"><option value="1h">1 hora</option><option value="2h" selected>2 horas</option><option value="3h">3 horas</option><option value="6h">6 horas</option></select>
-      <label>Limite por dia</label><input id="adsLimit" type="number" min="1" max="50" value="5"/>
+      <select id="adsInterval">
+        <option value="5m">5 minutos</option>
+        <option value="15m">15 minutos</option>
+        <option value="30m">30 minutos</option>
+        <option value="1h">1 hora</option>
+        <option value="2h">2 horas</option>
+        <option value="3h">3 horas</option>
+        <option value="6h">6 horas</option>
+      </select>
+      <p class="hint">5 minutos posta seguido. Suba o limite por dia (ate 200) se quiser o periodo todo.</p>
+      <label>Limite por dia</label><input id="adsLimit" type="number" min="1" max="200" value="5"/>
       <label>Horario Brasilia</label>
       <div class="row"><input id="adsFrom" value="09:00"/><input id="adsTo" value="22:00"/></div>
-      <label>Link afiliado (!link)</label><input id="affLink" placeholder="https://..."/>
+      <label>Link manual (!link) — opcional</label><input id="affLink" placeholder="https://..."/>
       <label>Mensagem !link</label><textarea id="affTpl">Meu link: {link}</textarea>
       <button type="button" class="btn" id="btnSaveAds">Salvar anuncios</button>
       <div class="msg" id="adsMsg"></div>
@@ -160,8 +170,8 @@ textarea{min-height:80px}.btn{width:100%;margin-top:12px;padding:13px;border:0;b
       <button type="button" class="btn" id="btnSaveGroups">Salvar grupos selecionados</button>
       <label>Enviar teste para</label>
       <select id="testJid"><option value="">-- escolha um grupo --</option></select>
-      <button type="button" class="btn" id="btnTestAd">Enviar teste neste grupo</button>
-      <button type="button" class="btn" id="btnTestBot">Testar bot agora (todos os salvos)</button>
+      <button type="button" class="btn" id="btnTestAd">Publicar oferta agora neste grupo</button>
+      <button type="button" class="btn" id="btnTestBot">Publicar oferta agora (todos os salvos)</button>
       <div id="sendResults"></div>
       <div class="msg" id="groupsMsg"></div>
     </div>
@@ -413,7 +423,7 @@ function ir(page){
 
 async function testarBot(msgEl, box){
   msgEl.className='msg';
-  msgEl.textContent='Enviando anuncio real para os grupos salvos...';
+  msgEl.textContent='Buscando oferta na sua API Shopee...';
   try{
     const data=await api('/bot/test',{method:'POST',body:'{}'});
     msgEl.className='msg '+(data.ok?'ok':'err');
@@ -567,7 +577,7 @@ $('btnSaveShopee').onclick=async()=>{
   }catch(e){$('shopeeMsg').className='msg err';$('shopeeMsg').textContent=e.message;}
 };
 $('btnTestShopee').onclick=async()=>{
-  $('shopeeMsg').textContent='Testando API e enviando anuncio...';
+  $('shopeeMsg').textContent='Buscando oferta na sua API e publicando...';
   try{
     const data=await api('/shopee/test',{method:'POST',body:'{}'});
     $('shopeeMsg').className='msg ok';
@@ -610,6 +620,8 @@ $('btnTestAd').onclick=async()=>{
   $('groupsMsg').textContent='';
   const jid=$('testJid').value;
   if(!jid){$('groupsMsg').className='msg err';$('groupsMsg').textContent='Escolha um grupo para o teste.';return;}
+  $('groupsMsg').className='msg';
+  $('groupsMsg').textContent='Buscando oferta na sua API Shopee...';
   try{
     const data=await api('/ads/test',{method:'POST',body:JSON.stringify({jid})});
     $('groupsMsg').className='msg ok';

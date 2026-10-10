@@ -251,13 +251,45 @@ async function listGroups(userId) {
 }
 
 async function sendText(userId, jid, text) {
-  const s = get(userId)
-  if (!s || !s.sock || s.status !== 'connected') {
-    throw new Error('WhatsApp nao esta conectado')
-  }
-  if (!jid || !text) throw new Error('jid e texto obrigatorios')
-  await s.sock.sendMessage(jid, { text: String(text).slice(0, 4000) })
-  return true
+  return sendOffer(userId, jid, { text })
 }
 
-module.exports = { start, stop, publicState, restoreRegistered, listGroups, sendText, get }
+async function sendOffer(userId, jid, { text, imageUrl }) {
+  const s = get(userId)
+  if (!s || !s.sock || s.status !== 'connected' || !(s.sock.user)) {
+    const err = new Error('WhatsApp nao esta conectado')
+    err.code = 'WA'
+    throw err
+  }
+  if (!jid || !text) {
+    const err = new Error('jid e texto obrigatorios')
+    err.code = 'WA'
+    throw err
+  }
+  const caption = String(text).slice(0, 4000)
+  const imagem = imageUrl && String(imageUrl).startsWith('https://') ? imageUrl : ''
+  try {
+    if (imagem) {
+      await s.sock.sendMessage(jid, { image: { url: imagem }, caption })
+      return true
+    }
+    await s.sock.sendMessage(jid, { text: caption })
+    return true
+  } catch (e) {
+    if (imagem) {
+      try {
+        await s.sock.sendMessage(jid, { text: caption })
+        return true
+      } catch (e2) {
+        const err = new Error(e2.message || 'Falha ao enviar')
+        err.code = 'WA'
+        throw err
+      }
+    }
+    const err = new Error(e.message || 'Falha ao enviar')
+    err.code = 'WA'
+    throw err
+  }
+}
+
+module.exports = { start, stop, publicState, restoreRegistered, listGroups, sendText, sendOffer, get }
