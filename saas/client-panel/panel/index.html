@@ -166,7 +166,7 @@ function updateWaUI(st){
   setStatusBadge(status==='connected'?'online':status);
   if(st.pairingCode){show($('pairResult'),true);$('pairCode').textContent=st.pairingCode;}else{show($('pairResult'),false);}
   if(st.qrDataUrl){show($('qrBox'),true);$('qrImg').src=st.qrDataUrl;}else{show($('qrBox'),false);}
-  if(st.error)$('waMsg').className='msg err';$('waMsg').textContent=st.error||'';
+  if(st.error){$('waMsg').className='msg err';$('waMsg').textContent=st.error;}else if($('waMsg').classList.contains('err')){$('waMsg').className='msg';$('waMsg').textContent='';}
   if(cfg){cfg.status=status==='connected'?'online':(status==='waiting_code'||status==='connecting'?'pairing':'offline');$('stBot').textContent=cfg.status==='online'?'Online':(cfg.status==='pairing'?'Pareando':'Offline');}
 }
 async function pollStatus(){
