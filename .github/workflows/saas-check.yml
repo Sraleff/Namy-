@@ -1,0 +1,72 @@
+name: Namy SaaS checks
+
+on:
+  push:
+    branches:
+      - fix/saas-whatsapp-pairing-v2
+  pull_request:
+    paths:
+      - "saas/client-panel/**"
+      - ".github/workflows/saas-check.yml"
+
+jobs:
+  install-and-smoke-test:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: saas/client-panel
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: saas/client-panel/package.json
+      - name: Install dependencies
+        run: npm install
+      - name: Check JavaScript syntax
+        run: |
+          node --check api/server.js
+          node --check api/waRoutes.js
+          node --check api/sessions.js
+      - name: Smoke test health and account flow
+        shell: bash
+        run: |
+          set -euo pipefail
+          JWT_SECRET="ci-only-secret-for-smoke-test" PORT=3847 node api/server.js > /tmp/namy-panel.log 2>&1 &
+          SERVER_PID=$!
+          trap 'kill "$SERVER_PID" 2>/dev/null || true' EXIT
+          for i in $(seq 1 30); do
+            if curl --silent --fail http://127.0.0.1:3847/health > /tmp/namy-health.json; then break; fi
+            sleep 1
+          done
+          node -e "const fs=require('fs'); const h=JSON.parse(fs.readFileSync('/tmp/namy-health.json','utf8')); if(h.ok!==true) process.exit(1)"
+          node <<'NODE'
+          const assert = require('node:assert/strict');
+          const base = 'http://127.0.0.1:3847';
+          (async () => {
+            const email = 'ci-' + Date.now() + '@example.test';
+            const reg = await fetch(base + '/auth/register', {
+              method: 'POST',
+              headers: {'content-type':'application/json'},
+              body: JSON.stringify({email, password:'ci-test-password'})
+            });
+            assert.equal(reg.status, 200, 'registration should succeed');
+            const registered = await reg.json();
+            assert.ok(registered.token, 'registration should return a token');
+            assert.ok(registered.config, 'registration should return config');
+            assert.equal(registered.config.shopee.secret, '', 'secret must not be exposed');
+            const login = await fetch(base + '/auth/login', {
+              method: 'POST',
+              headers: {'content-type':'application/json'},
+              body: JSON.stringify({email, password:'ci-test-password'})
+            });
+            assert.equal(login.status, 200, 'login should succeed');
+            const loggedIn = await login.json();
+            const me = await fetch(base + '/me', {headers:{authorization:'Bearer '+loggedIn.token}});
+            assert.equal(me.status, 200, '/me should accept valid token');
+            const bad = await fetch(base + '/me');
+            assert.equal(bad.status, 401, '/me should reject missing token');
+            console.log('Health, register, login, and auth checks passed');
+          })().catch(err => { console.error(err); process.exit(1); });
+          NODE
