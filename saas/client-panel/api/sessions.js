@@ -69,7 +69,6 @@ function setStatus(userId, status, extra = {}) {
 async function start(userId, phone, onStatus) {
   ensure()
   const existing = get(userId)
-  // Permite reinicio se estiver em erro ou reconectando; bloqueia apenas se ja estiver ativo de verdade
   if (existing && existing.sock && (existing.status === 'connecting' || existing.status === 'waiting_code' || existing.status === 'connected')) {
     if (phone) existing.phone = String(phone).replace(/\D/g, '')
     return publicState(userId)
@@ -157,7 +156,6 @@ async function start(userId, phone, onStatus) {
         return
       }
 
-      // 515 = restartRequired: sinal NORMAL apos pareamento. Recria o socket com as creds ja salvas.
       if (code === DisconnectReason.restartRequired || code === 515) {
         if (cur.restartCount >= 5) {
           setStatus(userId, 'error', { error: 'Muitas tentativas de reinicio (515). Toque em reconectar.' })
@@ -175,7 +173,6 @@ async function start(userId, phone, onStatus) {
         return
       }
 
-      // Outros fechamentos transientes: deixa o usuario reconectar manualmente
       setStatus(userId, 'error', { error: 'Conexao caiu (' + (code || '?') + '). Toque em reconectar.' })
     }
   })
@@ -229,4 +226,27 @@ function restoreRegistered(onStatus) {
   }
 }
 
-module.exports = { start, stop, publicState, restoreRegistered }
+async function listGroups(userId) {
+  const s = get(userId)
+  if (!s || !s.sock || s.status !== 'connected') {
+    throw new Error('WhatsApp nao esta conectado')
+  }
+  const groups = await s.sock.groupFetchAllParticipating()
+  return Object.values(groups || {}).map((g) => ({
+    jid: g.id,
+    name: g.subject || g.id,
+    participants: Array.isArray(g.participants) ? g.participants.length : 0
+  }))
+}
+
+async function sendText(userId, jid, text) {
+  const s = get(userId)
+  if (!s || !s.sock || s.status !== 'connected') {
+    throw new Error('WhatsApp nao esta conectado')
+  }
+  if (!jid || !text) throw new Error('jid e texto obrigatorios')
+  await s.sock.sendMessage(jid, { text: String(text).slice(0, 4000) })
+  return true
+}
+
+module.exports = { start, stop, publicState, restoreRegistered, listGroups, sendText, get }
