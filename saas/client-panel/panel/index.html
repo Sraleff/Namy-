@@ -106,9 +106,9 @@ textarea{min-height:80px}.btn{width:100%;margin-top:12px;padding:13px;border:0;b
       <label>Secret</label><input id="shopeeSecret" type="password"/>
       <label>Palavra-chave</label><input id="shopeeKeyword" placeholder="fone bluetooth"/>
       <button type="button" class="btn" id="btnSaveShopee">Salvar Shopee</button>
-      <button type="button" class="btn sec" id="btnTestShopee">Testar API</button>
+      <button type="button" class="btn sec" id="btnTestShopee">Testar API + Enviar anuncio</button>
       <div class="msg" id="shopeeMsg"></div>
-      <p class="hint">Chaves so na sua conta. O teste faz uma consulta simples na API.</p>
+      <p class="hint">Testa as chaves na API Shopee e, se estiver ok, envia o anuncio (link salvo) para todos os grupos selecionados na aba Anuncios. WhatsApp precisa estar conectado e grupos salvos.</p>
     </div>
   </div>
   <div class="page hidden" id="page-ads">
@@ -146,7 +146,7 @@ textarea{min-height:80px}.btn{width:100%;margin-top:12px;padding:13px;border:0;b
     </div>
     <div class="card">
       <h2>Ajuda</h2>
-      <p class="hint">1. Crie conta<br/>2. Conecte WhatsApp (QR ou codigo)<br/>3. Cole API Shopee e teste<br/>4. Ajuste anuncios<br/>5. Liste e selecione grupos<br/>6. Envie um teste</p>
+      <p class="hint">1. Crie conta<br/>2. Conecte WhatsApp (QR ou codigo)<br/>3. Cole API Shopee<br/>4. Ajuste anuncios e salve link<br/>5. Liste e salve grupos<br/>6. Teste API (envia anuncio nos grupos)</p>
       <button type="button" class="btn sec" id="btnLogout">Sair</button>
     </div>
   </div>
@@ -224,7 +224,7 @@ $('btnReconnect').onclick=async()=>{$('waMsg').textContent='';try{const data=awa
 $('btnDisconnect').onclick=async()=>{$('waMsg').textContent='';try{const data=await api('/whatsapp/disconnect',{method:'POST',body:JSON.stringify({logout:true})});updateWaUI(data);$('waMsg').className='msg ok';$('waMsg').textContent='Desconectado.';}catch(e){$('waMsg').className='msg err';$('waMsg').textContent=e.message}};
 $('btnSaveBot').onclick=async()=>{try{const c=await api('/config',{method:'PUT',body:JSON.stringify({botName:$('botName').value,phone:$('waPhone').value})});fillUI(c);$('waMsg').className='msg ok';$('waMsg').textContent='Nome salvo'}catch(e){$('waMsg').className='msg err';$('waMsg').textContent=e.message}};
 $('btnSaveShopee').onclick=async()=>{$('shopeeMsg').textContent='';try{const c=await api('/config',{method:'PUT',body:JSON.stringify({shopee:{appId:$('shopeeAppId').value.trim(),secret:$('shopeeSecret').value.trim(),keyword:$('shopeeKeyword').value.trim()}})});fillUI(c);$('shopeeMsg').className='msg ok';$('shopeeMsg').textContent='Shopee salva'}catch(e){$('shopeeMsg').className='msg err';$('shopeeMsg').textContent=e.message}};
-$('btnTestShopee').onclick=async()=>{$('shopeeMsg').textContent='Testando...';try{const data=await api('/shopee/test',{method:'POST',body:'{}'});$('shopeeMsg').className='msg ok';$('shopeeMsg').textContent=(data.message||'OK')+(data.sample?' | Exemplo: '+data.sample:'');}catch(e){$('shopeeMsg').className='msg err';$('shopeeMsg').textContent=e.message}};
+$('btnTestShopee').onclick=async()=>{$('shopeeMsg').textContent='Testando API e enviando anuncio...';try{const data=await api('/shopee/test',{method:'POST',body:'{}'});$('shopeeMsg').className='msg ok';$('shopeeMsg').textContent=data.message||'OK';}catch(e){$('shopeeMsg').className='msg err';$('shopeeMsg').textContent=e.message}};
 $('btnSaveAds').onclick=async()=>{$('adsMsg').textContent='';try{const c=await api('/config',{method:'PUT',body:JSON.stringify({ads:{enabled:$('adsOn').checked,interval:$('adsInterval').value,dailyLimit:Number($('adsLimit').value)||5,window:{from:$('adsFrom').value,to:$('adsTo').value}},affiliate:{link:$('affLink').value.trim(),template:$('affTpl').value}})});fillUI(c);$('adsMsg').className='msg ok';$('adsMsg').textContent='Anuncios salvos'}catch(e){$('adsMsg').className='msg err';$('adsMsg').textContent=e.message}};
 $('btnLoadGroups').onclick=async()=>{$('groupsMsg').textContent='Carregando grupos...';try{const data=await api('/whatsapp/groups');renderGroups(data.groups||[],data.selected||[]);$('groupsMsg').className='msg ok';$('groupsMsg').textContent='Grupos carregados. Marque os que recebem anuncios.';}catch(e){$('groupsMsg').className='msg err';$('groupsMsg').textContent=e.message}};
 $('btnSaveGroups').onclick=async()=>{$('groupsMsg').textContent='';const checks=document.querySelectorAll('#groupsList input[type=checkbox]:checked');const groups=Array.from(checks).map(cb=>({jid:cb.dataset.jid,name:cb.dataset.name}));try{await api('/whatsapp/groups',{method:'POST',body:JSON.stringify({groups})});$('groupsMsg').className='msg ok';$('groupsMsg').textContent='Grupos salvos ('+groups.length+').';}catch(e){$('groupsMsg').className='msg err';$('groupsMsg').textContent=e.message}};
