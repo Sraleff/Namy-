@@ -133,9 +133,12 @@ module.exports = function mount(app, { auth, readJson, writeJson, CONFIGS }) {
     if (!cur || !cur.shopee || !cur.shopee.appId || !cur.shopee.secret) {
       return res.status(400).json({ error: 'Salve App ID e Secret da Shopee antes de testar.' })
     }
+
     const query = '{ productOfferV2(listType: 0, sortType: 5, page: 1, limit: 1) { nodes { productName } } }'
     const payload = JSON.stringify({ query })
     const authHeader = assinarShopee(cur.shopee.appId, cur.shopee.secret, payload)
+
+    let sample = null
     try {
       const r = await fetch('https://open-api.affiliate.shopee.com.br/graphql', {
         method: 'POST',
@@ -151,14 +154,47 @@ module.exports = function mount(app, { auth, readJson, writeJson, CONFIGS }) {
         return res.status(400).json({ ok: false, error: msg })
       }
       const nodes = data.data && data.data.productOfferV2 && data.data.productOfferV2.nodes
-      res.json({
-        ok: true,
-        message: 'API Shopee respondeu.',
-        sample: Array.isArray(nodes) && nodes[0] ? nodes[0].productName : null
-      })
+      sample = Array.isArray(nodes) && nodes[0] ? nodes[0].productName : null
     } catch (e) {
-      res.status(500).json({ error: e.message || 'Falha ao testar API' })
+      return res.status(500).json({ error: e.message || 'Falha ao testar API' })
     }
+
+    // API ok → envia anúncio para os grupos selecionados
+    const groups = Array.isArray(cur.groups) ? cur.groups : []
+    const link = (cur.affiliate && cur.affiliate.link) || ''
+    const tpl = (cur.affiliate && cur.affiliate.template) || 'Meu link: {link}'
+    const text = link ? tpl.replace('{link}', link) : null
+
+    let enviados = 0
+    const erros = []
+
+    if (text && groups.length) {
+      for (const g of groups) {
+        if (!g.jid) continue
+        try {
+          await sessions.sendText(req.user.id, g.jid, text)
+          enviados++
+        } catch (e) {
+          erros.push((g.name || g.jid) + ': ' + (e.message || 'erro'))
+        }
+      }
+    }
+
+    const partes = ['API Shopee respondeu.']
+    if (sample) partes.push('Exemplo: ' + sample)
+    if (enviados) partes.push('Anúncio enviado para ' + enviados + ' grupo(s).')
+    else if (groups.length && !text) partes.push('API ok, mas salve um link afiliado para enviar anúncio.')
+    else if (!groups.length) partes.push('API ok. Selecione e salve grupos na aba Anúncios para enviar o teste.')
+    if (erros.length) partes.push('Erros: ' + erros.slice(0, 3).join(' | '))
+
+    res.json({
+      ok: true,
+      message: partes.join(' '),
+      sample,
+      enviados,
+      totalGrupos: groups.length,
+      erros
+    })
   })
 
   app.post('/bot/pair', auth, async (req, res) => {
