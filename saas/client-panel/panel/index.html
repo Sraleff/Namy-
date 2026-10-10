@@ -11,7 +11,7 @@
 header{padding:20px 16px 12px;display:flex;align-items:center;justify-content:space-between;position:sticky;top:0;background:rgba(11,15,20,.92);z-index:5}
 header h1{font-size:1.15rem;margin:0}.sub{color:var(--m);font-size:.75rem}
 .badge{font-size:.7rem;padding:4px 10px;border-radius:999px;background:#1e293b}
-.badge.on{background:#14532d;color:#86efac}.badge.off{background:#450a0a;color:#fca5a5}.badge.pair{background:#422006;color:#fcd34d}
+.badge.on{background:#14532d;color:#86efac}.badge.off{background:#450a0a;color:#fca5a5}.badge.pair{background:#422006;color:#fcd34d}.badge.err{background:#7f1d1d;color:#fca5a5}
 nav{position:fixed;bottom:0;left:0;right:0;max-width:480px;margin:0 auto;background:var(--card);border-top:1px solid var(--line);display:flex;z-index:10}
 nav button{flex:1;background:none;border:0;color:var(--m);padding:10px 4px 12px;font-size:.68rem;cursor:pointer}
 nav button.active{color:var(--p2)}nav button span{display:block;font-size:1.15rem;margin-bottom:2px}
@@ -20,7 +20,7 @@ nav button.active{color:var(--p2)}nav button span{display:block;font-size:1.15re
 label{display:block;font-size:.75rem;color:var(--m);margin:10px 0 4px}
 input,select,textarea{width:100%;padding:12px;border-radius:10px;border:1px solid var(--line);background:var(--card2);color:var(--t);font-size:1rem}
 textarea{min-height:80px}.btn{width:100%;margin-top:12px;padding:13px;border:0;border-radius:12px;background:var(--p);color:#fff;font-weight:600;cursor:pointer}
-.btn.sec{background:var(--card2);border:1px solid var(--line)}.row{display:flex;gap:8px}.row .btn{flex:1}
+.btn.sec{background:var(--card2);border:1px solid var(--line)}.btn.danger{background:#7f1d1d}.row{display:flex;gap:8px}.row .btn{flex:1}
 .msg{margin-top:10px;font-size:.85rem}.msg.err{color:#fca5a5}.msg.ok{color:#86efac}
 .stat{display:grid;grid-template-columns:1fr 1fr;gap:8px}.stat .box{background:var(--card2);border-radius:12px;padding:12px}.stat .box b{display:block;font-size:1.1rem}.stat .box span{font-size:.7rem;color:var(--m)}
 .auth-wrap{padding:40px 16px;max-width:400px;margin:0 auto}.auth-wrap h1{text-align:center;font-size:1.6rem;margin-bottom:4px}.auth-wrap .tag{text-align:center;color:var(--m);margin-bottom:28px}
@@ -28,6 +28,8 @@ textarea{min-height:80px}.btn{width:100%;margin-top:12px;padding:13px;border:0;b
 .list-item{display:flex;justify-content:space-between;padding:12px 0;border-bottom:1px solid var(--line)}
 .code-box{font-family:monospace;font-size:1.6rem;letter-spacing:.2em;text-align:center;padding:16px;background:var(--card2);border-radius:12px;margin:12px 0}
 .hint{font-size:.8rem;color:var(--m);margin-top:8px;line-height:1.35}
+.qr-box{text-align:center;margin:12px 0}.qr-box img{max-width:220px;border-radius:8px;background:#fff;padding:8px}
+.status-line{font-size:.9rem;margin:8px 0;padding:8px;background:var(--card2);border-radius:8px}
 </style>
 </head>
 <body>
@@ -71,11 +73,19 @@ textarea{min-height:80px}.btn{width:100%;margin-top:12px;padding:13px;border:0;b
   <div class="page hidden" id="page-wa">
     <div class="card">
       <h2>Conectar WhatsApp</h2>
-      <p>Numero com DDI que vai rodar o bot.</p>
+      <p>Numero com DDI. O servidor gera QR ou codigo de pareamento real.</p>
       <label>Numero</label><input id="waPhone" inputmode="numeric" placeholder="5511999999999"/>
-      <button type="button" class="btn" id="btnPair">Gerar codigo de pareamento</button>
-      <div id="pairResult" class="hidden"><div class="code-box" id="pairCode">----</div>
-      <p class="hint">WhatsApp - Aparelhos conectados - Conectar com numero - digite o codigo.</p></div>
+      <div class="status-line" id="waStatusLine">Desconectado</div>
+      <button type="button" class="btn" id="btnConnect">Conectar WhatsApp</button>
+      <div id="pairResult" class="hidden">
+        <div class="code-box" id="pairCode">----</div>
+        <p class="hint">WhatsApp → Aparelhos conectados → Conectar com numero → digite o codigo.</p>
+      </div>
+      <div id="qrBox" class="qr-box hidden"><img id="qrImg" alt="QR Code WhatsApp"/></div>
+      <div class="row">
+        <button type="button" class="btn sec" id="btnReconnect">Reconectar</button>
+        <button type="button" class="btn danger" id="btnDisconnect">Desconectar</button>
+      </div>
       <div class="msg" id="waMsg"></div>
     </div>
     <div class="card">
@@ -120,7 +130,7 @@ textarea{min-height:80px}.btn{width:100%;margin-top:12px;padding:13px;border:0;b
     </div>
     <div class="card">
       <h2>Ajuda</h2>
-      <p class="hint">1. Crie conta<br/>2. Conecte WhatsApp<br/>3. Cole API Shopee<br/>4. Ajuste anuncios<br/>5. Autorize o bot no grupo</p>
+      <p class="hint">1. Crie conta<br/>2. Conecte WhatsApp (QR ou codigo)<br/>3. Cole API Shopee<br/>4. Ajuste anuncios<br/>5. Autorize o bot no grupo</p>
       <button type="button" class="btn sec" id="btnLogout">Sair</button>
     </div>
   </div>
@@ -133,11 +143,11 @@ textarea{min-height:80px}.btn{width:100%;margin-top:12px;padding:13px;border:0;b
   </nav>
 </div>
 <script>
-const API=location.origin;let token=localStorage.getItem('namy_client_token')||'';let mode='login';let cfg=null;
+const API=location.origin;let token=localStorage.getItem('namy_client_token')||'';let mode='login';let cfg=null;let pollTimer=null;
 const $=id=>document.getElementById(id);const show=(el,on)=>el.classList.toggle('hidden',!on);
-function setStatusBadge(status){const b=$('hdrStatus');b.className='badge';if(status==='online'){b.classList.add('on');b.textContent='Online'}else if(status==='pairing'){b.classList.add('pair');b.textContent='Pareando'}else{b.classList.add('off');b.textContent='Offline'}}
+function setStatusBadge(status){const b=$('hdrStatus');b.className='badge';if(status==='online'||status==='connected'){b.classList.add('on');b.textContent='Online'}else if(status==='pairing'||status==='waiting_code'||status==='connecting'){b.classList.add('pair');b.textContent='Pareando'}else if(status==='error'){b.classList.add('err');b.textContent='Erro'}else{b.classList.add('off');b.textContent='Offline'}}
 function fillUI(c){cfg=c;$('hdrEmail').textContent=c.email||'';setStatusBadge(c.status||'offline');
-$('stBot').textContent=c.status==='online'?'Online':(c.status==='pairing'?'Pareando':'Offline');
+$('stBot').textContent=c.status==='online'||c.status==='connected'?'Online':(c.status==='pairing'||c.status==='waiting_code'?'Pareando':'Offline');
 $('stPlan').textContent=(c.license&&c.license.plan)||'trial';
 const exp=c.license&&c.license.expiresAt?new Date(c.license.expiresAt):null;
 $('stDays').textContent=exp?Math.max(0,Math.ceil((exp-Date.now())/86400000)):'-';
@@ -149,18 +159,38 @@ $('adsFrom').value=(ads.window&&ads.window.from)||'09:00';$('adsTo').value=(ads.
 $('affLink').value=(c.affiliate&&c.affiliate.link)||'';$('affTpl').value=(c.affiliate&&c.affiliate.template)||'Meu link: {link}';
 $('accEmail').textContent=c.email||'-';$('accPlan').textContent=(c.license&&c.license.plan)||'-';$('accExp').textContent=exp?exp.toLocaleDateString('pt-BR'):'-'}
 async function api(path,opts={}){const headers=Object.assign({'Content-Type':'application/json'},opts.headers||{});if(token)headers.Authorization='Bearer '+token;const r=await fetch(API+path,Object.assign({},opts,{headers}));const data=await r.json().catch(()=>({}));if(!r.ok)throw new Error(data.error||('Erro '+r.status));return data}
-async function boot(){if(!token)return;try{const data=await api('/me');show($('screen-auth'),false);show($('screen-app'),true);fillUI(data.config)}catch(e){token='';localStorage.removeItem('namy_client_token')}}
+function updateWaUI(st){
+  const line=$('waStatusLine');
+  const status=st.status||'disconnected';
+  line.textContent=status==='connected'?'Conectado':status==='waiting_code'?'Aguardando QR / codigo':status==='connecting'?'Conectando...':status==='error'?'Erro: '+(st.error||''):'Desconectado';
+  setStatusBadge(status==='connected'?'online':status);
+  if(st.pairingCode){show($('pairResult'),true);$('pairCode').textContent=st.pairingCode;}else{show($('pairResult'),false);}
+  if(st.qrDataUrl){show($('qrBox'),true);$('qrImg').src=st.qrDataUrl;}else{show($('qrBox'),false);}
+  if(st.error)$('waMsg').className='msg err';$('waMsg').textContent=st.error||'';
+  if(cfg){cfg.status=status==='connected'?'online':(status==='waiting_code'||status==='connecting'?'pairing':'offline');$('stBot').textContent=cfg.status==='online'?'Online':(cfg.status==='pairing'?'Pareando':'Offline');}
+}
+async function pollStatus(){
+  if(!token)return;
+  try{
+    const st=await api('/whatsapp/status');
+    updateWaUI(st);
+  }catch(e){}
+}
+function startPoll(){if(pollTimer)clearInterval(pollTimer);pollTimer=setInterval(pollStatus,3000);pollStatus();}
+async function boot(){if(!token)return;try{const data=await api('/me');show($('screen-auth'),false);show($('screen-app'),true);fillUI(data.config);startPoll();}catch(e){token='';localStorage.removeItem('namy_client_token')}}
 $('tabLogin').onclick=()=>{mode='login';$('btnAuth').textContent='Entrar'};$('tabReg').onclick=()=>{mode='register';$('btnAuth').textContent='Criar conta'};
-$('btnAuth').onclick=async()=>{$('authMsg').textContent='';try{const data=await api(mode==='login'?'/auth/login':'/auth/register',{method:'POST',body:JSON.stringify({email:$('email').value.trim(),password:$('password').value})});token=data.token;localStorage.setItem('namy_client_token',token);show($('screen-auth'),false);show($('screen-app'),true);fillUI(data.config)}catch(e){$('authMsg').className='msg err';$('authMsg').textContent=e.message}};
+$('btnAuth').onclick=async()=>{$('authMsg').textContent='';try{const data=await api(mode==='login'?'/auth/login':'/auth/register',{method:'POST',body:JSON.stringify({email:$('email').value.trim(),password:$('password').value})});token=data.token;localStorage.setItem('namy_client_token',token);show($('screen-auth'),false);show($('screen-app'),true);fillUI(data.config);startPoll();}catch(e){$('authMsg').className='msg err';$('authMsg').textContent=e.message}};
 document.querySelectorAll('nav button').forEach(btn=>{btn.onclick=()=>{document.querySelectorAll('nav button').forEach(b=>b.classList.remove('active'));btn.classList.add('active');const p=btn.dataset.page;['home','wa','shopee','ads','account'].forEach(id=>show($('page-'+id),id===p))}});
 $('btnGoPair').onclick=()=>document.querySelector('nav button[data-page=wa]').click();
 $('btnGoShopee').onclick=()=>document.querySelector('nav button[data-page=shopee]').click();
 $('btnGoAds').onclick=()=>document.querySelector('nav button[data-page=ads]').click();
-$('btnPair').onclick=async()=>{$('waMsg').textContent='';try{const data=await api('/bot/pair',{method:'POST',body:JSON.stringify({phone:$('waPhone').value})});show($('pairResult'),true);$('pairCode').textContent=data.code||'...';$('waMsg').className='msg ok';$('waMsg').textContent=data.message||'Codigo gerado';if(cfg){cfg.status='pairing';setStatusBadge('pairing')}}catch(e){$('waMsg').className='msg err';$('waMsg').textContent=e.message}};
+$('btnConnect').onclick=async()=>{$('waMsg').textContent='';try{const data=await api('/whatsapp/connect',{method:'POST',body:JSON.stringify({phone:$('waPhone').value})});updateWaUI(data);$('waMsg').className='msg ok';$('waMsg').textContent='Sessao iniciada. Escaneie o QR ou use o codigo.';}catch(e){$('waMsg').className='msg err';$('waMsg').textContent=e.message}};
+$('btnReconnect').onclick=async()=>{$('waMsg').textContent='';try{const data=await api('/whatsapp/reconnect',{method:'POST',body:JSON.stringify({})});updateWaUI(data);$('waMsg').className='msg ok';$('waMsg').textContent='Reconectando...';}catch(e){$('waMsg').className='msg err';$('waMsg').textContent=e.message}};
+$('btnDisconnect').onclick=async()=>{$('waMsg').textContent='';try{const data=await api('/whatsapp/disconnect',{method:'POST',body:JSON.stringify({logout:true})});updateWaUI(data);$('waMsg').className='msg ok';$('waMsg').textContent='Desconectado.';}catch(e){$('waMsg').className='msg err';$('waMsg').textContent=e.message}};
 $('btnSaveBot').onclick=async()=>{try{const c=await api('/config',{method:'PUT',body:JSON.stringify({botName:$('botName').value,phone:$('waPhone').value})});fillUI(c);$('waMsg').className='msg ok';$('waMsg').textContent='Nome salvo'}catch(e){$('waMsg').className='msg err';$('waMsg').textContent=e.message}};
 $('btnSaveShopee').onclick=async()=>{$('shopeeMsg').textContent='';try{const c=await api('/config',{method:'PUT',body:JSON.stringify({shopee:{appId:$('shopeeAppId').value.trim(),secret:$('shopeeSecret').value.trim(),keyword:$('shopeeKeyword').value.trim()}})});fillUI(c);$('shopeeMsg').className='msg ok';$('shopeeMsg').textContent='Shopee salva'}catch(e){$('shopeeMsg').className='msg err';$('shopeeMsg').textContent=e.message}};
 $('btnSaveAds').onclick=async()=>{$('adsMsg').textContent='';try{const c=await api('/config',{method:'PUT',body:JSON.stringify({ads:{enabled:$('adsOn').checked,interval:$('adsInterval').value,dailyLimit:Number($('adsLimit').value)||5,window:{from:$('adsFrom').value,to:$('adsTo').value}},affiliate:{link:$('affLink').value.trim(),template:$('affTpl').value}})});fillUI(c);$('adsMsg').className='msg ok';$('adsMsg').textContent='Anuncios salvos'}catch(e){$('adsMsg').className='msg err';$('adsMsg').textContent=e.message}};
-$('btnLogout').onclick=()=>{token='';localStorage.removeItem('namy_client_token');location.reload()};
+$('btnLogout').onclick=()=>{if(pollTimer)clearInterval(pollTimer);token='';localStorage.removeItem('namy_client_token');location.reload()};
 boot();
 </script>
 </body>
