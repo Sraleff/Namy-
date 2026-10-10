@@ -375,7 +375,7 @@ app.listen(PORT, () => {
   console.log('  Cliente abre: http://localhost:' + PORT)
   console.log('  WhatsApp: sessao real no servidor')
   console.log('')
-  if (process.env.RESTORE_SESSIONS === '1') {
+  if (process.env.RESTORE_SESSIONS !== '0') {
     require('./sessions').restoreRegistered(wa.gravarStatus)
   }
 })

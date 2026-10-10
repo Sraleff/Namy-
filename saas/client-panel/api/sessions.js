@@ -3,9 +3,9 @@
  * Uma sessao por userId. Auth fica em data/sessions/<userId> (nunca no Git).
  * Nao inicia dois sockets para a mesma conta.
  *
- * 515 (DisconnectReason.restartRequired) e sinal NORMAL do WhatsApp
- * apos pareamento bem-sucedido: fecha o socket e pede para recriar
- * com as credenciais ja salvas. Nao e erro terminal.
+ * 428 (connectionClosed) e 408 (connectionLost) sao queda de rede.
+ * A sessao registrada volta sozinha, com espera crescente ate 60s.
+ * 515 (restartRequired) tambem recria o socket. Nao e logout.
  */
 const fs = require('fs')
 const path = require('path')
@@ -67,6 +67,51 @@ async function baileysVersion() {
   return version
 }
 
+function quedaTemporaria(code) {
+  if (!code) return true
+  if (code === DisconnectReason.loggedOut || code === 401) return false
+  if (code === DisconnectReason.connectionReplaced || code === 440) return false
+  if (code === DisconnectReason.forbidden || code === 403) return false
+  if (code === DisconnectReason.multideviceMismatch || code === 411) return false
+  if (code === DisconnectReason.restartRequired || code === 515) return false
+  return true
+}
+
+function limparTimer(entry) {
+  if (entry && entry.reconnectTimer) {
+    clearTimeout(entry.reconnectTimer)
+    entry.reconnectTimer = null
+  }
+}
+
+function agendarReconexao(userId, code) {
+  const cur = get(userId)
+  if (!cur || cur.stopping || cur.reconnectTimer) return
+  const n = cur.dropCount || 0
+  if (code === 500 && n >= 8) {
+    setStatus(userId, 'error', { error: 'Sessao invalida. Toque em desconectar e conecte de novo.' })
+    return
+  }
+  cur.dropCount = n + 1
+  const espera = Math.min(60000, 3000 * Math.pow(2, Math.min(n, 5)))
+  setStatus(userId, 'reconnecting', {
+    error: 'Conexao caiu (' + (code || '?') + '). Reconectando em ' + Math.round(espera / 1000) + 's.',
+    qrDataUrl: null
+  })
+  console.log('[SESSAO]', userId.slice(0, 8), 'queda', code || '?', '— reconecta em', Math.round(espera / 1000) + 's')
+  cur.reconnectTimer = setTimeout(() => {
+    const s = get(userId)
+    if (!s || s.stopping) return
+    s.reconnectTimer = null
+    s.sock = null
+    start(userId, s.phone, s.onStatus).catch((e) => {
+      console.error('[SESSAO] reconnect', e.message)
+      const atual = get(userId)
+      if (atual && !atual.stopping) agendarReconexao(userId, code)
+    })
+  }, espera)
+}
+
 function setStatus(userId, status, extra = {}) {
   const s = get(userId)
   if (!s) return
@@ -80,16 +125,20 @@ function setStatus(userId, status, extra = {}) {
 async function start(userId, phone, onStatus) {
   ensure()
   const existing = get(userId)
-  if (existing && existing.sock && (existing.status === 'connecting' || existing.status === 'waiting_code' || existing.status === 'connected')) {
+  if (existing && existing.sock && (existing.status === 'connecting' || existing.status === 'waiting_code' || existing.status === 'connected' || existing.status === 'reconnecting')) {
     if (phone) existing.phone = String(phone).replace(/\D/g, '')
     return publicState(userId)
   }
-  if (existing && existing.sock) {
-    try { existing.sock.end() } catch (_) {}
+  if (existing) {
+    existing.stopping = true
+    limparTimer(existing)
+    if (existing.sock) {
+      try { existing.sock.end() } catch (_) {}
+    }
+    sockets.delete(userId)
   }
-  if (existing) sockets.delete(userId)
 
-  const cleanPhone = String(phone || '').replace(/\D/g, '')
+  const cleanPhone = String(phone || (existing && existing.phone) || '').replace(/\D/g, '')
   const authDir = path.join(SESSIONS, userId)
   if (!fs.existsSync(authDir)) fs.mkdirSync(authDir, { recursive: true })
 
@@ -103,7 +152,10 @@ async function start(userId, phone, onStatus) {
     sock: null,
     askedCode: false,
     onStatus,
-    restartCount: (existing && existing.restartCount) || 0
+    stopping: false,
+    reconnectTimer: null,
+    restartCount: (existing && existing.restartCount) || 0,
+    dropCount: (existing && existing.dropCount) || 0
   }
   sockets.set(userId, entry)
 
@@ -153,15 +205,19 @@ async function start(userId, phone, onStatus) {
       cur.pairingCode = null
       cur.error = null
       cur.restartCount = 0
+      cur.dropCount = 0
+      limparTimer(cur)
       setStatus(userId, 'connected')
     }
 
     if (connection === 'close') {
       const code = lastDisconnect?.error?.output?.statusCode
-      const loggedOut = code === DisconnectReason.loggedOut
+      const loggedOut = code === DisconnectReason.loggedOut || code === 401
       cur.sock = null
+      if (cur.stopping) return
 
       if (loggedOut) {
+        limparTimer(cur)
         setStatus(userId, 'disconnected', { error: 'Sessao encerrada no WhatsApp' })
         sockets.delete(userId)
         return
@@ -173,9 +229,11 @@ async function start(userId, phone, onStatus) {
           return
         }
         cur.restartCount = (cur.restartCount || 0) + 1
-        setStatus(userId, 'connecting', { error: null, qrDataUrl: null, pairingCode: null })
+        setStatus(userId, 'reconnecting', { error: null, qrDataUrl: null, pairingCode: null })
         console.log('[SESSAO]', userId.slice(0, 8), '515 restartRequired — reconectando com credenciais salvas')
         setTimeout(() => {
+          const s = get(userId)
+          if (!s || s.stopping) return
           start(userId, cur.phone, cur.onStatus).catch((e) => {
             console.error('[SESSAO] restart 515 falhou', e.message)
             setStatus(userId, 'error', { error: 'Falha ao reiniciar: ' + (e.message || 'erro') })
@@ -184,7 +242,16 @@ async function start(userId, phone, onStatus) {
         return
       }
 
-      setStatus(userId, 'error', { error: 'Conexao caiu (' + (code || '?') + '). Toque em reconectar.' })
+      if (quedaTemporaria(code)) {
+        agendarReconexao(userId, code)
+        return
+      }
+
+      limparTimer(cur)
+      const msg = (code === 440)
+        ? 'WhatsApp conectou em outro lugar. Toque em reconectar.'
+        : 'Conexao caiu (' + (code || '?') + '). Toque em reconectar.'
+      setStatus(userId, 'error', { error: msg })
     }
   })
 
@@ -206,6 +273,8 @@ async function start(userId, phone, onStatus) {
 async function stop(userId, logout) {
   const s = get(userId)
   if (!s) return publicState(userId)
+  s.stopping = true
+  limparTimer(s)
   try {
     if (logout && s.sock) await s.sock.logout()
     else if (s.sock) s.sock.end()

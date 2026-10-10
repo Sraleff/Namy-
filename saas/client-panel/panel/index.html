@@ -219,6 +219,7 @@ function setStatusBadge(status){
   const b=$('hdrStatus');
   b.className='badge';
   if(status==='online'||status==='connected'){b.classList.add('on');b.textContent='Online';}
+  else if(status==='reconnecting'){b.classList.add('pair');b.textContent='Reconectando';}
   else if(status==='pairing'||status==='waiting_code'||status==='connecting'){b.classList.add('pair');b.textContent='Pareando';}
   else if(status==='error'){b.classList.add('err');b.textContent='Erro';}
   else{b.classList.add('off');b.textContent='Offline';}
@@ -352,17 +353,19 @@ function fillUI(c){
 function updateWaUI(st){
   const line=$('waStatusLine');
   const status=st.status||'disconnected';
-  line.textContent=status==='connected'?'Conectado':status==='waiting_code'?'Aguardando QR / codigo':status==='connecting'?'Conectando...':status==='error'?'Erro: '+(st.error||''):'Desconectado';
+  line.textContent=status==='connected'?'Conectado':status==='reconnecting'?(st.error||'Reconectando...'):status==='waiting_code'?'Aguardando QR / codigo':status==='connecting'?'Conectando...':status==='error'?'Erro: '+(st.error||''):'Desconectado';
   setStatusBadge(status==='connected'?'online':status);
   if(st.pairingCode){show($('pairResult'),true);$('pairCode').textContent=st.pairingCode;}
   else{show($('pairResult'),false);}
   if(st.qrDataUrl){show($('qrBox'),true);$('qrImg').src=st.qrDataUrl;}
   else{show($('qrBox'),false);}
-  $('waMsg').className=st.error?'msg err':'msg';
+  $('waMsg').className=(st.error&&status!=='reconnecting')?'msg err':'msg';
   $('waMsg').textContent=st.error||'';
   if(cfg){
-    cfg.status=status==='connected'?'online':(status==='waiting_code'||status==='connecting'?'pairing':'offline');
-    $('stBot').textContent=cfg.status==='online'?'Online':(cfg.status==='pairing'?'Pareando':'Offline');
+    const vivo=status==='connected';
+    const meio=status==='waiting_code'||status==='connecting'||status==='reconnecting';
+    cfg.status=vivo?'online':(meio?'pairing':'offline');
+    $('stBot').textContent=vivo?'Online':(status==='reconnecting'?'Reconectando':(meio?'Pareando':'Offline'));
     markSteps(cfg);
   }
 }

@@ -35,6 +35,7 @@ module.exports = function mount(app, { auth, readJson, writeJson, CONFIGS, DATA,
       connected: 'online',
       waiting_code: 'pairing',
       connecting: 'pairing',
+      reconnecting: 'pairing',
       disconnected: 'offline',
       error: 'offline'
     }
