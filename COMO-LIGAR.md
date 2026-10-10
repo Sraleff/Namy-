@@ -179,6 +179,24 @@ O pareamento é **real**, gerado pelo Baileys no servidor do painel. Cada conta 
 
 ---
 
+## Mercado Pago (painel)
+
+O cliente assina pela aba Conta. Sem estas variaveis o trial de 30 dias continua e o botao Assinar responde que o Mercado Pago nao foi configurado.
+
+No arquivo `saas/client-panel/.env` (copie de `.env.example`):
+
+```env
+JWT_SECRET=um_segredo_longo_so_seu
+MP_ACCESS_TOKEN=
+PUBLIC_URL=https://seu-dominio
+NAMY_PRICE_MENSAL=49
+NAMY_PRICE_TRIMESTRAL=129
+```
+
+`PUBLIC_URL` e a URL publica do painel, com https, sem barra no final. O Mercado Pago chama `PUBLIC_URL/webhooks/mercadopago`. A licenca so liga depois que o servidor consulta o pagamento na API do Mercado Pago. Nao existe botao de "marcar como pago".
+
+O painel le `saas/client-panel/.env` ao subir. Variavel ja exportada no terminal ganha do arquivo.
+
 ## Problemas comuns
 
 | Sintoma | Solucao |
@@ -190,5 +208,6 @@ O pareamento é **real**, gerado pelo Baileys no servidor do painel. Cada conta 
 | QR não aparece | aguarde alguns segundos (polling) ou reconecte |
 | `!link` diz SaaS nao configurado | painel ligado + `NAMY_BOT_TOKEN` no `.env` (modo casa) |
 | npm no /sdcard quebra | rode so em `~/Namy-saas` |
+| Assinar diz Mercado Pago nao configurado | preencha `MP_ACCESS_TOKEN` e `PUBLIC_URL` em `saas/client-panel/.env` e reinicie o painel |
 
 Nunca compartilhe `.env`, pasta `sessao/` nem `api/data/configs.json` nem `api/data/sessions/`.

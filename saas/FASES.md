@@ -43,9 +43,36 @@ Nao tem flood, "postar em todos" nem varios numeros no mesmo login.
 
 | Peca | Status |
 |------|--------|
-| Mercado Pago / Stripe | Falta (nao cobrar sem webhook real) |
+| Mercado Pago (mensal R$49 / trimestral R$129) | Pronto no codigo. So cobra de verdade com `MP_ACCESS_TOKEN` + `PUBLIC_URL` HTTPS |
+| Webhook confirma na API do Mercado Pago antes de ligar a licenca | Pronto (`POST /webhooks/mercadopago` e `POST /billing/sync`) |
+| Painel: status da assinatura + Assinar / Renovar | Pronto (aba Conta) |
 | Plano trial 30 dias | Pronto (`license.plan = trial`) |
-| Ligar/desligar licenca na mao | Dono edita `license.active` e `expiresAt` em `api/data/configs.json` |
+| Stripe | Nao. So Mercado Pago |
+| Ligar/desligar licenca na mao | Dono ainda pode editar `license.active` e `expiresAt` em `api/data/configs.json` |
+
+Sem token do Mercado Pago o botao de assinar responde 503. O trial continua valendo. O painel nunca marca pago sozinho: o servidor consulta `GET /v1/payments/:id`.
+
+Variaveis do processo do painel (nao vao no Git):
+
+```env
+MP_ACCESS_TOKEN=
+PUBLIC_URL=https://seu-dominio
+NAMY_PRICE_MENSAL=49
+NAMY_PRICE_TRIMESTRAL=129
+JWT_SECRET=
+```
+
+## Fase 3b — operacao do cliente (painel)
+
+| Peca | Status |
+|------|--------|
+| Testar bot agora (todos os grupos salvos, resultado por grupo) | Pronto `POST /bot/test` |
+| Teste de um grupo | Pronto `POST /ads/test` |
+| Teste da API Shopee + envio | Pronto `POST /shopee/test` |
+| Historico dos ultimos envios | Pronto `GET /logs` (sem secret) |
+| Status online so se o socket tiver usuario | Pronto |
+| Intervalo, horario e JID de grupo filtrados | Pronto |
+
 
 ## Fase 4 — app
 

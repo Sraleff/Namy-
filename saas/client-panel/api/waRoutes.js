@@ -5,6 +5,20 @@
 const crypto = require('crypto')
 const sessions = require('./sessions')
 
+function jidGrupo(jid) {
+  return /^[0-9A-Za-z._-]+@g\.us$/.test(String(jid || ''))
+}
+
+const ultimoTeste = new Map()
+
+function podeTestar(userId) {
+  const agora = Date.now()
+  const prev = ultimoTeste.get(userId) || 0
+  if (agora - prev < 20000) return false
+  ultimoTeste.set(userId, agora)
+  return true
+}
+
 function licencaAtiva(cfg) {
   if (!cfg || !cfg.license) return false
   const exp = new Date(cfg.license.expiresAt)
@@ -20,7 +34,7 @@ function assinarShopee(appId, secret, payload) {
   return `SHA256 Credential=${appId}, Timestamp=${timestamp}, Signature=${signature}`
 }
 
-module.exports = function mount(app, { auth, readJson, writeJson, CONFIGS }) {
+module.exports = function mount(app, { auth, readJson, writeJson, CONFIGS, DATA, logs }) {
   function gravarStatus(userId, status) {
     const configs = readJson(CONFIGS, {})
     if (!configs[userId]) return
@@ -101,8 +115,8 @@ module.exports = function mount(app, { auth, readJson, writeJson, CONFIGS }) {
     if (!cur) return res.status(404).json({ error: 'Conta nao encontrada' })
     cur.groups = groups.map((g) => ({
       jid: String(g.jid || '').slice(0, 80),
-      name: String(g.name || g.jid || '').slice(0, 120)
-    })).filter((g) => g.jid)
+      name: String(g.name || g.jid || '').replace(/[<>]/g, '').slice(0, 120)
+    })).filter((g) => jidGrupo(g.jid))
     cur.updatedAt = new Date().toISOString()
     configs[req.user.id] = cur
     writeJson(CONFIGS, configs)
@@ -116,15 +130,53 @@ module.exports = function mount(app, { auth, readJson, writeJson, CONFIGS }) {
     const link = (cur.affiliate && cur.affiliate.link) || ''
     const tpl = (cur.affiliate && cur.affiliate.template) || 'Meu link: {link}'
     if (!link) return res.status(400).json({ error: 'Salve um link afiliado antes de testar.' })
-    const text = tpl.replace('{link}', link)
-    const jid = (req.body && req.body.jid) || ''
-    if (!jid) return res.status(400).json({ error: 'Escolha um grupo ou chat para o teste.' })
+    const text = tpl.replace(/\{link\}/g, link).slice(0, 4000)
+    const jid = String((req.body && req.body.jid) || '')
+    if (!jidGrupo(jid)) return res.status(400).json({ error: 'Escolha um grupo valido para o teste.' })
+    if (!podeTestar(req.user.id)) return res.status(429).json({ error: 'Espere 20 segundos entre testes.' })
+    const nome = ((cur.groups || []).find((g) => g.jid === jid) || {}).name || jid
     try {
       await sessions.sendText(req.user.id, jid, text)
-      res.json({ ok: true, message: 'Teste enviado.' })
+      if (logs) logs.append(DATA, req.user.id, { source: 'anuncio', level: 'info', ok: true, group: nome, jid, message: 'Teste enviado.' })
+      res.json({ ok: true, message: 'Teste enviado.', results: [{ jid, name: nome, ok: true }] })
     } catch (e) {
+      if (logs) logs.append(DATA, req.user.id, { source: 'anuncio', level: 'error', ok: false, group: nome, jid, message: e.message || 'Falha' })
       res.status(400).json({ error: e.message || 'Falha ao enviar teste' })
     }
+  })
+
+  app.post('/bot/test', auth, async (req, res) => {
+    const configs = readJson(CONFIGS, {})
+    const cur = configs[req.user.id]
+    if (!cur) return res.status(404).json({ error: 'Conta nao encontrada' })
+    if (!licencaAtiva(cur)) return res.status(403).json({ error: 'Licenca expirada ou inativa.' })
+    const st = sessions.publicState(req.user.id)
+    if (!st.connected) return res.status(400).json({ error: 'WhatsApp nao esta conectado.' })
+    const groups = (Array.isArray(cur.groups) ? cur.groups : []).filter((g) => jidGrupo(g.jid))
+    if (!groups.length) return res.status(400).json({ error: 'Salve pelo menos um grupo na aba Anuncios.' })
+    const link = (cur.affiliate && cur.affiliate.link) || ''
+    if (!link) return res.status(400).json({ error: 'Salve um link afiliado antes de testar.' })
+    const tpl = (cur.affiliate && cur.affiliate.template) || 'Meu link: {link}'
+    const text = tpl.replace(/\{link\}/g, link).slice(0, 4000)
+    if (!podeTestar(req.user.id)) return res.status(429).json({ error: 'Espere 20 segundos entre testes.' })
+    const results = []
+    for (const g of groups) {
+      try {
+        await sessions.sendText(req.user.id, g.jid, text)
+        results.push({ jid: g.jid, name: g.name, ok: true })
+        if (logs) logs.append(DATA, req.user.id, { source: 'anuncio', level: 'info', ok: true, group: g.name, jid: g.jid, message: 'Anuncio de teste enviado.' })
+      } catch (e) {
+        results.push({ jid: g.jid, name: g.name, ok: false, error: e.message || 'erro' })
+        if (logs) logs.append(DATA, req.user.id, { source: 'anuncio', level: 'error', ok: false, group: g.name, jid: g.jid, message: e.message || 'Falha no envio' })
+      }
+    }
+    const okN = results.filter((r) => r.ok).length
+    res.json({
+      ok: okN > 0,
+      message: 'Enviado em ' + okN + ' de ' + results.length + ' grupo(s).',
+      connected: true,
+      results
+    })
   })
 
   app.post('/shopee/test', auth, async (req, res) => {
@@ -167,15 +219,20 @@ module.exports = function mount(app, { auth, readJson, writeJson, CONFIGS }) {
 
     let enviados = 0
     const erros = []
+    const results = []
 
     if (text && groups.length) {
       for (const g of groups) {
-        if (!g.jid) continue
+        if (!jidGrupo(g.jid)) continue
         try {
           await sessions.sendText(req.user.id, g.jid, text)
           enviados++
+          results.push({ jid: g.jid, name: g.name, ok: true })
+          if (logs) logs.append(DATA, req.user.id, { source: 'shopee', level: 'info', ok: true, group: g.name, jid: g.jid, message: 'Anuncio apos teste da API.' })
         } catch (e) {
           erros.push((g.name || g.jid) + ': ' + (e.message || 'erro'))
+          results.push({ jid: g.jid, name: g.name, ok: false, error: e.message || 'erro' })
+          if (logs) logs.append(DATA, req.user.id, { source: 'shopee', level: 'error', ok: false, group: g.name, jid: g.jid, message: e.message || 'Falha' })
         }
       }
     }
@@ -193,7 +250,8 @@ module.exports = function mount(app, { auth, readJson, writeJson, CONFIGS }) {
       sample,
       enviados,
       totalGrupos: groups.length,
-      erros
+      erros,
+      results
     })
   })
 

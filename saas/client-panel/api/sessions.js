@@ -39,13 +39,24 @@ function publicState(userId) {
   if (!s) {
     return { status: 'disconnected', pairingCode: null, qrDataUrl: null, phone: '', error: null, connected: false }
   }
+  const socketVivo = !!(s.sock && (s.sock.user || s.status !== 'connected'))
+  if (s.status === 'connected' && !(s.sock && s.sock.user)) {
+    return {
+      status: 'error',
+      pairingCode: null,
+      qrDataUrl: null,
+      phone: s.phone || '',
+      error: 'Socket caiu. Toque em reconectar.',
+      connected: false
+    }
+  }
   return {
     status: s.status,
     pairingCode: s.pairingCode || null,
     qrDataUrl: s.qrDataUrl || null,
     phone: s.phone || '',
     error: s.error || null,
-    connected: s.status === 'connected'
+    connected: s.status === 'connected' && !!(s.sock && s.sock.user) && socketVivo
   }
 }
 

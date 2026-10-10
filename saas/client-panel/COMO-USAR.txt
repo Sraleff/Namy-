@@ -4,6 +4,7 @@ PAINEL DO CLIENTE
 Voce (dono) sobe:
   cd saas/client-panel
   npm install
+  cp .env.example .env
   npm start
 
 Cliente abre no navegador:
@@ -12,16 +13,24 @@ Cliente abre no navegador:
   ou http://IP-DO-PC:3847 na rede
 
 Telas:
-  Inicio    status
-  WhatsApp  numero (codigo real ainda e no terminal do bot)
-  Shopee    App ID, Secret, palavra-chave
-  Anuncios  intervalo, limite, horario, link
-  Conta     plano e sair
+  Inicio     status, passos, teste do bot, ultimos envios
+  WhatsApp   QR ou codigo real (sem terminal)
+  Shopee     App ID, Secret, palavra-chave, teste da API
+  Anuncios   intervalo, limite, horario, link, grupos
+  Conta      plano, assinar mensal/trimestral, sair
+
+O cliente nao mexe em terminal, .env nem Git.
+
+Pagamento:
+  Trial de 30 dias entra sozinho.
+  Assinar so funciona se o .env do painel tiver MP_ACCESS_TOKEN
+  e PUBLIC_URL (https). O painel nao marca "pago" na mao.
+  Mercado Pago avisa o webhook e o servidor confere o pagamento.
 
 Depois de criar a conta, copie botToken de:
   saas/client-panel/api/data/configs.json
-para o .env da raiz:
+para o .env da raiz (so se for usar o bot da casa, node index.js):
   NAMY_BOT_TOKEN=...
   NAMY_SAAS_URL=http://127.0.0.1:3847
 
-Reinicie o bot (node index.js) para o !link funcionar.
+Nunca suba api/data, .env nem a pasta de sessoes.
