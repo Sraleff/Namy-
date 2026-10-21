@@ -60,7 +60,7 @@ async function mp(pathname, opts) {
   return data
 }
 
-async function createCheckout({ userId, email, planId, baseUrl }) {
+async function createCheckout({ userId, email, planId, baseUrl, returnPath = '/' }) {
   const plan = PLANS[planId]
   if (!plan) {
     const err = new Error('Plano invalido. Use mensal ou trimestral.')
@@ -81,9 +81,9 @@ async function createCheckout({ userId, email, planId, baseUrl }) {
       external_reference: userId + ':' + planId,
       notification_url: baseUrl + '/webhooks/mercadopago',
       back_urls: {
-        success: baseUrl + '/?pago=ok',
-        failure: baseUrl + '/?pago=falhou',
-        pending: baseUrl + '/?pago=pendente'
+        success: baseUrl + returnPath + '?pago=ok',
+        failure: baseUrl + returnPath + '?pago=falhou',
+        pending: baseUrl + returnPath + '?pago=pendente'
       },
       auto_return: 'approved',
       statement_descriptor: 'NAMY'

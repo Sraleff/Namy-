@@ -93,6 +93,8 @@ const app = express()
 app.use(cors())
 app.use(express.json())
 app.use(express.static(path.join(__dirname, '..', 'panel')))
+// NAMY CONTROL (dashboard React). Build: cd saas/client-panel/dashboard && npm run build
+app.use('/app', express.static(path.join(__dirname, '..', 'dashboard', 'dist')))
 
 function auth(req, res, next) {
   const h = req.headers.authorization || ''
@@ -270,7 +272,9 @@ app.post('/billing/checkout', auth, async (req, res) => {
       userId: req.user.id,
       email: req.user.email,
       planId,
-      baseUrl: billingPublicBase(req)
+      baseUrl: billingPublicBase(req),
+      // NAMY CONTROL volta para /app/ depois do Mercado Pago
+      returnPath: req.body && req.body.returnTo === 'app' ? '/app/' : '/'
     })
     logs.append(DATA, req.user.id, {
       source: 'pagamento',
@@ -347,6 +351,8 @@ divulgacao.startFila({
   sessions: require('./sessions'),
   licencaAtiva: divulgacaoApi.licencaAtiva
 })
+
+require('./dashboard')(app, { auth, readJson, CONFIGS, DATA })
 
 app.get('/bot/config', (req, res) => {
   const token = req.headers['x-bot-token'] || req.query.token
