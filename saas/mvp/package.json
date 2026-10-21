@@ -1,0 +1,17 @@
+{
+  "name": "namy-saas-mvp",
+  "version": "0.1.0",
+  "private": true,
+  "description": "MVP painel afiliado + API para Namy",
+  "scripts": {
+    "start": "node api/server.js",
+    "api": "node api/server.js"
+  },
+  "dependencies": {
+    "bcryptjs": "^2.4.3",
+    "cors": "^2.8.5",
+    "express": "^4.21.2",
+    "jsonwebtoken": "^9.0.2",
+    "uuid": "^11.0.5"
+  }
+}

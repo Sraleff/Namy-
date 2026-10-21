@@ -1,5 +1,6 @@
 const axios = require('axios')
 const config = require('../../config')
+const { chaveIA } = require('../../saas/contexto')
 
 function paraGemini(mensagens) {
     const system = mensagens.filter((m) => m.role === 'system').map((m) => m.content).join('\n')
@@ -19,7 +20,7 @@ module.exports = {
         const { system, contents } = paraGemini(mensagens)
         const url =
             `https://generativelanguage.googleapis.com/v1beta/models/` +
-            `${config.iaModelGemini}:generateContent?key=${encodeURIComponent(config.geminiApiKey)}`
+            `${config.iaModelGemini}:generateContent`
 
         const resposta = await axios.post(
             url,
@@ -31,7 +32,11 @@ module.exports = {
                     maxOutputTokens: 600
                 }
             },
-            { timeout: 35000 }
+            {
+                // chave no header, não na URL (URL costuma parar em log de erro)
+                headers: { 'x-goog-api-key': chaveIA('gemini'), 'Content-Type': 'application/json' },
+                timeout: 35000
+            }
         )
 
         const parts = resposta.data?.candidates?.[0]?.content?.parts || []

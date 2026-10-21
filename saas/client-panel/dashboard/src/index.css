@@ -1,0 +1,30 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  html { color-scheme: dark; }
+  body {
+    @apply bg-ink-950 font-sans text-cream antialiased;
+    font-feature-settings: 'cv11', 'ss01';
+  }
+  :focus-visible { @apply outline-none ring-2 ring-brand-400 ring-offset-2 ring-offset-ink-950; }
+}
+
+@layer components {
+  .card { @apply rounded-2xl border border-line bg-ink-800 shadow-card; }
+  .icon-btn {
+    @apply inline-flex h-10 w-10 items-center justify-center rounded-xl border border-line bg-ink-800
+           text-muted transition-colors hover:bg-ink-750 hover:text-cream;
+  }
+  .link-subtle { @apply text-xs font-medium text-brand-400 transition-colors hover:text-brand-300; }
+}
+
+@layer utilities {
+  .tabular { font-variant-numeric: tabular-nums; }
+  .scrollbar-thin { scrollbar-width: thin; scrollbar-color: #232c42 transparent; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after { animation: none !important; transition: none !important; }
+}

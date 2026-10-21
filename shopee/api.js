@@ -3,12 +3,14 @@ const axios = require('axios')
 const cfg = require('./config')
 const { log } = require('./log')
 const store = require('./store')
+const contexto = require('../saas/contexto')
 
 const NODES = `itemId shopId productName productLink offerLink imageUrl priceMin priceMax priceDiscountRate sales ratingStar commissionRate shopName shopType periodStartTime periodEndTime`
 
-function assinar(payload) {
-    const appId = cfg.appId()
-    const secret = cfg.secret()
+// Credenciais vêm do contexto: do cliente dono do grupo, ou da casa.
+function assinar(payload, creds = contexto.shopeeCreds()) {
+    const appId = creds?.appId || ''
+    const secret = creds?.secret || ''
     const timestamp = String(Math.floor(Date.now() / 1000))
     const signature = crypto
         .createHash('sha256')
@@ -44,15 +46,22 @@ function erroPermanenteAuth(codigo, mensagem) {
     return false
 }
 
+function erro(code, msg) {
+    const e = new Error(msg || code)
+    e.code = code
+    return e
+}
+
 async function graphql(query, { retries = 1 } = {}) {
-    if (store.carregar().authFailed) {
-        const err = new Error('autenticacao_bloqueada')
-        err.code = 'AUTH_BLOCKED'
-        throw err
-    }
+    const tenant = contexto.tenantAtual()
+    const creds = contexto.shopeeCreds()
+    if (!creds?.appId || !creds?.secret) throw erro('NO_CREDS', 'sem_credenciais')
+
+    // A trava global só vale para as chaves da casa; cliente com chave ruim não derruba os outros.
+    if (!tenant && store.carregar().authFailed) throw erro('AUTH_BLOCKED', 'autenticacao_bloqueada')
 
     const payload = JSON.stringify({ query })
-    const { header } = assinar(payload)
+    const { header } = assinar(payload, creds)
 
     let ultimo = null
     const tentativas = Math.max(1, retries + 1)
@@ -86,6 +95,10 @@ async function graphql(query, { retries = 1 } = {}) {
                 const codigo = primeiro?.extensions?.code || primeiro?.code || ''
                 const mensagem = primeiro?.message || 'erro GraphQL'
                 if (erroPermanenteAuth(codigo, mensagem)) {
+                    if (tenant) {
+                        log(`Chaves do cliente ${tenant} recusadas`)
+                        throw erro('AUTH_TENANT', 'autenticacao_cliente')
+                    }
                     store.atualizar((s) => {
                         s.authFailed = true
                         s.authFailedAt = Date.now()
@@ -93,30 +106,22 @@ async function graphql(query, { retries = 1 } = {}) {
                         return s
                     })
                     log('Erro na API: autenticacao (modulo pausado, bot segue)')
-                    const err = new Error('autenticacao')
-                    err.code = 'AUTH'
-                    throw err
+                    throw erro('AUTH', 'autenticacao')
                 }
-                if (String(codigo) === '10030') {
-                    const err = new Error('rate_limit')
-                    err.code = 'RATE'
-                    throw err
-                }
-                const err = new Error(mensagem)
-                err.code = codigo || 'GQL'
-                throw err
+                if (String(codigo) === '10030') throw erro('RATE', 'rate_limit')
+                throw erro(codigo || 'GQL', mensagem)
             }
 
             return data.data || {}
-        } catch (erro) {
-            if (erro.code === 'AUTH' || erro.code === 'AUTH_BLOCKED' || erro.code === 'RATE') throw erro
-            ultimo = erro
-            const retryavel = !erro.response || ['ECONNABORTED', 'ETIMEDOUT', 'ENOTFOUND', 'ECONNRESET'].includes(erro.code)
+        } catch (e) {
+            if (['AUTH', 'AUTH_BLOCKED', 'AUTH_TENANT', 'RATE', 'NO_CREDS'].includes(e.code)) throw e
+            ultimo = e
+            const retryavel = !e.response || ['ECONNABORTED', 'ETIMEDOUT', 'ENOTFOUND', 'ECONNRESET'].includes(e.code)
             if (retryavel && i < tentativas - 1) {
                 await new Promise((r) => setTimeout(r, 1500 * (i + 1)))
                 continue
             }
-            throw erro
+            throw e
         }
     }
     throw ultimo || new Error('falha_api')

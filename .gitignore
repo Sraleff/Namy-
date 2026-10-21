@@ -14,3 +14,12 @@ ia_provedor.json
 *.mp3
 test.*
 .DS_Store
+
+# Painel SaaS: usuarios, configs e sessoes WhatsApp dos clientes
+saas/client-panel/api/data/
+saas/client-panel/dashboard/dist/
+dados/saas.json
+# backups e lixo do Windows
+*.bak
+*:Zone.Identifier
+.claude/settings.local.json
