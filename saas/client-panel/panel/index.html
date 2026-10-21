@@ -3,44 +3,114 @@
 <head>
 <meta charset="UTF-8"/>
 <meta name="viewport" content="width=device-width,initial-scale=1"/>
-<title>Namy - Minha conta</title>
+<title>Namy Control</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;500;600&display=swap"/>
 <style>
-:root{--bg:#0b0f14;--card:#151b24;--card2:#1c2430;--line:#2a3444;--p:#8b5cf6;--p2:#a78bfa;--ok:#22c55e;--t:#eef2ff;--m:#94a3b8;--r:16px}
-*{box-sizing:border-box}body{margin:0;font-family:system-ui,sans-serif;background:var(--bg);color:var(--t);min-height:100vh}
-.hidden{display:none!important}.app{max-width:480px;margin:0 auto;min-height:100vh;padding-bottom:72px}
-header{padding:20px 16px 12px;display:flex;align-items:center;justify-content:space-between;position:sticky;top:0;background:rgba(11,15,20,.92);z-index:5}
-header h1{font-size:1.15rem;margin:0}.sub{color:var(--m);font-size:.75rem}
-.badge{font-size:.7rem;padding:4px 10px;border-radius:999px;background:#1e293b}
-.badge.on{background:#14532d;color:#86efac}.badge.off{background:#450a0a;color:#fca5a5}.badge.pair{background:#422006;color:#fcd34d}.badge.err{background:#7f1d1d;color:#fca5a5}
-nav{position:fixed;bottom:0;left:0;right:0;max-width:480px;margin:0 auto;background:var(--card);border-top:1px solid var(--line);display:flex;z-index:10}
-nav button{flex:1;background:none;border:0;color:var(--m);padding:10px 4px 12px;font-size:.68rem;cursor:pointer}
-nav button.active{color:var(--p2)}nav button span{display:block;font-size:1.15rem;margin-bottom:2px}
-.page{padding:8px 16px 24px}.card{background:var(--card);border:1px solid var(--line);border-radius:var(--r);padding:16px;margin-bottom:12px}
-.card h2{margin:0 0 4px;font-size:1rem}.card p{margin:0 0 12px;color:var(--m);font-size:.85rem;line-height:1.4}
+:root{--bg:#0b1020;--card:#141b2d;--card2:#10182c;--line:#243049;--p:#6d5efc;--p2:#4f7cff;--ok:#3dd68c;--oksoft:#14352a;--t:#eef2ff;--m:#8b97b3;--r:16px;--side:#090d18;--amber:#f5b942;--blue:#3b82f6;--violet:#8b5cf6;--rose:#f43f5e}
+*{box-sizing:border-box}body{margin:0;font-family:Outfit,ui-sans-serif,system-ui,sans-serif;background:var(--bg);color:var(--t);min-height:100vh}
+.hidden{display:none!important}
+.shell{min-height:100vh;padding-bottom:76px;background:var(--bg)}
+.maincol{min-width:0}
+.side{display:none;flex-direction:column;background:var(--side);border-right:1px solid var(--line);height:100vh}
+.scrim{position:fixed;inset:0;z-index:30;background:rgba(0,0,0,.55);border:0}
+.brand{display:flex;gap:10px;align-items:center;padding:20px 16px 8px}
+.mark{width:40px;height:40px;border-radius:14px;display:grid;place-items:center;background:linear-gradient(90deg,var(--p2),var(--p));font-weight:700}
+.kicker{font-size:.68rem;letter-spacing:.16em;color:var(--m);margin:2px 0 0}
+.side nav{display:flex;flex-direction:column;gap:4px;padding:8px 12px;overflow:auto;flex:1}
+.side nav button{display:flex;align-items:center;gap:10px;width:100%;background:none;border:0;color:var(--m);min-height:44px;border-radius:12px;padding:0 12px;text-align:left;cursor:pointer;font-size:.9rem}
+.side nav button.active{background:linear-gradient(90deg,var(--p2),var(--p));color:#fff}
+.side nav button .ico{width:16px;height:16px;flex:0 0 auto}
+.planbox{margin:8px 12px 12px;padding:12px;border:1px solid var(--line);border-radius:16px;background:var(--card);font-size:.8rem}
+.planbox p{margin:4px 0 0;color:var(--m)}
+.who{margin-top:auto;display:flex;gap:10px;align-items:center;padding:12px 16px;border-top:1px solid var(--line)}
+.avatar{width:36px;height:36px;border-radius:999px;background:var(--blue);display:grid;place-items:center;font-weight:600}
+.top{position:sticky;top:0;z-index:20;display:flex;align-items:center;gap:8px;min-height:68px;padding:12px;border-bottom:1px solid var(--line);background:rgba(11,16,32,.94)}
+.iconbtn{width:44px;height:44px;border-radius:12px;border:1px solid var(--line);background:var(--card);color:var(--t);display:grid;place-items:center;cursor:pointer;flex:0 0 auto}
+.search{flex:1 1 auto;min-width:0;display:flex;align-items:center;gap:8px;height:44px;padding:0 14px;border-radius:999px;border:1px solid var(--line);background:var(--card)}
+.search input{border:0;background:transparent;padding:0;min-height:0;height:40px;font-size:.875rem}
+.top-actions{margin-left:auto;display:flex;align-items:center;gap:8px;flex:0 0 auto}
+.wa-pill{display:none;align-items:center;gap:8px;min-height:44px;padding:4px 12px 4px 4px;border-radius:999px;border:1px solid var(--line);background:var(--card);color:var(--t);cursor:pointer}
+.wa-dot{width:32px;height:32px;border-radius:999px;display:grid;place-items:center;background:var(--line);color:var(--m)}
+.wa-dot.on{background:var(--ok);color:#0b1020}.wa-dot.pair{background:var(--amber);color:#0b1020}.wa-dot.err{background:var(--rose);color:#fff}
+.wa-pill small{display:block;color:var(--m);font-size:.7rem}
+.wa-sub{font-size:.7rem;color:var(--m)}
+.page{width:100%;max-width:72rem;margin:0 auto;padding:16px 12px 24px;display:flex;flex-direction:column;gap:16px}
+.hello-row{display:flex;flex-wrap:wrap;align-items:flex-end;justify-content:space-between;gap:12px;margin:0}
+.hello-row h2{margin:0;font-size:1.5rem;font-weight:600;letter-spacing:-.02em}
+.date{margin:0;color:var(--m);font-size:.75rem;text-align:right;line-height:1.4}
+.home-top{display:grid;gap:16px;align-items:start}
+.stats{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+.statcard{background:var(--card);border:1px solid var(--line);border-radius:16px;padding:16px}
+.bolha{width:36px;height:36px;border-radius:999px;display:grid;place-items:center;color:#fff}
+.bolha.ok{background:var(--ok);color:#0b1020}.bolha.blue{background:var(--blue)}.bolha.violet{background:var(--violet)}.bolha.amber{background:var(--amber);color:#0b1020}
+.statcard .lbl{margin:12px 0 0;color:var(--m);font-size:.75rem}
+.statcard .num{margin:0;font-size:1.875rem;font-weight:600;line-height:1.15;letter-spacing:-.03em}
+.statcard .note{margin:0;color:var(--ok);font-size:.75rem}
+.card{background:var(--card);border:1px solid var(--line);border-radius:var(--r);padding:16px;margin-bottom:12px}
+.card h2{margin:0;font-size:1rem}.card p{margin:0 0 12px;color:var(--m);font-size:.85rem;line-height:1.4}
+.card-h{display:flex;align-items:center;justify-content:space-between;gap:8px;margin-bottom:8px}
+.linkish{background:none;border:0;color:var(--p2);cursor:pointer;min-height:44px;font-size:.75rem}
+.mid,.bot3{display:grid;gap:16px;align-items:start}
+.home-top>.card,.mid>.card,.bot3>.card{margin-bottom:0}
+.card p.sub{margin:2px 0}
+.conn{display:flex;align-items:center;gap:12px;margin-top:8px}
+#chartBox{min-height:10rem;display:flex;align-items:center;justify-content:center}
+#chartBox .bars{width:100%;height:10rem}
+.dash-actions{display:flex;flex-wrap:wrap;gap:8px;margin-top:8px}
+.dash-actions .btn{width:auto;margin:0;padding:8px 12px;min-height:36px;font-size:.78rem}
+.sub{color:var(--m);font-size:.75rem}
 label{display:block;font-size:.75rem;color:var(--m);margin:10px 0 4px}
 input,select,textarea{width:100%;padding:12px;border-radius:10px;border:1px solid var(--line);background:var(--card2);color:var(--t);font-size:1rem}
-textarea{min-height:80px}.btn{width:100%;margin-top:12px;padding:13px;border:0;border-radius:12px;background:var(--p);color:#fff;font-weight:600;cursor:pointer}
-.btn.sec{background:var(--card2);border:1px solid var(--line)}.btn.danger{background:#7f1d1d}.row{display:flex;gap:8px}.row .btn{flex:1}
-.msg{margin-top:10px;font-size:.85rem}.msg.err{color:#fca5a5}.msg.ok{color:#86efac}
-.stat{display:grid;grid-template-columns:1fr 1fr;gap:8px}.stat .box{background:var(--card2);border-radius:12px;padding:12px}.stat .box b{display:block;font-size:1.1rem}.stat .box span{font-size:.7rem;color:var(--m)}
-.auth-wrap{padding:40px 16px;max-width:400px;margin:0 auto}.auth-wrap h1{text-align:center;font-size:1.6rem;margin-bottom:4px}.auth-wrap .tag{text-align:center;color:var(--m);margin-bottom:28px}
+textarea{min-height:80px}.btn{width:100%;margin-top:12px;padding:13px;border:0;border-radius:12px;background:linear-gradient(90deg,var(--p2),var(--p));color:#fff;font-weight:600;cursor:pointer}
+.btn.sec{background:var(--card2);border:1px solid var(--line);color:var(--t)}.btn.danger{background:#7f1d1d}.row{display:flex;gap:8px}.row .btn{flex:1}
+.msg{margin-top:10px;font-size:.85rem}.msg.err{color:#fda4af}.msg.ok{color:var(--ok)}
+.auth-wrap{padding:40px 16px;max-width:420px;margin:0 auto}.auth-wrap h1{text-align:center;font-size:1.6rem;margin-bottom:4px}.auth-wrap .tag{text-align:center;color:var(--m);margin-bottom:28px}
 .switch{display:flex;align-items:center;gap:10px;margin-top:12px}.switch input{width:auto}
-.list-item{display:flex;justify-content:space-between;padding:12px 0;border-bottom:1px solid var(--line)}
+.list-item{display:flex;justify-content:space-between;gap:12px;align-items:center;min-height:44px;padding:8px 0}
 .code-box{font-family:monospace;font-size:1.6rem;letter-spacing:.2em;text-align:center;padding:16px;background:var(--card2);border-radius:12px;margin:12px 0}
 .hint{font-size:.8rem;color:var(--m);margin-top:8px;line-height:1.35}
 .qr-box{text-align:center;margin:12px 0}.qr-box img{max-width:220px;border-radius:8px;background:#fff;padding:8px}
 .status-line{font-size:.9rem;margin:8px 0;padding:8px;background:var(--card2);border-radius:8px}
 .group-item{display:flex;align-items:center;gap:10px;padding:10px 0;border-bottom:1px solid var(--line)}
-.group-item input{width:auto;margin:0}
-.group-item .name{flex:1;font-size:.9rem}
-.group-item .meta{font-size:.7rem;color:var(--m)}
-.steps{display:flex;flex-wrap:wrap;gap:6px;margin:0 0 12px}
-.step{font-size:.72rem;padding:6px 8px;border-radius:999px;border:1px solid var(--line);color:var(--m)}
-.step.on{border-color:#14532d;color:#86efac}
+.group-item input{width:auto;margin:0}.group-item .name{flex:1;font-size:.9rem}.group-item .meta{font-size:.7rem;color:var(--m)}
+.steps{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0)}
 .result{font-size:.82rem;padding:8px 0;border-bottom:1px solid var(--line)}
-.result.ok{color:#86efac}.result.bad{color:#fca5a5}
+.result.ok{color:var(--ok)}.result.bad{color:#fda4af}
 .log{font-size:.8rem;padding:8px 0;border-bottom:1px solid var(--line);color:var(--m)}
 .log b{color:var(--t);font-weight:600}
+.btn.tiny{width:auto;display:inline-block;margin:6px 6px 0 0;padding:8px 10px;font-size:.78rem}
+.group-item.sel{outline:1px solid var(--p);border-radius:10px;padding-left:8px;padding-right:8px}
+.grow{display:flex;gap:10px;align-items:center;min-height:44px}
+.dot{width:36px;height:36px;border-radius:999px;display:grid;place-items:center;color:#fff;flex:0 0 auto}
+.pill{border-radius:999px;padding:4px 8px;font-size:.7rem;background:transparent;color:var(--m)}
+.pill.on{background:var(--oksoft);color:var(--ok)}
+#stBolha{background:var(--line);color:var(--m)}
+.bars{display:flex;align-items:flex-end;gap:8px;height:140px}
+.bar-col{flex:1;display:flex;flex-direction:column;align-items:center;height:100%;justify-content:flex-end}
+.bar{width:100%;border-radius:8px 8px 2px 2px;background:linear-gradient(180deg,var(--p),var(--p2));min-height:4px}
+.bar-col span{color:var(--m);font-size:.65rem;margin-top:4px}
+.dock{position:fixed;bottom:0;left:0;right:0;z-index:20;display:grid;grid-template-columns:repeat(5,1fr);background:var(--side);border-top:1px solid var(--line)}
+.dock button{background:none;border:0;color:var(--m);min-height:56px;font-size:.68rem;cursor:pointer;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px}
+.dock button.active{color:#fff}
+.dock .ico{width:16px;height:16px}
+.offscreen{position:absolute;width:1px;height:1px;overflow:hidden}
+@media (min-width:640px){
+  .search{flex:1 1 18rem;max-width:36rem}
+  .wa-pill{display:inline-flex}
+  .hello-row h2{font-size:1.875rem}
+  .top{padding:12px 20px}
+}
+@media (min-width:1024px){
+  .shell{display:grid;grid-template-columns:16rem minmax(0,1fr);padding-bottom:0}
+  .side{display:flex!important;position:sticky;top:0}
+  .dock,.menu-btn,.scrim{display:none!important}
+  .page{padding:24px 20px 32px}
+  .mid{grid-template-columns:minmax(0,3fr) minmax(0,2fr)}
+  .bot3{grid-template-columns:repeat(3,minmax(0,1fr))}
+}
+@media (min-width:1280px){
+  .home-top{grid-template-columns:minmax(0,1fr) 18rem}
+}
 </style>
 </head>
 <body>
@@ -58,12 +128,112 @@ textarea{min-height:80px}.btn{width:100%;margin-top:12px;padding:13px;border:0;b
     <div class="msg" id="authMsg"></div>
   </div>
 </div>
-<div id="screen-app" class="app hidden">
-  <header>
-    <div><h1>Namy</h1><div class="sub" id="hdrEmail"></div></div>
-    <span class="badge off" id="hdrStatus">Offline</span>
+<div id="screen-app" class="shell hidden">
+  <button type="button" class="scrim hidden" id="scrim" aria-label="Fechar menu"></button>
+  <aside class="side" id="side">
+    <div class="brand">
+      <span class="mark">N</span>
+      <div><strong>NAMY</strong><p class="kicker">CONTROL</p></div>
+      <button type="button" class="iconbtn menu-btn" id="btnClose" aria-label="Fechar" style="margin-left:auto">✕</button>
+    </div>
+    <nav aria-label="Seções">
+      <button type="button" class="active" data-page="home"><svg class="ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 10.5 12 4l8 6.5V20a1 1 0 0 1-1 1h-5v-6H10v6H5a1 1 0 0 1-1-1z"/></svg>Início</button>
+      <button type="button" data-page="grupos"><svg class="ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="3"/><path d="M22 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a3 3 0 0 1 0 5.75"/></svg>Grupos</button>
+      <button type="button" data-page="ads"><svg class="ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 10v4a1 1 0 0 0 1 1h2l5 4V5L7 9H5a1 1 0 0 0-1 1z"/><path d="M16 9a4 4 0 0 1 0 6"/></svg>Campanhas</button>
+      <button type="button" data-page="ia"><svg class="ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 3v3M12 18v3M3 12h3M18 12h3M5.6 5.6l2.1 2.1M16.3 16.3l2.1 2.1M18.4 5.6l-2.1 2.1M7.7 16.3l-2.1 2.1"/><circle cx="12" cy="12" r="3"/></svg>Inteligência Artificial</button>
+      <button type="button" data-page="automacoes"><svg class="ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M13 2 4 14h7l-1 8 9-12h-7z"/></svg>Automações</button>
+      <button type="button" data-page="contatos"><svg class="ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="8" r="3"/><path d="M5 20a7 7 0 0 1 14 0"/><rect x="3" y="3" width="18" height="18" rx="4"/></svg>Contatos</button>
+      <button type="button" data-page="atividade"><svg class="ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M8 6h13M8 12h13M8 18h13M3 6h.01M3 12h.01M3 18h.01"/></svg>Logs & Atividades</button>
+      <button type="button" data-page="account"><svg class="ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.7 1.7 0 0 0 .3 1.8l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.7 1.7 0 0 0-1.8-.3 1.7 1.7 0 0 0-1 1.5V21a2 2 0 1 1-4 0v-.1a1.7 1.7 0 0 0-1.1-1.5 1.7 1.7 0 0 0-1.8.3l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1a1.7 1.7 0 0 0 .3-1.8 1.7 1.7 0 0 0-1.5-1H3a2 2 0 1 1 0-4h.1a1.7 1.7 0 0 0 1.5-1.1 1.7 1.7 0 0 0-.3-1.8l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1a1.7 1.7 0 0 0 1.8.3H9a1.7 1.7 0 0 0 1-1.5V3a2 2 0 1 1 4 0v.1a1.7 1.7 0 0 0 1 1.5 1.7 1.7 0 0 0 1.8-.3l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.7 1.7 0 0 0-.3 1.8V9c.3.6.9 1 1.5 1H21a2 2 0 1 1 0 4h-.1a1.7 1.7 0 0 0-1.5 1z"/></svg>Configurações</button>
+    </nav>
+    <div class="planbox">
+      <strong id="sidePlan">NAMY</strong>
+      <p>Plano salvo nesta conta. <span id="stDays">-</span> dias.</p>
+      <button type="button" class="btn" id="btnGoAccount">Ver planos</button>
+    </div>
+    <div class="who">
+      <span class="avatar" id="sideAvatar">?</span>
+      <div>
+        <strong id="sideWho">Conta</strong>
+        <div class="sub" id="sideMail"></div>
+        <div class="offscreen" id="hdrEmail"></div>
+      </div>
+    </div>
+  </aside>
+  <div class="maincol">
+  <header class="top">
+    <button type="button" class="iconbtn menu-btn" id="btnMenu" aria-label="Abrir menu"><svg class="ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 7h16M4 12h16M4 17h16"/></svg></button>
+    <label class="search"><svg class="ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="7"/><path d="m20 20-3-3"/></svg><input id="busca" placeholder="Buscar por grupos ou atividades..."/></label>
+    <div class="top-actions">
+    <button type="button" class="wa-pill" id="btnWaPill">
+      <span class="wa-dot off" id="waDot"><svg class="ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M6 4h3l2 5-2 1a12 12 0 0 0 5 5l1-2 5 2v3a2 2 0 0 1-2 2A16 16 0 0 1 4 6a2 2 0 0 1 2-2z"/></svg></span>
+      <span>WhatsApp<small id="hdrStatus">Desconectado</small></span>
+      <svg class="ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="m6 9 6 6 6-6"/></svg>
+    </button>
+    <button type="button" class="iconbtn" id="btnBell" aria-label="Avisos"><svg class="ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M6 8a6 6 0 1 1 12 0c0 7 3 7 3 9H3c0-2 3-2 3-9"/><path d="M10 20a2 2 0 0 0 4 0"/></svg></button>
+    <button type="button" class="iconbtn" id="btnGear" aria-label="Configurações"><svg class="ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M12 3v2M12 19v2M3 12h2M19 12h2"/></svg></button>
+    </div>
   </header>
   <div class="page" id="page-home">
+    <div class="hello-row">
+      <div>
+        <h2 id="helloName">Olá!</h2>
+        <p class="sub">Aqui está um resumo do seu painel Namy Control.</p>
+      </div>
+      <p class="date" id="helloDate"></p>
+    </div>
+    <div class="home-top">
+      <div class="stats">
+        <div class="statcard"><span class="bolha ok"><svg class="ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="3"/></svg></span><p class="lbl">Total de grupos</p><p class="num" id="stGrupos">—</p><p class="note">salvos na conta</p></div>
+        <div class="statcard"><span class="bolha blue"><svg class="ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="8" r="3"/><path d="M5 20a7 7 0 0 1 14 0"/></svg></span><p class="lbl">Total de contatos</p><p class="num">—</p><p class="note">sem agenda nesta conta</p></div>
+        <div class="statcard"><span class="bolha violet"><svg class="ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 10v4h3l5 4V6L7 10z"/></svg></span><p class="lbl">Campanhas enviadas</p><p class="num">—</p><p class="note">sem contador de envios</p></div>
+        <div class="statcard"><span class="bolha amber"><svg class="ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M13 2 4 14h7l-1 8 9-12h-7z"/></svg></span><p class="lbl">Automações ativas</p><p class="num" id="stAutos">—</p><p class="note">Shopee e anúncios</p></div>
+      </div>
+      <section class="card">
+        <div class="card-h"><h2>Grupos recentes</h2><button type="button" class="linkish" data-go="grupos">Ver todos</button></div>
+        <div id="homeGroups"><p class="hint">Nenhum grupo salvo.</p></div>
+      </section>
+    </div>
+    <div class="mid">
+      <section class="card">
+        <div class="card-h"><h2>Atividades registradas</h2><span class="sub">7 dias</span></div>
+        <p class="hint">Contagem de logs da conta, não de mensagens de WhatsApp.</p>
+        <div id="chartBox"><p class="hint">Sem atividades nestes 7 dias.</p></div>
+      </section>
+      <section class="card">
+        <div class="card-h"><h2>Status da conexão</h2></div>
+        <div class="conn">
+          <span class="bolha" id="stBolha"><svg class="ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M6 4h3l2 5-2 1a12 12 0 0 0 5 5l1-2 5 2v3a2 2 0 0 1-2 2A16 16 0 0 1 4 6a2 2 0 0 1 2-2z"/></svg></span>
+          <span class="pill" id="stBot">Desconectado</span>
+        </div>
+        <p class="sub">WhatsApp</p>
+        <p class="sub" id="foneLinha">Número não informado nesta conta</p>
+        <p class="hint" id="stConn">Nenhuma sessão ativa nesta conta.</p>
+        <button type="button" class="linkish" id="btnGoPair">Abrir pareamento</button>
+      </section>
+    </div>
+    <div class="bot3">
+      <section class="card">
+        <div class="card-h"><h2>Campanhas</h2><button type="button" class="linkish" data-go="ads">Ver todas</button></div>
+        <p class="hint">Shopee: <b id="stShopee">—</b></p>
+        <div class="dash-actions">
+          <button type="button" class="btn sec" id="btnGoShopee">Configurar Shopee</button>
+          <button type="button" class="btn sec" id="btnGoAds">Anúncios</button>
+          <button type="button" class="btn" id="btnTestBotHome">Publicar oferta agora</button>
+        </div>
+        <div class="msg" id="homeTestMsg"></div>
+        <div id="homeTestResults"></div>
+      </section>
+      <section class="card">
+        <div class="card-h"><h2>Inteligência Artificial</h2><button type="button" class="linkish" data-go="ia">Ver todas</button></div>
+        <p class="hint">Groq, xAI e Gemini não são salvos neste painel.</p>
+      </section>
+      <section class="card">
+        <div class="card-h"><h2>Atividades recentes</h2><button type="button" class="linkish" data-go="atividade">Ver todas</button></div>
+        <div id="homeLogs"><p class="hint">Nenhuma atividade registrada.</p></div>
+      </section>
+    </div>
+    <p class="offscreen" id="stPlan">-</p>
     <div class="steps" id="steps">
       <span class="step" id="stepWa">1 WhatsApp</span>
       <span class="step" id="stepShopee">2 Shopee</span>
@@ -71,34 +241,44 @@ textarea{min-height:80px}.btn{width:100%;margin-top:12px;padding:13px;border:0;b
       <span class="step" id="stepAds">4 Anuncios</span>
       <span class="step" id="stepTest">5 Teste</span>
     </div>
-    <div class="card">
-      <h2>Status do bot</h2>
-      <p>WhatsApp, plano e Shopee.</p>
-      <div class="stat">
-        <div class="box"><b id="stBot">-</b><span>WhatsApp</span></div>
-        <div class="box"><b id="stPlan">-</b><span>Plano</span></div>
-        <div class="box"><b id="stDays">-</b><span>Dias restantes</span></div>
-        <div class="box"><b id="stShopee">-</b><span>Shopee</span></div>
-      </div>
-    </div>
-    <div class="card">
-      <h2>Acoes rapidas</h2>
-      <p>Siga a ordem: WhatsApp, Shopee, grupos, anuncios, teste.</p>
-      <button type="button" class="btn" id="btnGoPair">Conectar WhatsApp</button>
-      <button type="button" class="btn sec" id="btnGoShopee">Configurar Shopee</button>
-      <button type="button" class="btn sec" id="btnGoAds">Anuncios automaticos</button>
-      <button type="button" class="btn" id="btnTestBotHome">Publicar oferta agora</button>
-      <div class="msg" id="homeTestMsg"></div>
-      <div id="homeTestResults"></div>
-    </div>
-    <div class="card">
-      <h2>Grupos salvos</h2>
-      <div id="homeGroups"><p class="hint">Nenhum grupo salvo ainda.</p></div>
-    </div>
-    <div class="card">
-      <h2>Ultimos envios</h2>
-      <div id="homeLogs"><p class="hint">Nada ainda.</p></div>
-    </div>
+  </div>
+  <div class="page hidden" id="page-grupos">
+    <section class="card">
+      <div class="card-h"><h2>Grupos</h2><span class="sub" id="gruposCount">0</span></div>
+      <div id="gruposFull"><p class="hint">Nenhum grupo salvo.</p></div>
+      <button type="button" class="btn sec" data-go="ads">Gerir grupos dos anúncios</button>
+    </section>
+  </div>
+  <div class="page hidden" id="page-ia">
+    <section class="card">
+      <h2>Inteligência Artificial</h2>
+      <div class="grow"><span>Groq</span><span class="pill" style="margin-left:auto;background:transparent;color:var(--m)">Não configurada</span></div>
+      <div class="grow"><span>xAI</span><span class="pill" style="margin-left:auto;background:transparent;color:var(--m)">Não configurada</span></div>
+      <div class="grow"><span>Gemini</span><span class="pill" style="margin-left:auto;background:transparent;color:var(--m)">Não configurada</span></div>
+      <p class="hint">Este painel não grava chave de IA. O envio de oferta continua na Shopee.</p>
+    </section>
+  </div>
+  <div class="page hidden" id="page-automacoes">
+    <section class="card">
+      <h2>Automações</h2>
+      <div class="grow"><span>Shopee da conta</span><strong id="autoShopee" style="margin-left:auto">—</strong></div>
+      <div class="grow"><span>Publicações automáticas</span><strong id="autoAds" style="margin-left:auto">—</strong></div>
+      <p class="hint">O interruptor de verdade está em Campanhas.</p>
+      <button type="button" class="btn sec" data-go="ads">Abrir campanhas</button>
+    </section>
+  </div>
+  <div class="page hidden" id="page-contatos">
+    <section class="card">
+      <h2>Contatos</h2>
+      <p class="hint">Estar no grupo não autoriza mensagem privada. A lista e o consentimento ficam na Central.</p>
+      <button type="button" class="btn" data-go="central" data-page="central">Abrir central</button>
+    </section>
+  </div>
+  <div class="page hidden" id="page-atividade">
+    <section class="card">
+      <h2>Logs e atividades</h2>
+      <div id="atividadeLogs"><p class="hint">Nenhuma atividade registrada.</p></div>
+    </section>
   </div>
   <div class="page hidden" id="page-wa">
     <div class="card">
@@ -140,7 +320,7 @@ textarea{min-height:80px}.btn{width:100%;margin-top:12px;padding:13px;border:0;b
   </div>
   <div class="page hidden" id="page-ads">
     <div class="card">
-      <h2>Anuncios automaticos</h2>
+      <h2>Campanhas</h2>
       <p>Ligado, o painel busca ofertas na API Shopee desta conta e publica nos grupos salvos, no intervalo abaixo.</p>
       <div class="switch"><input type="checkbox" id="adsOn"/><label for="adsOn" style="margin:0">Publicacoes ligadas</label></div>
       <label>Intervalo</label>
@@ -176,6 +356,94 @@ textarea{min-height:80px}.btn{width:100%;margin-top:12px;padding:13px;border:0;b
       <div class="msg" id="groupsMsg"></div>
     </div>
   </div>
+  <div class="page hidden" id="page-central">
+    <div class="card">
+      <h2>Grupos</h2>
+      <p>Usa a sessao que ja esta conectada. Nao muda os grupos salvos em Anuncios.</p>
+      <label>Buscar</label><input id="centBusca" placeholder="nome ou id do grupo"/>
+      <button type="button" class="btn sec" id="btnCentGrupos">Atualizar grupos</button>
+      <div id="centGrupos"></div>
+      <div class="msg" id="centGruposMsg"></div>
+    </div>
+    <div class="card">
+      <h2>Participantes</h2>
+      <p id="centFichaMeta">Selecione um grupo. Nome de perfil nao vem nesta consulta.</p>
+      <div id="centFicha"></div>
+      <button type="button" class="btn sec" id="btnCentRegistrar">Registrar contatos sem autorizar</button>
+      <div class="msg" id="centFichaMsg"></div>
+    </div>
+    <div class="card">
+      <h2>Contatos</h2>
+      <p>Estar no grupo nao autoriza mensagem privada. Autorize um por um.</p>
+      <label>Identificador</label><input id="centManualId" placeholder="numero ou id@s.whatsapp.net"/>
+      <label>Numero, se souber</label><input id="centManualPhone" inputmode="numeric" placeholder="5511999999999"/>
+      <button type="button" class="btn sec" id="btnCentManual">Cadastrar sem autorizar</button>
+      <button type="button" class="btn sec" id="btnCentContatos">Atualizar lista</button>
+      <div id="centContatos"></div>
+      <div class="msg" id="centContatosMsg"></div>
+    </div>
+    <div class="card">
+      <h2>Nova campanha</h2>
+      <p>Rascunho. Nada sai antes de voce aprovar.</p>
+      <label>Nome</label><input id="centNome" placeholder="Divulgacao de outubro"/>
+      <label>Tipo</label>
+      <select id="centTipo">
+        <option value="grupo">Divulgar um grupo</option>
+        <option value="oferta">Oferta Shopee</option>
+        <option value="promocao">Promocao com desconto real</option>
+      </select>
+      <label>Mensagem</label><textarea id="centMsg" placeholder="Texto extra. O link real entra na hora de aprovar."></textarea>
+      <label>Intervalo em segundos (minimo 20)</label><input id="centInterval" type="number" min="20" max="3600" value="30"/>
+      <label>Teto por dia (maximo 50)</label><input id="centCap" type="number" min="1" max="50" value="20"/>
+      <label>Enviar a partir de (opcional)</label><input id="centQuando" type="datetime-local"/>
+      <p class="hint">O intervalo nao fura limite do WhatsApp. A fila manda no maximo uma mensagem por vez.</p>
+      <button type="button" class="btn" id="btnCentCriar">Criar rascunho</button>
+      <div class="msg" id="centCriarMsg"></div>
+    </div>
+    <div class="card">
+      <h2>Campanha aberta</h2>
+      <div id="centCampResumo"><p class="hint">Nenhuma campanha aberta.</p></div>
+      <div id="centBlocoGrupo" class="hidden">
+        <button type="button" class="btn sec" id="btnCentConvite">Buscar link do grupo selecionado</button>
+        <label>Ou cole o link</label><input id="centLink" placeholder="https://chat.whatsapp.com/..."/>
+        <button type="button" class="btn sec" id="btnCentColar">Salvar link colado</button>
+      </div>
+      <div id="centBlocoOferta" class="hidden">
+        <button type="button" class="btn" id="btnCentOferta">Buscar oferta real da Shopee</button>
+        <div id="centOfertaBox"></div>
+        <p class="hint">Cupom: nenhum. Esta API nao entrega codigo. Promocao so segue se vier desconto maior que zero.</p>
+      </div>
+      <h2>Destinatarios autorizados</h2>
+      <div id="centDest"></div>
+      <button type="button" class="btn sec" id="btnCentDest">Salvar destinatarios marcados</button>
+      <button type="button" class="btn" id="btnCentAprovar">Aprovar envio</button>
+      <div class="row">
+        <button type="button" class="btn sec" id="btnCentPausar">Pausar</button>
+        <button type="button" class="btn sec" id="btnCentRetomar">Retomar</button>
+      </div>
+      <button type="button" class="btn danger" id="btnCentCancelar">Cancelar campanha</button>
+      <button type="button" class="btn sec" id="btnCentIncertos">Reabrir resultados incertos</button>
+      <div class="msg" id="centCampMsg"></div>
+    </div>
+    <div class="card">
+      <h2>Historico</h2>
+      <p>Aceito quer dizer que o WhatsApp recebeu o pedido. Entrega e leitura nao sao confirmadas.</p>
+      <label>Situacao</label>
+      <select id="centFiltro">
+        <option value="">Todas</option>
+        <option value="rascunho">Rascunho</option>
+        <option value="agendada">Agendada</option>
+        <option value="rodando">Rodando</option>
+        <option value="pausada">Pausada</option>
+        <option value="cancelada">Cancelada</option>
+        <option value="concluida">Concluida</option>
+      </select>
+      <label>Nome</label><input id="centFiltroNome" placeholder="filtrar campanha"/>
+      <label>Criada a partir de</label><input id="centDesde" type="date"/>
+      <button type="button" class="btn sec" id="btnCentRel">Atualizar relatorio</button>
+      <div id="centRel"></div>
+    </div>
+  </div>
   <div class="page hidden" id="page-account">
     <div class="card">
       <h2>Minha conta</h2>
@@ -197,12 +465,13 @@ textarea{min-height:80px}.btn{width:100%;margin-top:12px;padding:13px;border:0;b
       <button type="button" class="btn sec" id="btnLogout">Sair</button>
     </div>
   </div>
-  <nav>
-    <button type="button" class="active" data-page="home"><span>🏠</span>Inicio</button>
-    <button type="button" data-page="wa"><span>📱</span>WhatsApp</button>
-    <button type="button" data-page="shopee"><span>🛒</span>Shopee</button>
-    <button type="button" data-page="ads"><span>📢</span>Anuncios</button>
-    <button type="button" data-page="account"><span>👤</span>Conta</button>
+  </div>
+  <nav class="dock" aria-label="Atalhos">
+    <button type="button" class="active" data-page="home"><svg class="ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 10.5 12 4l8 6.5V20a1 1 0 0 1-1 1h-5v-6H10v6H5a1 1 0 0 1-1-1z"/></svg>Início</button>
+    <button type="button" data-page="grupos"><svg class="ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="3"/></svg>Grupos</button>
+    <button type="button" data-page="ads"><svg class="ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 10v4h3l5 4V6L7 10z"/></svg>Campanhas</button>
+    <button type="button" data-page="ia"><svg class="ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"/></svg>IA</button>
+    <button type="button" id="btnMais"><svg class="ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 7h16M4 12h16M4 17h16"/></svg>Mais</button>
   </nav>
 </div>
 <script>
@@ -217,12 +486,16 @@ const show=(el,on)=>el.classList.toggle('hidden',!on);
 
 function setStatusBadge(status){
   const b=$('hdrStatus');
-  b.className='badge';
-  if(status==='online'||status==='connected'){b.classList.add('on');b.textContent='Online';}
-  else if(status==='reconnecting'){b.classList.add('pair');b.textContent='Reconectando';}
-  else if(status==='pairing'||status==='waiting_code'||status==='connecting'){b.classList.add('pair');b.textContent='Pareando';}
-  else if(status==='error'){b.classList.add('err');b.textContent='Erro';}
-  else{b.classList.add('off');b.textContent='Offline';}
+  if(!b) return;
+  let t='Desconectado', cls='off';
+  if(status==='online'||status==='connected'){t='Conectado';cls='on';}
+  else if(status==='reconnecting'){t='Reconectando';cls='pair';}
+  else if(status==='pairing'||status==='waiting_code'||status==='connecting'){t='Pareando';cls='pair';}
+  else if(status==='error'){t='Erro';cls='err';}
+  b.textContent=t;
+  b.className='wa-sub '+cls;
+  const dot=$('waDot');
+  if(dot) dot.className='wa-dot '+cls;
 }
 
 function markSteps(c){
@@ -245,18 +518,17 @@ function renderResults(box, results){
   });
 }
 
-function renderLogs(list){
-  const box=$('homeLogs');
+function pintarLogs(box, list){
   if(!box) return;
   box.textContent='';
   if(!list||!list.length){
     const p=document.createElement('p');
     p.className='hint';
-    p.textContent='Nada ainda.';
+    p.textContent='Nenhuma atividade registrada.';
     box.appendChild(p);
     return;
   }
-  list.slice(0,8).forEach(l=>{
+  list.forEach(l=>{
     const div=document.createElement('div');
     div.className='log';
     const b=document.createElement('b');
@@ -267,28 +539,86 @@ function renderLogs(list){
   });
 }
 
-function renderHomeGroups(groups){
-  const box=$('homeGroups');
+function pintarSerie(list){
+  const box=$('chartBox');
   if(!box) return;
   box.textContent='';
-  if(!groups||!groups.length){
+  const hoje=new Date();
+  hoje.setHours(0,0,0,0);
+  const dias=Array.from({length:7},(_,i)=>{
+    const d=new Date(hoje);
+    d.setDate(hoje.getDate()-(6-i));
+    return {d, n:0, label:d.toLocaleDateString('pt-BR',{day:'2-digit',month:'2-digit'})};
+  });
+  (list||[]).forEach(l=>{
+    const t=new Date(l.at||0);
+    if(Number.isNaN(t.getTime())) return;
+    dias.forEach(dia=>{
+      if(t>=dia.d && t<new Date(dia.d.getTime()+86400000)) dia.n++;
+    });
+  });
+  if(!dias.some(d=>d.n)){
     const p=document.createElement('p');
     p.className='hint';
-    p.textContent='Nenhum grupo salvo ainda.';
+    p.textContent='Sem atividades nestes 7 dias.';
     box.appendChild(p);
     return;
   }
-  groups.forEach(g=>{
+  const max=Math.max.apply(null, dias.map(d=>d.n));
+  const wrap=document.createElement('div');
+  wrap.className='bars';
+  dias.forEach(dia=>{
+    const col=document.createElement('div');
+    col.className='bar-col';
+    const b=document.createElement('div');
+    b.className='bar';
+    b.style.height=Math.max(8, Math.round(dia.n/max*100))+'%';
+    const lab=document.createElement('span');
+    lab.textContent=dia.label;
+    col.appendChild(b);
+    col.appendChild(lab);
+    wrap.appendChild(col);
+  });
+  box.appendChild(wrap);
+}
+
+function renderLogs(list){
+  pintarLogs($('homeLogs'), (list||[]).slice(0,5));
+  pintarLogs($('atividadeLogs'), list||[]);
+  pintarSerie(list||[]);
+}
+
+function pintarGrupos(box, groups, limite){
+  if(!box) return;
+  box.textContent='';
+  const lista=(groups||[]).slice(0, limite||groups.length||0);
+  if(!lista.length){
+    const p=document.createElement('p');
+    p.className='hint';
+    p.textContent='Nenhum grupo salvo.';
+    box.appendChild(p);
+    return;
+  }
+  const cores=['#3b82f6','#f5b942','#8b5cf6','#3dd68c','#f43f5e'];
+  lista.forEach((g,i)=>{
     const div=document.createElement('div');
-    div.className='list-item';
+    div.className='grow';
+    const dot=document.createElement('span');
+    dot.className='dot';
+    dot.style.background=cores[i%cores.length];
+    dot.textContent=(g.name||'G').charAt(0).toUpperCase();
     const span=document.createElement('span');
-    span.textContent=g.name||g.jid;
-    const strong=document.createElement('strong');
-    strong.textContent='salvo';
+    span.textContent=g.name||g.jid||'Sem nome';
+    div.appendChild(dot);
     div.appendChild(span);
-    div.appendChild(strong);
     box.appendChild(div);
   });
+}
+
+function renderHomeGroups(groups){
+  pintarGrupos($('homeGroups'), groups, 5);
+  pintarGrupos($('gruposFull'), groups, 0);
+  if($('gruposCount')) $('gruposCount').textContent=String((groups||[]).length);
 }
 
 async function api(path,opts={}){
@@ -321,19 +651,42 @@ function fillUI(c){
   cfg=c;
   markSteps(c);
   $('hdrEmail').textContent=c.email||'';
+  const local=(c.email||'').split('@')[0]||'';
+  const nome=local?local.charAt(0).toUpperCase()+local.slice(1):'';
+  if($('helloName')) $('helloName').textContent=nome?('Olá, '+nome+'!'):'Olá!';
+  if($('sideWho')) $('sideWho').textContent=nome||'Conta';
+  if($('sideMail')) $('sideMail').textContent=c.email||'';
+  if($('sideAvatar')) $('sideAvatar').textContent=(nome||'?').charAt(0);
+  if($('sidePlan')) $('sidePlan').textContent='NAMY '+((c.license&&c.license.plan)||'trial').toUpperCase();
   setStatusBadge(c.status||'offline');
-  $('stBot').textContent=c.status==='online'||c.status==='connected'?'Online':(c.status==='pairing'||c.status==='waiting_code'?'Pareando':'Offline');
+  const vivo=c.status==='online'||c.status==='connected';
+  const meio=c.status==='pairing'||c.status==='waiting_code';
+  $('stBot').textContent=vivo?'Conectado':(meio?'Pareando':'Desconectado');
+  $('stBot').className='pill '+(vivo?'on':'');
   $('stPlan').textContent=(c.license&&c.license.plan)||'trial';
   const exp=c.license&&c.license.expiresAt?new Date(c.license.expiresAt):null;
-  $('stDays').textContent=exp?Math.max(0,Math.ceil((exp-Date.now())/86400000)):'-';
-  $('stShopee').textContent=(c.shopee&&c.shopee.appId)?'OK':'Falta';
+  $('stDays').textContent=exp?String(Math.max(0,Math.ceil((exp-Date.now())/86400000))):'-';
+  $('stShopee').textContent=(c.shopee&&c.shopee.appId)?'ligada':'desligada';
+  if($('stGrupos')) $('stGrupos').textContent=String((c.groups||[]).length);
+  const ads=c.ads||{};
+  $('adsOn').checked=!!ads.enabled;
+  if($('stAutos')) $('stAutos').textContent=String((c.shopee&&c.shopee.appId?1:0)+(ads.enabled?1:0));
+  if($('foneLinha')) $('foneLinha').textContent=c.phone?('Número '+c.phone):'Número não informado nesta conta';
+  if($('stConn')) $('stConn').textContent=vivo?'Sessão marcada como online.':(meio?'Aguardando o código no WhatsApp.':'Nenhuma sessão ativa nesta conta.');
+  if($('autoShopee')) $('autoShopee').textContent=(c.shopee&&c.shopee.appId)?'Ligada':'Desligada';
+  if($('autoAds')) $('autoAds').textContent=ads.enabled?'Ligada':'Desligada';
+  if($('helloDate')){
+    const d=new Date();
+    const h=d.getHours();
+    const s=h<12?'Bom dia':h<18?'Boa tarde':'Boa noite';
+    $('helloDate').textContent=d.toLocaleDateString('pt-BR',{day:'numeric',month:'long',year:'numeric'})+' · '+s+'. Continue evoluindo.';
+  }
   $('waPhone').value=c.phone||'';
   $('botName').value=c.botName||'Namy';
   $('shopeeAppId').value=(c.shopee&&c.shopee.appId)||'';
   $('shopeeSecret').value='';
   $('shopeeKeyword').value=(c.shopee&&c.shopee.keyword)||'';
-  const ads=c.ads||{};
-  $('adsOn').checked=!!ads.enabled;
+  $('accEmail').textContent=c.email||'-';
   $('adsInterval').value=ads.interval||'2h';
   $('adsLimit').value=ads.dailyLimit||5;
   $('adsFrom').value=(ads.window&&ads.window.from)||'09:00';
@@ -365,7 +718,8 @@ function updateWaUI(st){
     const vivo=status==='connected';
     const meio=status==='waiting_code'||status==='connecting'||status==='reconnecting';
     cfg.status=vivo?'online':(meio?'pairing':'offline');
-    $('stBot').textContent=vivo?'Online':(status==='reconnecting'?'Reconectando':(meio?'Pareando':'Offline'));
+    $('stBot').textContent=vivo?'Conectado':(status==='reconnecting'?'Reconectando':(meio?'Pareando':'Desconectado'));
+    $('stBot').className='pill '+(vivo?'on':'');
     markSteps(cfg);
   }
 }
@@ -421,7 +775,13 @@ function renderGroups(groups, selected){
 
 function ir(page){
   const btn=document.querySelector('nav button[data-page="'+page+'"]');
-  if(btn) btn.click();
+  if(btn){ btn.click(); return; }
+  document.querySelectorAll('nav button').forEach(b=>b.classList.toggle('active', b.dataset.page===page));
+  const base=['home','wa','shopee','ads','central','account'];
+  base.concat(['grupos','ia','automacoes','contatos','atividade']).forEach(id=>{ const el=$('page-'+id); if(el) show(el,id===page); });
+  if($('side')) $('side').classList.remove('open');
+  if($('scrim')) $('scrim').classList.add('hidden');
+  if(page==='central') atualizarCentral();
 }
 
 async function testarBot(msgEl, box){
@@ -488,6 +848,244 @@ async function syncPago(){
   history.replaceState({},'',location.pathname);
 }
 
+let centGrupos=[];
+let centGrupoSel='';
+let centCampanha=null;
+let centContatos=[];
+let centRelatorio=[];
+
+function el(tag, cls, text){
+  const n=document.createElement(tag);
+  if(cls) n.className=cls;
+  if(text!=null) n.textContent=text;
+  return n;
+}
+function centAvisar(id, ok, text){
+  const m=$(id);
+  m.className='msg '+(ok?'ok':'err');
+  m.textContent=text||'';
+}
+function isoQuando(){
+  const v=$('centQuando').value;
+  if(!v) return null;
+  const d=new Date(v);
+  return Number.isNaN(d.getTime())?null:d.toISOString();
+}
+function precisaCampanha(){
+  if(centCampanha) return true;
+  centAvisar('centCampMsg', false, 'Abra ou crie um rascunho primeiro.');
+  return false;
+}
+function renderCentGrupos(){
+  const box=$('centGrupos');
+  box.textContent='';
+  const q=($('centBusca').value||'').trim().toLowerCase();
+  const lista=centGrupos.filter(g=>!q || ((g.name||'')+' '+(g.jid||'')).toLowerCase().includes(q));
+  if(!lista.length){
+    box.appendChild(el('p','hint', centGrupos.length?'Nenhum grupo com esse texto.':'Nenhum grupo carregado. Toque em Atualizar.'));
+    return;
+  }
+  lista.forEach(g=>{
+    const div=el('div','group-item'+(g.jid===centGrupoSel?' sel':''));
+    const name=el('div','name', g.name||g.jid||'grupo sem nome');
+    name.appendChild(el('div','meta', (g.participants||0)+' participantes'));
+    div.appendChild(name);
+    div.onclick=()=>{ centGrupoSel=g.jid; renderCentGrupos(); carregarFicha(); };
+    box.appendChild(div);
+  });
+}
+async function carregarFicha(){
+  const box=$('centFicha');
+  box.textContent='';
+  $('centFichaMsg').textContent='';
+  if(!centGrupoSel){
+    $('centFichaMeta').textContent='Selecione um grupo. Nome de perfil nao vem nesta consulta.';
+    return;
+  }
+  $('centFichaMeta').textContent='Lendo participantes...';
+  try{
+    const data=await api('/divulgacao/ficha?jid='+encodeURIComponent(centGrupoSel));
+    const g=data.group||{};
+    $('centFichaMeta').textContent=(g.name||g.jid||'Grupo')+' · com numero: '+(g.phonesKnown||0)+' · sem numero: '+(g.phonesMissing||0)+' · nomes: '+(g.nomes||'indisponivel');
+    if(data.aviso) box.appendChild(el('p','hint', data.aviso));
+    const parts=g.participants||[];
+    if(!parts.length){
+      box.appendChild(el('p','hint','Lista vazia.'));
+      return;
+    }
+    parts.slice(0,200).forEach(p=>{
+      const row=el('div','result');
+      row.appendChild(el('b','', (p.id||'sem id').slice(0,36)));
+      row.appendChild(document.createTextNode(' · '+(p.phone?('numero '+p.phone):'numero nao veio')+' · '+(p.admin?('admin '+(p.admin===true?'sim':p.admin)):'membro')));
+      box.appendChild(row);
+    });
+    if(parts.length>200) box.appendChild(el('p','hint','Mostrando 200 de '+parts.length+'. Registrar usa a lista inteira no servidor.'));
+  }catch(e){
+    $('centFichaMeta').textContent='Falha na consulta. Confira se o WhatsApp esta conectado.';
+    centAvisar('centFichaMsg', false, e.message);
+  }
+}
+function renderContatos(){
+  const box=$('centContatos');
+  box.textContent='';
+  if(!centContatos.length){
+    box.appendChild(el('p','hint','Nenhum contato. Registrar um grupo nao autoriza ninguem.'));
+    return;
+  }
+  centContatos.forEach(c=>{
+    const row=el('div','result');
+    row.appendChild(el('div','', (c.label||c.stableId||'contato')+' · '+c.consent+(c.phone?(' · '+c.phone):' · sem numero')));
+    if(c.consent!=='autorizado'){
+      const b=el('button','btn tiny','Autorizar');
+      b.type='button';
+      b.onclick=()=>consentir(c.id,'autorizado');
+      row.appendChild(b);
+    }
+    if(c.consent!=='revogado'){
+      const b=el('button','btn tiny danger','Revogar');
+      b.type='button';
+      b.onclick=()=>consentir(c.id,'revogado');
+      row.appendChild(b);
+    }
+    box.appendChild(row);
+  });
+}
+function renderDestinos(){
+  const box=$('centDest');
+  box.textContent='';
+  const aut=centContatos.filter(c=>c.consent==='autorizado');
+  const fora=centContatos.filter(c=>c.consent!=='autorizado').length;
+  if(!aut.length) box.appendChild(el('p','hint','Nenhum contato autorizado. Sem isso a campanha nao aprova.'));
+  aut.forEach(c=>{
+    const row=el('div','group-item');
+    const cb=document.createElement('input');
+    cb.type='checkbox';
+    cb.dataset.cid=c.id;
+    cb.checked=!!(centCampanha && (centCampanha.recipients||[]).some(r=>r.contactId===c.id && r.state!=='pulado'));
+    row.appendChild(cb);
+    row.appendChild(el('div','name', (c.label||c.stableId)+(c.phone?' · '+c.phone:'')));
+    box.appendChild(row);
+  });
+  if(fora) box.appendChild(el('p','hint', fora+' contato(s) sem autorizacao ou revogados ficam de fora.'));
+}
+function contarEstado(c, st){
+  return ((c&&c.recipients)||[]).filter(r=>r.state===st).length;
+}
+function renderCampanha(){
+  const box=$('centCampResumo');
+  box.textContent='';
+  const c=centCampanha;
+  show($('centBlocoGrupo'), !!(c && c.type==='grupo'));
+  show($('centBlocoOferta'), !!(c && c.type!=='grupo'));
+  if(!c){
+    box.appendChild(el('p','hint','Nenhuma campanha aberta. Crie um rascunho ou abra uma no historico.'));
+    return;
+  }
+  box.appendChild(el('div','result', c.name+' · '+c.type+' · '+c.status));
+  box.appendChild(el('div','hint', 'fila '+contarEstado(c,'fila')+' · aceitos pelo socket '+contarEstado(c,'aceito')+' · falhas '+contarEstado(c,'falha')+' · incertos '+contarEstado(c,'incerto')+' · pulados '+contarEstado(c,'pulado')));
+  box.appendChild(el('div','hint', 'Entrega: nao confirmada. Leitura: indisponivel.'));
+  if(c.inviteUrl) box.appendChild(el('div','hint', 'Convite: '+c.inviteUrl));
+  if(c.content){
+    box.appendChild(el('div','hint', 'Oferta: '+(c.content.nome||'')+' · desconto: '+(c.content.desconto==null?'nenhum':c.content.desconto+'%')+' · cupom: nenhum'));
+  }
+  if(c.lastError) box.appendChild(el('div','hint', 'Ultimo aviso: '+c.lastError));
+}
+function renderOferta(o, aviso){
+  const box=$('centOfertaBox');
+  box.textContent='';
+  if(!o) return;
+  box.appendChild(el('div','result', 'Produto: '+(o.nome||'')));
+  box.appendChild(el('div','result', 'Preco: '+(o.preco||'nao informado')));
+  box.appendChild(el('div','result', 'Desconto: '+(o.desconto==null||o.desconto===''?'nenhum':String(o.desconto)+'%')));
+  box.appendChild(el('div','result', 'Link: '+(o.link||'')));
+  box.appendChild(el('div','result', 'Cupom: nenhum'));
+  if(aviso) box.appendChild(el('p','hint', aviso));
+}
+function renderRel(){
+  const box=$('centRel');
+  box.textContent='';
+  const st=$('centFiltro').value;
+  const nome=($('centFiltroNome').value||'').trim().toLowerCase();
+  const desde=$('centDesde').value;
+  const lista=centRelatorio.filter(r=>{
+    if(st && r.status!==st) return false;
+    if(nome && !String(r.name||'').toLowerCase().includes(nome)) return false;
+    if(desde && String(r.createdAt||'').slice(0,10)<desde) return false;
+    return true;
+  });
+  if(!lista.length){
+    box.appendChild(el('p','hint','Nenhuma campanha nesse filtro.'));
+    return;
+  }
+  lista.forEach(r=>{
+    const card=el('div','result');
+    card.appendChild(el('b','', (r.name||'Campanha')+' · '+r.type+' · '+r.status));
+    card.appendChild(el('div','hint', 'destinatarios '+r.destinatarios+' · fila '+r.fila+' · aceitos pelo socket '+r.aceitos+' · falhas '+r.falhas+' · incertos '+r.incertos+' · pulados '+r.pulados));
+    card.appendChild(el('div','hint', 'Entrega: '+(r.entrega||'nao confirmada')+'. Leitura: '+(r.leitura||'indisponivel')+'.'));
+    if(r.lastError) card.appendChild(el('div','hint', 'Aviso: '+r.lastError));
+    const open=el('button','btn tiny sec','Abrir');
+    open.type='button';
+    open.onclick=()=>abrirDoHistorico(r.id);
+    card.appendChild(open);
+    box.appendChild(card);
+  });
+}
+async function atualizarCentral(){
+  try{
+    const camps=await api('/divulgacao/campanhas');
+    const cont=await api('/divulgacao/contatos');
+    centContatos=cont.contacts||[];
+    centRelatorio=camps.relatorio||[];
+    if(centCampanha){
+      const nova=(camps.campaigns||[]).find(x=>x.id===centCampanha.id);
+      if(nova) centCampanha=nova;
+    }
+    renderContatos();
+    renderCampanha();
+    renderDestinos();
+    renderRel();
+  }catch(e){
+    centAvisar('centCampMsg', false, e.message);
+  }
+}
+async function abrirDoHistorico(id){
+  try{
+    const data=await api('/divulgacao/campanhas');
+    const c=(data.campaigns||[]).find(x=>x.id===id);
+    if(!c) throw new Error('Campanha nao encontrada');
+    centCampanha=c;
+    renderCampanha();
+    renderDestinos();
+    if(c.content) renderOferta(c.content, c.type==='promocao' && !c.content.desconto ? 'Sem desconto real. Promocao nao deve ser aprovada.' : null);
+    centAvisar('centCampMsg', true, 'Campanha aberta. Revise antes de aprovar.');
+  }catch(e){
+    centAvisar('centCampMsg', false, e.message);
+  }
+}
+async function consentir(id, consent){
+  $('centContatosMsg').textContent='';
+  try{
+    await api('/divulgacao/contatos/consentimento',{method:'POST',body:JSON.stringify({id, consent})});
+    await atualizarCentral();
+    centAvisar('centContatosMsg', true, consent==='autorizado'?'Contato autorizado.':'Consentimento revogado. A fila pula esse contato.');
+  }catch(e){
+    centAvisar('centContatosMsg', false, e.message);
+  }
+}
+async function acaoCampanha(path, okText){
+  if(!precisaCampanha()) return;
+  $('centCampMsg').textContent='';
+  try{
+    const data=await api(path,{method:'POST',body:JSON.stringify({id:centCampanha.id})});
+    if(data.campaign) centCampanha=data.campaign;
+    renderCampanha();
+    await atualizarCentral();
+    centAvisar('centCampMsg', true, okText);
+  }catch(e){
+    centAvisar('centCampMsg', false, e.message);
+  }
+}
+
 async function boot(){
   if(!token) return;
   try{
@@ -522,12 +1120,35 @@ $('btnAuth').onclick=async()=>{
 };
 document.querySelectorAll('nav button').forEach(btn=>{
   btn.onclick=()=>{
-    document.querySelectorAll('nav button').forEach(b=>b.classList.remove('active'));
-    btn.classList.add('active');
     const p=btn.dataset.page;
-    ['home','wa','shopee','ads','account'].forEach(id=>show($('page-'+id),id===p));
+    if(!p){ if($('side')) $('side').classList.add('open'); if($('scrim')) $('scrim').classList.remove('hidden'); return; }
+    document.querySelectorAll('nav button').forEach(b=>b.classList.toggle('active', b.dataset.page===p));
+    const base=['home','wa','shopee','ads','central','account'];
+    base.concat(['grupos','ia','automacoes','contatos','atividade']).forEach(id=>{ const el=$('page-'+id); if(el) show(el,id===p); });
+    if($('side')) $('side').classList.remove('open');
+    if($('scrim')) $('scrim').classList.add('hidden');
+    if(p==='central') atualizarCentral();
   };
 });
+function abrirMenu(on){
+  if($('side')) $('side').classList.toggle('open', !!on);
+  if($('scrim')) $('scrim').classList.toggle('hidden', !on);
+}
+if($('btnMenu')) $('btnMenu').onclick=()=>abrirMenu(true);
+if($('btnClose')) $('btnClose').onclick=()=>abrirMenu(false);
+if($('scrim')) $('scrim').onclick=()=>abrirMenu(false);
+if($('btnMais')) $('btnMais').onclick=()=>abrirMenu(true);
+if($('btnWaPill')) $('btnWaPill').onclick=()=>ir('wa');
+if($('btnGear')) $('btnGear').onclick=()=>ir('account');
+if($('btnBell')) $('btnBell').onclick=()=>ir('atividade');
+document.querySelectorAll('[data-go]').forEach(el=>{ el.onclick=()=>ir(el.dataset.go); });
+if($('busca')) $('busca').oninput=()=>{
+  const q=$('busca').value.trim().toLowerCase();
+  document.querySelectorAll('#homeGroups .grow, #gruposFull .grow, #homeLogs .log, #atividadeLogs .log').forEach(n=>{
+    n.style.display=!q || n.textContent.toLowerCase().indexOf(q)>=0 ? '' : 'none';
+  });
+};
+if($('btnGoAccount')) $('btnGoAccount').onclick=()=>ir('account');
 $('btnGoPair').onclick=()=>ir('wa');
 $('btnGoShopee').onclick=()=>ir('shopee');
 $('btnGoAds').onclick=()=>ir('ads');
@@ -633,6 +1254,124 @@ $('btnTestAd').onclick=async()=>{
     refreshLogs();
   }catch(e){$('groupsMsg').className='msg err';$('groupsMsg').textContent=e.message;}
 };
+$('centBusca').oninput=()=>renderCentGrupos();
+$('centFiltro').onchange=()=>renderRel();
+$('centFiltroNome').oninput=()=>renderRel();
+$('centDesde').onchange=()=>renderRel();
+$('btnCentGrupos').onclick=async()=>{
+  centAvisar('centGruposMsg', true, 'Lendo grupos da sessao atual...');
+  try{
+    const data=await api('/divulgacao/grupos');
+    centGrupos=data.groups||[];
+    renderCentGrupos();
+    centAvisar('centGruposMsg', true, centGrupos.length+' grupo(s). Isso nao altera Anuncios.');
+  }catch(e){
+    centGrupos=[];
+    renderCentGrupos();
+    centAvisar('centGruposMsg', false, e.message);
+  }
+};
+$('btnCentRegistrar').onclick=async()=>{
+  if(!centGrupoSel){ centAvisar('centFichaMsg', false, 'Selecione um grupo.'); return; }
+  centAvisar('centFichaMsg', true, 'Registrando sem autorizar...');
+  try{
+    const data=await api('/divulgacao/registrar',{method:'POST',body:JSON.stringify({jid:centGrupoSel})});
+    await atualizarCentral();
+    centAvisar('centFichaMsg', true, 'Contatos na lista: '+(data.total||0)+'. '+(data.aviso||'Ninguem foi autorizado.'));
+  }catch(e){ centAvisar('centFichaMsg', false, e.message); }
+};
+$('btnCentManual').onclick=async()=>{
+  centAvisar('centContatosMsg', true, '');
+  try{
+    const data=await api('/divulgacao/contatos',{method:'POST',body:JSON.stringify({stableId:$('centManualId').value.trim(),phone:$('centManualPhone').value.trim()})});
+    $('centManualId').value='';
+    $('centManualPhone').value='';
+    await atualizarCentral();
+    centAvisar('centContatosMsg', true, (data.created?'Contato cadastrado':'Contato ja existia')+' com consentimento '+(data.consent||'nenhum')+'.');
+  }catch(e){ centAvisar('centContatosMsg', false, e.message); }
+};
+$('btnCentContatos').onclick=()=>atualizarCentral();
+$('btnCentCriar').onclick=async()=>{
+  centAvisar('centCriarMsg', true, '');
+  try{
+    const data=await api('/divulgacao/campanhas',{method:'POST',body:JSON.stringify({
+      name:$('centNome').value.trim()||'Campanha',
+      type:$('centTipo').value,
+      message:$('centMsg').value,
+      intervalSec:Number($('centInterval').value)||30,
+      dailyCap:Number($('centCap').value)||20,
+      cooldownHours:24,
+      groupJid:$('centTipo').value==='grupo'?centGrupoSel:'',
+      scheduledAt:isoQuando()
+    })});
+    centCampanha=data.campaign;
+    renderCampanha();
+    renderDestinos();
+    await atualizarCentral();
+    centAvisar('centCriarMsg', true, 'Rascunho criado. Nada foi enviado.');
+  }catch(e){ centAvisar('centCriarMsg', false, e.message); }
+};
+$('btnCentConvite').onclick=async()=>{
+  if(!precisaCampanha()) return;
+  if(!centGrupoSel){ centAvisar('centCampMsg', false, 'Selecione o grupo cujo link voce quer divulgar.'); return; }
+  centAvisar('centCampMsg', true, 'Pedindo o link ao WhatsApp...');
+  try{
+    const data=await api('/divulgacao/convite',{method:'POST',body:JSON.stringify({jid:centGrupoSel,campaignId:centCampanha.id})});
+    if(data.campaign) centCampanha=data.campaign;
+    if(data.url) $('centLink').value=data.url;
+    renderCampanha();
+    centAvisar('centCampMsg', true, 'Link real obtido. Confira antes de aprovar.');
+  }catch(e){ centAvisar('centCampMsg', false, e.message); }
+};
+$('btnCentColar').onclick=async()=>{
+  if(!precisaCampanha()) return;
+  try{
+    const data=await api('/divulgacao/campanhas/convite-colado',{method:'POST',body:JSON.stringify({id:centCampanha.id,url:$('centLink').value.trim()})});
+    centCampanha=data.campaign;
+    renderCampanha();
+    centAvisar('centCampMsg', true, 'Link salvo no rascunho.');
+  }catch(e){ centAvisar('centCampMsg', false, e.message); }
+};
+$('btnCentOferta').onclick=async()=>{
+  if(!precisaCampanha()) return;
+  centAvisar('centCampMsg', true, 'Consultando a API Shopee desta conta...');
+  try{
+    const data=await api('/divulgacao/campanhas/oferta',{method:'POST',body:JSON.stringify({id:centCampanha.id})});
+    if(data.campaign) centCampanha=data.campaign;
+    renderOferta(data.oferta, data.aviso);
+    renderCampanha();
+    centAvisar('centCampMsg', true, 'Oferta real anexada. Cupom continua nenhum.');
+  }catch(e){
+    renderOferta(null);
+    centAvisar('centCampMsg', false, e.message);
+  }
+};
+$('btnCentDest').onclick=async()=>{
+  if(!precisaCampanha()) return;
+  const ids=Array.from(document.querySelectorAll('#centDest input[type=checkbox]:checked')).map(x=>x.dataset.cid);
+  try{
+    const data=await api('/divulgacao/campanhas/destinatarios',{method:'POST',body:JSON.stringify({id:centCampanha.id,contactIds:ids})});
+    centCampanha=data.campaign;
+    renderCampanha();
+    const pulados=(data.pulados||[]).length;
+    centAvisar('centCampMsg', !pulados, 'Destinatarios na fila: '+((centCampanha.recipients||[]).length)+'.'+(pulados?(' '+pulados+' ficaram de fora.'):''));
+  }catch(e){ centAvisar('centCampMsg', false, e.message); }
+};
+$('btnCentAprovar').onclick=()=>acaoCampanha('/divulgacao/campanhas/aprovar','Campanha aprovada. A fila usa a mesma sessao, uma mensagem por vez.');
+$('btnCentPausar').onclick=()=>acaoCampanha('/divulgacao/campanhas/pausar','Campanha pausada. Quem ja foi aceito nao recebe de novo.');
+$('btnCentRetomar').onclick=()=>acaoCampanha('/divulgacao/campanhas/retomar','Campanha retomada. Aceitos anteriores continuam aceitos.');
+$('btnCentCancelar').onclick=()=>acaoCampanha('/divulgacao/campanhas/cancelar','Campanha cancelada.');
+$('btnCentIncertos').onclick=async()=>{
+  if(!precisaCampanha()) return;
+  try{
+    const data=await api('/divulgacao/campanhas/reenviar-incertos',{method:'POST',body:JSON.stringify({id:centCampanha.id})});
+    if(data.campaign) centCampanha=data.campaign;
+    renderCampanha();
+    await atualizarCentral();
+    centAvisar('centCampMsg', true, (data.reabertos||0)+' resultado(s) incerto(s) voltaram para a fila. Aceitos nao voltam.');
+  }catch(e){ centAvisar('centCampMsg', false, e.message); }
+};
+$('btnCentRel').onclick=()=>atualizarCentral();
 $('btnLogout').onclick=()=>{
   if(pollTimer) clearInterval(pollTimer);
   token='';

@@ -35,11 +35,14 @@ No painel do Mercado Pago, a notificacao aponta para `PUBLIC_URL/webhooks/mercad
 
 ## Pastas
 
-- `panel/index.html` — app do cliente
+- `panel/index.html` — app do cliente (anuncios e a aba Central)
 - `api/server.js` — login, config, cobranca, logs
-- `api/waRoutes.js` — WhatsApp, grupos, testes
+- `api/waRoutes.js` — WhatsApp, grupos de anuncio, testes
 - `api/sessions.js` — sessao Baileys por conta (`api/data/sessions/<userId>`, fora do Git)
+- `api/divulgacao/` — Central: contatos, campanhas e fila (JSON em `api/data/divulgacao/`, fora do Git)
 - `api/billing.js` — Mercado Pago
 - `api/logs.js` — ultimos envios, sem secret
+
+A Central nao mexe na lista de grupos dos anuncios. Uso e limites: [CENTRAL.md](CENTRAL.md).
 
 Instrucoes de Termux e PC: [COMO-LIGAR.md](../../COMO-LIGAR.md) na raiz do repositorio.

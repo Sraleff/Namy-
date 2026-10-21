@@ -307,16 +307,96 @@ function restoreRegistered(onStatus) {
 }
 
 async function listGroups(userId) {
-  const s = get(userId)
-  if (!s || !s.sock || s.status !== 'connected') {
-    throw new Error('WhatsApp nao esta conectado')
-  }
+  const s = vivo(userId)
   const groups = await s.sock.groupFetchAllParticipating()
   return Object.values(groups || {}).map((g) => ({
     jid: g.id,
     name: g.subject || g.id,
     participants: Array.isArray(g.participants) ? g.participants.length : 0
   }))
+}
+
+function jidGrupoOk(jid) {
+  return /^[0-9A-Za-z._-]+@g\.us$/.test(String(jid || ''))
+}
+
+function vivo(userId) {
+  const s = get(userId)
+  if (!s || !s.sock || s.status !== 'connected' || !(s.sock.user)) {
+    const err = new Error('WhatsApp nao esta conectado')
+    err.code = 'WA'
+    throw err
+  }
+  return s
+}
+
+function telefoneSeVier(phoneNumber) {
+  if (!phoneNumber) return ''
+  const n = String(phoneNumber).split('@')[0].replace(/\D/g, '')
+  return n.length >= 10 && n.length <= 15 ? n : ''
+}
+
+function fichaDe(meta) {
+  const participants = (Array.isArray(meta.participants) ? meta.participants : []).map((p) => ({
+    id: String(p.id || ''),
+    phone: telefoneSeVier(p.phoneNumber),
+    lid: p.lid ? String(p.lid) : '',
+    admin: p.admin || null
+  })).filter((p) => p.id)
+  return {
+    jid: meta.id,
+    name: meta.subject || meta.id,
+    desc: meta.desc || '',
+    size: Number(meta.size) || participants.length,
+    announce: !!meta.announce,
+    restrict: !!meta.restrict,
+    addressingMode: meta.addressingMode || '',
+    participants,
+    phonesKnown: participants.filter((p) => p.phone).length,
+    phonesMissing: participants.filter((p) => !p.phone).length,
+    nomes: 'indisponivel'
+  }
+}
+
+async function groupInfo(userId, jid) {
+  if (!jidGrupoOk(jid)) {
+    const err = new Error('Grupo invalido')
+    err.status = 400
+    throw err
+  }
+  const s = vivo(userId)
+  const meta = await s.sock.groupMetadata(jid)
+  return fichaDe(meta || {})
+}
+
+async function inviteLink(userId, jid) {
+  if (!jidGrupoOk(jid)) {
+    const err = new Error('Grupo invalido')
+    err.status = 400
+    throw err
+  }
+  const s = vivo(userId)
+  if (typeof s.sock.groupInviteCode !== 'function') {
+    const err = new Error('Esta versao do WhatsApp nao expoe groupInviteCode.')
+    err.status = 400
+    throw err
+  }
+  let code = ''
+  try {
+    code = await s.sock.groupInviteCode(jid)
+  } catch (e) {
+    const err = new Error('Nao consegui ler o convite. Em geral a conta precisa ser admin do grupo.')
+    err.status = 400
+    err.code = 'WA'
+    throw err
+  }
+  const limpo = String(code || '').replace(/[^A-Za-z0-9]/g, '')
+  if (!limpo) {
+    const err = new Error('O WhatsApp nao devolveu o link. A conta precisa poder ver o convite.')
+    err.status = 400
+    throw err
+  }
+  return { url: 'https://chat.whatsapp.com/' + limpo, code: limpo }
 }
 
 async function sendText(userId, jid, text) {
@@ -361,4 +441,4 @@ async function sendOffer(userId, jid, { text, imageUrl }) {
   }
 }
 
-module.exports = { start, stop, publicState, restoreRegistered, listGroups, sendText, sendOffer, get }
+module.exports = { start, stop, publicState, restoreRegistered, listGroups, groupInfo, inviteLink, sendText, sendOffer, get }

@@ -332,6 +332,21 @@ app.get('/logs', auth, (req, res) => {
 
 const wa = require('./waRoutes')(app, { auth, readJson, writeJson, CONFIGS, DATA, logs })
 require('./scheduler').start({ readJson, writeJson, CONFIGS, DATA, logs })
+const divulgacao = require('./divulgacao/routes')
+const divulgacaoApi = divulgacao.mount(app, {
+  auth,
+  DATA,
+  sessions: require('./sessions'),
+  ofertas: require('./ofertas'),
+  readJson,
+  CONFIGS
+})
+divulgacao.startFila({
+  DATA,
+  logs,
+  sessions: require('./sessions'),
+  licencaAtiva: divulgacaoApi.licencaAtiva
+})
 
 app.get('/bot/config', (req, res) => {
   const token = req.headers['x-bot-token'] || req.query.token
