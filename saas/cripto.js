@@ -22,19 +22,24 @@ function cifrar(obj) {
 }
 
 function decifrar(texto) {
-    if (!texto) return {}
+    return abrir(texto).dados
+}
+
+function abrir(texto) {
+    if (!texto) return { ok: true, dados: {} }
     const k = chaveMestra()
-    if (!k) return {}
+    if (!k) return { ok: false, dados: {} }
     try {
         const [v, iv, tag, enc] = String(texto).split(':')
-        if (v !== 'v1') return {}
+        if (v !== 'v1' || !iv || !tag || !enc) return { ok: false, dados: {} }
         const d = crypto.createDecipheriv('aes-256-gcm', k, Buffer.from(iv, 'base64'))
         d.setAuthTag(Buffer.from(tag, 'base64'))
         const json = Buffer.concat([d.update(Buffer.from(enc, 'base64')), d.final()]).toString('utf8')
-        return JSON.parse(json) || {}
+        const dados = JSON.parse(json)
+        return { ok: true, dados: dados && typeof dados === 'object' ? dados : {} }
     } catch {
-        return {}
+        return { ok: false, dados: {} }
     }
 }
 
-module.exports = { disponivel, cifrar, decifrar }
+module.exports = { disponivel, cifrar, decifrar, abrir }

@@ -10,7 +10,14 @@ function lerProprias(id) {
 }
 
 function alterar(id, fn) {
-    const atual = lerProprias(id)
+    const t = tenants.obter(id)
+    const aberto = cripto.abrir(t?.cred || '')
+    if (t?.cred && !aberto.ok) {
+        const err = new Error('cofre_ilegivel')
+        err.code = 'COFRE'
+        throw err
+    }
+    const atual = aberto.dados
     const novo = fn({ ...atual }) || atual
     tenants.patch(id, { cred: cripto.cifrar(novo) })
 }
@@ -65,9 +72,11 @@ function montar(id) {
     return { tenant: id, shopee, ia }
 }
 
-// Contexto para mensagens de um chat. null = grupo da plataforma (chaves da casa).
+// Grupo de cliente → chaves dele. Privado de um admin → chaves dele.
+// Qualquer outro chat → null (chaves da casa / do .env, ou as do painel se a nuvem estiver ligada).
 function paraChat(jid) {
-    const id = tenants.donoDoGrupo(jid)
+    const grupo = String(jid || '').endsWith('@g.us')
+    const id = grupo ? tenants.donoDoGrupo(jid) : tenants.tenantDoNumero(jid)
     return id ? montar(id) : null
 }
 

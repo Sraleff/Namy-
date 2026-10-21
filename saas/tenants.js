@@ -109,6 +109,15 @@ function removerAdmin(id, numero) {
     return true
 }
 
+function tenantDoNumero(jidOuNumero) {
+    const n = extrairNumero(jidOuNumero)
+    if (!n || n.length < 10) return null
+    for (const [id, t] of Object.entries(listar())) {
+        if ((t.admins || []).includes(n)) return id
+    }
+    return null
+}
+
 function tenantDoRemetente(ctx) {
     for (const [id, t] of Object.entries(listar())) {
         if ((t.admins || []).length && ehDono(ctx, { owners: t.admins })) return id
@@ -170,7 +179,7 @@ function registrarPublicacao(jid) {
 
 module.exports = {
     validarId, listar, obter, ativoEmDia, criar, patch, remover, renovar,
-    adicionarAdmin, removerAdmin, tenantDoRemetente,
+    adicionarAdmin, removerAdmin, tenantDoRemetente, tenantDoNumero,
     vincularGrupo, desvincularGrupo, donoDoGrupo, gruposDo,
     podePublicar, registrarPublicacao, usoHoje, hojeSP
 }

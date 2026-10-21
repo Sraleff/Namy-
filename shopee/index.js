@@ -10,7 +10,7 @@ async function iniciar(client) {
     try {
         store.carregar()
         if (!cfg.habilitado()) {
-            log('Sem chaves da casa e sem clientes (ou SHOPEE_ENABLED=false). Módulo desativado.')
+            log('Sem chaves da casa e sem grupo de cliente (ou SHOPEE_ENABLED=false). Módulo desativado.')
             return { ok: false, motivo: 'desligado' }
         }
         const n = Object.keys(grupos.listar()).length
