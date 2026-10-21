@@ -13,6 +13,24 @@ O painel **gerencia as sessões WhatsApp dos clientes** via Baileys (QR Code e c
 
 ---
 
+## Dashboard NAMY CONTROL (novo)
+
+Com o painel ligado, abra **http://127.0.0.1:3847/app/**. Tudo que o painel clássico faz (WhatsApp, grupos, Shopee, anúncios, Central e conta) existe lá. O `ligar-tudo.sh` compila o dashboard sozinho.
+
+> **Node 22.12+ obrigatório.** No WSL/Linux: `nvm install 22`. Com Node 18/20 o painel cai com `ERR_REQUIRE_ESM` (Baileys 7).
+
+## WSL / Linux (PC)
+
+```bash
+cd ~/projetos/namy
+nvm use 22
+bash ligar-tudo.sh
+```
+
+Depois: `http://127.0.0.1:3847/app/` → **Configurações** → Conectar WhatsApp.
+
+---
+
 ## Termux (celular)
 
 ### 1. Instalar uma vez
@@ -196,6 +214,31 @@ NAMY_PRICE_TRIMESTRAL=129
 `PUBLIC_URL` e a URL publica do painel, com https, sem barra no final. O Mercado Pago chama `PUBLIC_URL/webhooks/mercadopago`. A licenca so liga depois que o servidor consulta o pagamento na API do Mercado Pago. Nao existe botao de "marcar como pago".
 
 O painel le `saas/client-panel/.env` ao subir. Variavel ja exportada no terminal ganha do arquivo.
+
+## Atualizar no WSL para testar o visual
+
+O painel que abre no navegador é o da pasta `saas/client-panel`, na branch `namy-3.1-saas`. O visual Namy Control desta etapa troca só a tela (`panel/index.html`). Login, WhatsApp, Shopee, anúncios e conta continuam os mesmos.
+
+Na pasta do clone (exemplo `~/Namy-saas`):
+
+```bash
+cd ~/Namy-saas
+git status
+cp saas/client-panel/panel/index.html saas/client-panel/panel/index.html.bak
+```
+
+Substitua `saas/client-panel/panel/index.html` pelo arquivo novo e reinicie **só o painel**:
+
+```bash
+cd ~/Namy-saas/saas/client-panel
+npm start
+```
+
+Abra de novo o endereço do painel. Não rode `node index.js` nem `ligar-tudo.sh` junto se esse mesmo número já está conectado no painel — o WhatsApp derruba a sessão (`440`).
+
+`git pull` ainda não traz esse visual: ele não foi enviado ao GitHub. A aba Central só responde se o servidor local já tiver a API da central.
+
+---
 
 ## Problemas comuns
 

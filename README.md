@@ -131,6 +131,90 @@ Quando aparecer `NAMY CONECTADA  3.0`, está no ar.
 
 Menu completo: `!menu`
 
+## Namy SaaS — painel + dashboard NAMY CONTROL
+
+Na branch `namy-3.1-saas` o repo tem, além do bot:
+
+| Parte | Pasta | Endereço |
+|---|---|---|
+| API + sessões WhatsApp dos clientes | `saas/client-panel/api` | `http://127.0.0.1:3847` |
+| Dashboard **NAMY CONTROL** (React + Tailwind) | `saas/client-panel/dashboard` | **`http://127.0.0.1:3847/app/`** |
+| Painel clássico | `saas/client-panel/panel` | `http://127.0.0.1:3847/` |
+
+### Instalar (uma vez)
+
+Precisa de **Node 22.12 ou mais novo** (o Baileys 7 é ESM; Node 18/20 quebra com `ERR_REQUIRE_ESM`).
+
+**Linux / WSL**
+
+```bash
+curl -o- https://raw.githubusercontent.com/nvm-sh/nvm/v0.40.1/install.sh | bash
+source ~/.bashrc && nvm install 22
+git clone -b namy-3.1-saas https://github.com/Sraleff/Namy-.git ~/projetos/namy
+cd ~/projetos/namy
+cp .env.example .env && nano .env      # pelo menos uma chave de IA + OWNERS
+```
+
+**Termux:** veja `INSTALAR-TERMUX.md` e `COMO-LIGAR.md` (o `nodejs-lts` do Termux já é 22+).
+**Windows:** instale o Node 22 LTS em https://nodejs.org e use `ligar-tudo.bat`.
+
+As dependências (bot, painel e dashboard) são instaladas sozinhas na primeira execução.
+
+### Executar
+
+```bash
+cd ~/projetos/namy
+bash ligar-tudo.sh
+```
+
+O script confere o Node, instala o que faltar, **compila o dashboard** quando o código dele mudou, sobe o painel em segundo plano e o bot no terminal.
+
+### Usar o dashboard
+
+1. Abra `http://127.0.0.1:3847/app/` e entre (ou clique em **Criar agora**). É a mesma conta do painel clássico.
+2. **Configurações** → digite o número com DDI → **Conectar** → no celular: *Aparelhos conectados → Conectar com número de telefone* e digite o código (ou escaneie o QR).
+3. **Inteligência Artificial** → App ID, Secret e palavra-chave da Shopee → **Testar API**.
+4. **Grupos** → marque onde publicar → **Salvar seleção**.
+5. **Automações** → ligue os anúncios, escolha intervalo, limite e horário → **Salvar**.
+6. **Contatos** / **Campanhas** → importe contatos de um grupo, autorize quem pediu e crie campanhas (rascunho → conteúdo → destinatários → aprovar).
+
+Desenvolvimento do front: `cd saas/client-panel/dashboard && npm run dev` (Vite em `:5173` com proxy para a API). Sem backend: `VITE_USE_MOCK=1 npm run dev`. Detalhes em `saas/client-panel/dashboard/README.md`.
+
+## Trail — mapa do código para o Claude Code
+
+O repo vem ligado ao [trail](https://www.npmjs.com/package/@trailhq/trail-code): um mapa do código e dos aprendizados de cada sessão em `.trail/`, que o agente consulta **antes** de cada tarefa. A Skill está em `.claude/skills/trail/SKILL.md` e as regras do projeto em `CLAUDE.md`.
+
+### Instalar
+
+```bash
+npm install -g @trailhq/trail-code     # com o Node 22 do nvm ativo
+cd ~/projetos/namy
+trail build                            # gera o mapa local em .trail/cache/ (não vai pro git)
+```
+
+Quem clona já recebe `.claude/settings.json` (hook de início de sessão), `.trail/hook.cjs`, `CLAUDE.md` e a Skill. Para também ter a Skill e os hooks em todos os seus repos: `trail init --no-agents`.
+
+### Executar / consultar
+
+Use sempre o wrapper `scripts/trail.sh`: ele roda como o dono do repo e carrega o nvm. Isso importa no Claude Desktop/WSL, onde a sessão do agente pode ser `root`.
+
+```bash
+bash scripts/trail.sh status                                   # mapa em dia? quantos aprendizados?
+bash scripts/trail.sh ask "como funciona o pareamento" --source # acha o código + aprendizados
+bash scripts/trail.sh callers publicarOferta                    # quem chama (antes de refatorar)
+bash scripts/trail.sh skeleton saas/client-panel/api/server.js  # API do arquivo
+bash scripts/trail.sh check                                     # antes de commit/push
+```
+
+### Usar a Skill no Claude Code
+
+1. Abra o Claude Code **na pasta do repo** (`~/projetos/namy`). A Skill `trail` e o `CLAUDE.md` carregam sozinhos.
+2. Peça a tarefa normalmente ("corrige o reconectar do WhatsApp"). O agente roda `trail ask` antes de abrir arquivos.
+3. Quando a tarefa der trabalho de descobrir, peça "salva isso no trail". O agente roda `trail note` e o aprendizado vai para `.trail/learnings/`. **Commite essa pasta**: é a memória do time.
+4. Antes de commitar, o agente roda `trail check` contra os aprendizados.
+
+Se a sessão não mostrar a Skill, confira se o Claude Code foi aberto na raiz do repo e se `bash scripts/trail.sh status` responde.
+
 ## Segurança
 
 Nunca compartilhe:
@@ -139,5 +223,6 @@ Nunca compartilhe:
 - pasta `sessao/`
 - `dados/namy.json`
 - `dados/shopee.json`
+- `saas/client-panel/.env` e `saas/client-panel/api/data/` (usuários, configs e sessões WhatsApp dos clientes)
 
 `OWNERS` fica só no `.env`.
