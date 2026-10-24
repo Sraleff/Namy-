@@ -17,14 +17,57 @@ const {
   useMultiFileAuthState,
   fetchLatestBaileysVersion,
   Browsers,
-  DisconnectReason
+  DisconnectReason,
+  makeCacheableSignalKeyStore
 } = require('@whiskeysockets/baileys')
+const memoria = require('./memoria')
 
 const DATA = path.join(__dirname, 'data')
 const SESSIONS = path.join(DATA, 'sessions')
 
 const sockets = new Map()
 let versionCache = null
+
+// Ouvintes de mensagens recebidas (captura de ofertas, comando !nicho).
+// fn(userId, mensagem, sock, type). Erro de um ouvinte nao derruba a sessao.
+const ouvintes = new Set()
+function onMensagem(fn) {
+  if (typeof fn === 'function') ouvintes.add(fn)
+  return () => ouvintes.delete(fn)
+}
+
+// Diagnostico (desligado por padrao): metadados, sem conteudo, das mensagens de grupo
+// que chegam, em data/captura-debug.jsonl (ultimas 300 linhas). Ligue com NAMY_DEBUG_CAPTURA=1
+// no .env quando precisar ver se mensagens chegam legiveis ou "No matching sessions".
+function diagnostico(userId, m, type) {
+  if (process.env.NAMY_DEBUG_CAPTURA !== '1') return
+  try {
+    const jid = String((m.key && m.key.remoteJid) || '')
+    if (!jid.endsWith('@g.us')) return
+    const file = path.join(__dirname, 'data', 'captura-debug.jsonl')
+    const linha = JSON.stringify({
+      at: new Date().toISOString(), user: String(userId).slice(0, 8), jid, type,
+      fromMe: !!(m.key && m.key.fromMe), temMsg: !!m.message, stub: m.messageStubType || null,
+      stubParams: (m.messageStubParameters || []).slice(0, 2), chaves: m.message ? Object.keys(m.message).slice(0, 6) : []
+    })
+    let linhas = []
+    try { linhas = fs.readFileSync(file, 'utf8').split('\n').filter(Boolean) } catch {}
+    linhas.push(linha)
+    fs.writeFileSync(file, linhas.slice(-300).join('\n') + '\n')
+  } catch (_) {}
+}
+
+// requestPairingCode grava me.id (name '~') e pairingCode ANTES de o celular confirmar.
+// So conta como pareada a sessao que tem account/signalIdentities (login por QR ou
+// codigo confirmado) ou registered. me.id sozinho = pareamento nunca concluido.
+function pareada(creds) {
+  return !!(creds && (creds.registered || creds.account ||
+    (Array.isArray(creds.signalIdentities) && creds.signalIdentities.length > 0)))
+}
+
+function credsDoDisco(authDir) {
+  try { return JSON.parse(fs.readFileSync(path.join(authDir, 'creds.json'), 'utf8')) } catch { return null }
+}
 
 function ensure() {
   if (!fs.existsSync(SESSIONS)) fs.mkdirSync(SESSIONS, { recursive: true })
@@ -141,6 +184,12 @@ async function start(userId, phone, onStatus) {
   const cleanPhone = String(phone || (existing && existing.phone) || '').replace(/\D/g, '')
   const authDir = path.join(SESSIONS, userId)
   if (!fs.existsSync(authDir)) fs.mkdirSync(authDir, { recursive: true })
+  // Pareamento que nunca foi confirmado no celular: tentar logar com ele da 408 em loop.
+  // Comeca limpo para gerar QR/codigo novos.
+  const salvo = credsDoDisco(authDir)
+  if (salvo && !pareada(salvo)) {
+    for (const f of fs.readdirSync(authDir)) fs.rmSync(path.join(authDir, f), { recursive: true, force: true })
+  }
 
   const entry = {
     userId,
@@ -159,21 +208,36 @@ async function start(userId, phone, onStatus) {
   }
   sockets.set(userId, entry)
 
-  const { state, saveCreds } = await useMultiFileAuthState(authDir)
-  const version = await baileysVersion()
+  let sock
+  try {
+    const { state, saveCreds } = await useMultiFileAuthState(authDir)
+    const version = await baileysVersion()
+    // A entrada pode ter sido trocada/removida enquanto esperavamos o disco/rede
+    if (get(userId) !== entry) throw new Error('Inicializacao da sessao cancelada')
 
-  const sock = makeWASocket({
-    version,
-    auth: state,
-    logger: pino({ level: 'silent' }),
-    browser: Browsers.ubuntu('Chrome'),
-    printQRInTerminal: false,
-    syncFullHistory: false,
-    markOnlineOnConnect: true
-  })
-  entry.sock = sock
-
-  sock.ev.on('creds.update', saveCreds)
+    const logger = pino({ level: 'silent' })
+    sock = makeWASocket({
+      version,
+      // Chaves do Signal em cache: menos leitura de disco e menos falha de decriptacao
+      auth: { creds: state.creds, keys: makeCacheableSignalKeyStore(state.keys, logger) },
+      logger,
+      browser: Browsers.ubuntu('Chrome'),
+      printQRInTerminal: false,
+      syncFullHistory: false,
+      markOnlineOnConnect: true,
+      // Memoria: reenvio de mensagem ilegivel, contador de retry e cache de grupos
+      ...memoria.opcoesSocket(userId, () => (get(userId) || {}).sock)
+    })
+    entry.sock = sock
+    sock.ev.on('creds.update', saveCreds)
+  } catch (e) {
+    // Falha no meio da inicializacao nao pode deixar a conta presa em "conectando"
+    if (get(userId) === entry) {
+      sockets.delete(userId)
+      if (onStatus) onStatus(userId, 'error')
+    }
+    throw e
+  }
 
   sock.ev.on('connection.update', async (update) => {
     const { connection, lastDisconnect, qr } = update
@@ -242,6 +306,18 @@ async function start(userId, phone, onStatus) {
         return
       }
 
+      // Codigo/QR expirou sem ninguem confirmar no celular: nao ha o que reconectar
+      if (!pareada(sock.authState.creds)) {
+        limparTimer(cur)
+        setStatus(userId, 'disconnected', {
+          error: 'O pareamento nao foi concluido (o codigo expirou ou nao foi digitado no celular). Toque em Conectar para gerar outro codigo.',
+          qrDataUrl: null,
+          pairingCode: null
+        })
+        sockets.delete(userId)
+        return
+      }
+
       if (quedaTemporaria(code)) {
         agendarReconexao(userId, code)
         return
@@ -255,8 +331,17 @@ async function start(userId, phone, onStatus) {
     }
   })
 
-  sock.ev.on('messages.upsert', async ({ messages }) => {
+  sock.ev.on('messages.upsert', async ({ messages, type }) => {
     for (const m of messages || []) {
+      diagnostico(userId, m, type)
+      memoria.guardar(userId, m)
+      // Ouvintes recebem tambem mensagens que nao deu para ler (m.message vazio),
+      // para a captura poder dizer por que nada entrou no banco
+      if (m.message || m.messageStubType) {
+        for (const fn of ouvintes) {
+          Promise.resolve().then(() => fn(userId, m, sock, type)).catch((e) => console.error('[SESSAO] ouvinte', e.message))
+        }
+      }
       if (!m.message || m.key.fromMe) continue
       const text = m.message.conversation || m.message.extendedTextMessage?.text || ''
       if (String(text).trim().toLowerCase() === '!ping') {
@@ -266,6 +351,10 @@ async function start(userId, phone, onStatus) {
       }
     }
   })
+
+  // Grupo mudou: metadado em cache fica velho
+  sock.ev.on('groups.update', (lista) => { for (const g of lista || []) if (g.id) memoria.esquecerGrupo(userId, g.id) })
+  sock.ev.on('group-participants.update', (ev) => { if (ev && ev.id) memoria.esquecerGrupo(userId, ev.id) })
 
   return publicState(userId)
 }
@@ -283,21 +372,24 @@ async function stop(userId, logout) {
   if (logout) {
     const dir = path.join(SESSIONS, userId)
     try { fs.rmSync(dir, { recursive: true, force: true }) } catch (_) {}
+    memoria.esquecerConta(userId)
   }
   return { status: 'disconnected', pairingCode: null, qrDataUrl: null, phone: '', error: null, connected: false }
 }
 
-function restoreRegistered(onStatus) {
+// existe(id): opcional; pula sessoes de contas que nao existem mais
+function restoreRegistered(onStatus, existe) {
   ensure()
   let dirs = []
   try { dirs = fs.readdirSync(SESSIONS) } catch { return }
   for (const id of dirs) {
+    if (typeof existe === 'function' && !existe(id)) continue
     const creds = path.join(SESSIONS, id, 'creds.json')
     if (!fs.existsSync(creds)) continue
     let registered = false
     try {
       const j = JSON.parse(fs.readFileSync(creds, 'utf8'))
-      registered = !!j.registered
+      registered = pareada(j)
     } catch { continue }
     if (!registered) continue
     start(id, '', onStatus).catch((e) => {
@@ -403,7 +495,8 @@ async function sendText(userId, jid, text) {
   return sendOffer(userId, jid, { text })
 }
 
-async function sendOffer(userId, jid, { text, imageUrl }) {
+// imagePath: arquivo local (imagem gerada ou capturada), validado por quem chama
+async function sendOffer(userId, jid, { text, imageUrl, imagePath }) {
   const s = get(userId)
   if (!s || !s.sock || s.status !== 'connected' || !(s.sock.user)) {
     const err = new Error('WhatsApp nao esta conectado')
@@ -416,8 +509,13 @@ async function sendOffer(userId, jid, { text, imageUrl }) {
     throw err
   }
   const caption = String(text).slice(0, 4000)
-  const imagem = imageUrl && String(imageUrl).startsWith('https://') ? imageUrl : ''
+  const local = imagePath && path.resolve(String(imagePath)).startsWith(DATA + path.sep) && fs.existsSync(imagePath) ? path.resolve(String(imagePath)) : ''
+  const imagem = local || (imageUrl && String(imageUrl).startsWith('https://') ? imageUrl : '')
   try {
+    if (local) {
+      await s.sock.sendMessage(jid, { image: fs.readFileSync(local), caption })
+      return true
+    }
     if (imagem) {
       await s.sock.sendMessage(jid, { image: { url: imagem }, caption })
       return true
@@ -441,4 +539,4 @@ async function sendOffer(userId, jid, { text, imageUrl }) {
   }
 }
 
-module.exports = { start, stop, publicState, restoreRegistered, listGroups, groupInfo, inviteLink, sendText, sendOffer, get }
+module.exports = { pareada, start, stop, publicState, restoreRegistered, listGroups, groupInfo, inviteLink, sendText, sendOffer, get, onMensagem }

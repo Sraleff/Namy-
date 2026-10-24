@@ -8,7 +8,7 @@
   },
   "dependencies": {
     "@adiwajshing/keyed-db": "^0.2.4",
-    "@whiskeysockets/baileys": "7.0.0-rc.3",
+    "@whiskeysockets/baileys": "7.0.0-rc12",
     "bcryptjs": "^2.4.3",
     "cors": "^2.8.5",
     "express": "^4.21.2",
