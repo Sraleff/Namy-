@@ -18,6 +18,7 @@ const gerador = require('./imagens/gerador')
 const imagens = require('./imagens/store')
 const linkRoutes = require('./linkRoutes')
 const produtosRoutes = require('./produtosRoutes')
+const vitrineRoutes = require('./vitrineRoutes')
 
 const JID_RE = /^[0-9A-Za-z._-]+@g\.us$/
 const DIAS = [0, 1, 2, 3, 4, 5, 6]
@@ -455,6 +456,8 @@ function mount(app, deps) {
   linkRoutes.mount(app, { auth, readJson, CONFIGS, DATA, logs })
   // Fila de produtos (Fase 1.2)
   produtosRoutes.mount(app, { auth, readJson, CONFIGS, DATA }, { midiaUrl })
+  // Vitrine de ofertas (Fase 1.3)
+  vitrineRoutes.mount(app, { auth, readJson, CONFIGS, DATA, logs, sessions })
 
   return { aplicarConfig }
 }

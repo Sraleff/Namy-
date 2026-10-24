@@ -11,6 +11,7 @@ import Automations from './pages/Automations';
 import Offers from './pages/Offers';
 import Converter from './pages/Converter';
 import Produtos from './pages/Produtos';
+import Vitrine from './pages/Vitrine';
 import Images from './pages/Images';
 import Contacts from './pages/Contacts';
 import Logs from './pages/Logs';
@@ -29,6 +30,7 @@ const pages = {
   ofertas: Offers,
   conversor: Converter,
   fila: Produtos,
+  vitrine: Vitrine,
   imagens: Images,
   contatos: Contacts,
   logs: Logs,

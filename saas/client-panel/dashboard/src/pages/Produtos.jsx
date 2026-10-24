@@ -145,7 +145,7 @@ function Linha({ item, onChanged }) {
             {item.marketplaces.map((m) => <Badge key={m} variant="info">{MK[m] || m}</Badge>)}
           </div>
           <p className="mt-1 text-xs text-subtle">
-            {item.origem === 'grupo' ? `Capturada de ${item.origemGrupo || 'grupo'}` : 'Colada à mão'} · {item.envios} envio(s) · {validade(item.expiresAt)}
+            {item.origem === 'grupo' ? `Capturada de ${item.origemGrupo || 'grupo'}` : item.origem === 'vitrine' ? 'Da vitrine Shopee' : 'Colada à mão'} · {item.envios} envio(s) · {validade(item.expiresAt)}
             {item.editadoEm ? ` · editada ${fmt.format(new Date(item.editadoEm))}` : ''}
           </p>
           {motivo && <p className="mt-1 break-words text-[11px] text-amber-300">Último motivo: {motivo.motivo}</p>}

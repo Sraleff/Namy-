@@ -66,9 +66,10 @@ async function adicionar(dataDir, userId, cfg, entrada) {
     const item = {
       id,
       sig,
-      nome: titulo(texto),
+      // nome opcional (vitrine): o titulo automatico pegaria a 1a linha do modelo, "OFERTA SHOPEE"
+      nome: String((entrada && entrada.nome) || '').trim().slice(0, 120) || titulo(texto),
       texto,
-      origem: entrada.origem === 'grupo' ? 'grupo' : 'manual',
+      origem: ['grupo', 'vitrine'].includes(entrada.origem) ? entrada.origem : 'manual',
       origemGrupo: String(entrada.origemGrupo || '').slice(0, 120),
       nicho: nichos.classificar(texto).nicho,
       marketplaces: mks,

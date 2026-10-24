@@ -69,8 +69,8 @@ function assinar(appId, secret, payload) {
   return 'SHA256 Credential=' + appId + ', Timestamp=' + timestamp + ', Signature=' + signature
 }
 
-function queryProdutos(keyword, page, limit) {
-  const args = ['listType: 0', 'sortType: 5', 'page: ' + page, 'limit: ' + limit]
+function queryProdutos(keyword, page, limit, sortType = 5) {
+  const args = ['listType: 0', 'sortType: ' + (Number.isInteger(sortType) ? sortType : 5), 'page: ' + page, 'limit: ' + limit]
   const kw = String(keyword || '').trim().slice(0, 80)
   if (kw) args.unshift('keyword: ' + JSON.stringify(kw))
   return '{ productOfferV2(' + args.join(', ') + ') { nodes { ' + NODES + ' } } }'
@@ -194,4 +194,26 @@ async function preparar(dataDir, userId, shopee, opts = {}) {
   return oferta
 }
 
-module.exports = { normalizar, mensagem, preparar, lembrar, encurtar }
+/**
+ * Busca para a vitrine do painel: ofertas normalizadas, sem filtro de nicho nem de
+ * historico. sortType e inteiro de 1 a 9 (os valores aceitos pela API sao validados
+ * por quem chama); qualquer outra coisa cai no padrao 5, o mesmo de sempre.
+ * Devolve { itens, recebidos } (recebidos = quantos nos a API mandou, antes de descartar os sem preco/link).
+ */
+async function buscar(shopee, { keyword = '', page = 1, limit = 20, sortType = 5 } = {}) {
+  if (!shopee || !shopee.appId || !shopee.secret) {
+    const err = new Error('Salve App ID e Secret da Shopee.')
+    err.code = 'SHOPEE'
+    err.status = 400
+    throw err
+  }
+  const p = Math.min(50, Math.max(1, Math.floor(Number(page)) || 1))
+  const l = Math.min(50, Math.max(1, Math.floor(Number(limit)) || 20))
+  const s = Number.isInteger(sortType) && sortType >= 1 && sortType <= 9 ? sortType : 5
+  const data = await graphql(shopee.appId, shopee.secret, queryProdutos(keyword, p, l, s))
+  const nodes = data.productOfferV2 && data.productOfferV2.nodes
+  const lista = Array.isArray(nodes) ? nodes : []
+  return { itens: lista.map(normalizar).filter(Boolean), recebidos: lista.length }
+}
+
+module.exports = { normalizar, mensagem, preparar, lembrar, encurtar, buscar }

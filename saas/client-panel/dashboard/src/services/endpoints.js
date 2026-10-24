@@ -49,6 +49,11 @@ export const convertLink = (texto) => post('/conversor/link', { texto });
 export const listProducts = (status = '', limite = 25) => api(`/produtos?limite=${limite}${status ? `&status=${encodeURIComponent(status)}` : ''}`);
 export const editProduct = (body) => post('/produtos/editar', body);
 export const requeueProduct = (id) => post('/produtos/reenfileirar', { id });
+
+// Vitrine de ofertas (busca na API Shopee com as chaves do cliente)
+export const searchShowcase = (keyword = '', ordem = '', pagina = 1) => api(`/vitrine?pagina=${pagina}${ordem ? `&ordem=${encodeURIComponent(ordem)}` : ''}${keyword ? `&keyword=${encodeURIComponent(keyword)}` : ''}`);
+export const saveShowcase = (itemId) => post('/vitrine/salvar', { itemId });
+export const sendShowcase = (body) => post('/vitrine/enviar', body);
 export const listDispatches = (tipo = '') => api(`/afiliados/disparos?limite=150${tipo ? `&tipo=${tipo}` : ''}`);
 
 // Mercado Livre (OAuth)

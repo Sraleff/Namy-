@@ -1,5 +1,5 @@
 import {
-  Home, Users, Megaphone, Sparkles, Workflow, Contact, ScrollText, Settings, Tag, Image, Link2, ListOrdered,
+  Home, Users, Megaphone, Sparkles, Workflow, Contact, ScrollText, Settings, Tag, Image, Link2, ListOrdered, Store,
 } from 'lucide-react';
 
 export const navItems = [
@@ -9,6 +9,7 @@ export const navItems = [
   { id: 'ia', label: 'Inteligência Artificial', icon: Sparkles },
   { id: 'automacoes', label: 'Automações', icon: Workflow },
   { id: 'ofertas', label: 'Ofertas', icon: Tag },
+  { id: 'vitrine', label: 'Vitrine', icon: Store },
   { id: 'conversor', label: 'Conversor', icon: Link2 },
   { id: 'fila', label: 'Fila', icon: ListOrdered },
   { id: 'imagens', label: 'Imagens', icon: Image },
