@@ -4,17 +4,40 @@ import { Card } from '../components/ui/Card';
 import PageHeader from '../components/ui/PageHeader';
 import Badge from '../components/ui/Badge';
 import EmptyState from '../components/ui/EmptyState';
-import { Button, Input, Notice } from '../components/ui/Form';
+import { Button, Input, Notice, Select } from '../components/ui/Form';
 import { useAsync } from '../hooks/useAsync';
 import { useAction } from '../hooks/useAction';
 import * as ep from '../services/endpoints';
 import { formatNumber } from '../lib/format';
 
+// Nicho do grupo: só para grupos já salvos na divulgação
+function NicheSelect({ group, niches, onSaved }) {
+  const [value, setValue] = useState(group.niche || 'geral');
+  const [busy, setBusy] = useState(false);
+  const change = async (e) => {
+    const next = e.target.value;
+    setValue(next);
+    setBusy(true);
+    try { await ep.setGroupNiche(group.jid, next); onSaved?.(`Nicho de "${group.name}": ${niches.find((n) => n.id === next)?.label || next}.`); }
+    catch (err) { setValue(group.niche || 'geral'); onSaved?.(err.message, 'error'); }
+    finally { setBusy(false); }
+  };
+  return (
+    <Select aria-label={`Nicho de ${group.name}`} value={value} onChange={change} disabled={busy} className="h-8 w-44 text-xs">
+      {niches.map((n) => <option key={n.id} value={n.id}>{n.label}</option>)}
+    </Select>
+  );
+}
+
 export default function Groups({ query = '' }) {
   const { data, loading, error, reload } = useAsync(ep.waGroups, []);
+  const summary = useAsync(ep.affiliateSummary, []);
+  const niches = summary.data?.nichos || [];
+  const savedBy = new Map((data?.selected || []).map((g) => [g.jid, g]));
   const [q, setQ] = useState(query);
   const [picked, setPicked] = useState(null); // Set de jids escolhidos (null = ainda não editado)
-  const { busy, msg, run } = useAction();
+  const { busy, msg, setMsg, run } = useAction();
+  const nicheSaved = (text, tone = 'ok') => { setMsg({ tone, text }); if (tone === 'ok') reload({ silent: true }); };
 
   const groups = data?.groups || [];
   const selected = picked ?? new Set((data?.selected || []).map((g) => g.jid));
@@ -41,7 +64,7 @@ export default function Groups({ query = '' }) {
     <>
       <PageHeader
         title="Grupos"
-        subtitle="Escolha em quais grupos o bot publica anúncios automáticos."
+        subtitle="Escolha em quais grupos o bot publica e o nicho de cada um. Grupo com nicho só recebe oferta compatível."
         actions={
           <>
             <Button variant="secondary" icon={RefreshCw} onClick={() => { setPicked(null); reload(); }}>Atualizar</Button>
@@ -51,6 +74,7 @@ export default function Groups({ query = '' }) {
       />
 
       <Notice className="mb-4" msg={msg} />
+      {dirty && <Notice className="mb-4" msg={{ tone: 'info', text: 'Salve a seleção para escolher o nicho dos grupos novos.' }} />}
 
       {error ? (
         <Card>
@@ -83,7 +107,10 @@ export default function Groups({ query = '' }) {
                     </span>
                     {on && <Badge variant="info">Divulgação</Badge>}
                   </label>
-                  <div className="flex gap-2 pl-7 sm:pl-0">
+                  <div className="flex flex-wrap gap-2 pl-7 sm:pl-0">
+                    {on && savedBy.has(g.jid) && niches.length > 0 && (
+                      <NicheSelect key={`${g.jid}-${savedBy.get(g.jid).niche}`} group={savedBy.get(g.jid)} niches={niches} onSaved={nicheSaved} />
+                    )}
                     <Button
                       size="sm" variant="secondary" icon={UserPlus} busy={busy === `imp-${g.jid}`}
                       onClick={() => run(`imp-${g.jid}`, () => ep.importGroupContacts(g.jid), (o) => `${o.total} contatos registrados (sem autorização — autorize em Contatos).`)}

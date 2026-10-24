@@ -8,7 +8,14 @@ import { setToken } from '../services/api';
 export default function Login({ onSuccess }) {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
-  const [error, setError] = useState('');
+  // Motivo de ter caído no login (ex.: conta não existe neste servidor)
+  const [error, setError] = useState(() => {
+    try {
+      const m = sessionStorage.getItem('namy_auth_msg') || '';
+      sessionStorage.removeItem('namy_auth_msg');
+      return m;
+    } catch { return ''; }
+  });
   const [busy, setBusy] = useState(false);
   const [mode, setMode] = useState('login');
   const isNew = mode === 'register';

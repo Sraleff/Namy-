@@ -66,8 +66,16 @@ function defaultConfig(userId, email) {
       enabled: false,
       interval: '2h',
       dailyLimit: 5,
-      window: { from: '09:00', to: '22:00' }
+      window: { from: '09:00', to: '22:00' },
+      days: [0, 1, 2, 3, 4, 5, 6],
+      source: 'api',
+      quality: { minDiscount: 0, minRating: 0, minSales: 0 },
+      useGeneratedImages: false,
+      poolTtlHours: 48
     },
+    amazon: { tag: '' },
+    mercadolivre: { etiqueta: '', toolId: '' },
+    sources: [],
     ai: { mode: 'auto', usePlatformKeys: true },
     license: { plan: 'trial', active: true, expiresAt: exp.toISOString() },
     botToken: uuidv4().replace(/-/g, ''),
@@ -100,12 +108,19 @@ function auth(req, res, next) {
   const h = req.headers.authorization || ''
   const token = h.startsWith('Bearer ') ? h.slice(7) : null
   if (!token) return res.status(401).json({ error: 'Faca login de novo' })
+  let payload
   try {
-    req.user = jwt.verify(token, JWT_SECRET)
-    next()
+    payload = jwt.verify(token, JWT_SECRET)
   } catch {
     return res.status(401).json({ error: 'Sessao expirada' })
   }
+  // Token valido de uma conta que nao existe neste servidor (ex.: clone novo,
+  // api/data apagado). Sem isso o painel ficava preso em "Config nao encontrada".
+  if (!readJson(USERS, []).some((u) => u.id === payload.id)) {
+    return res.status(401).json({ error: 'Conta nao encontrada neste servidor. Entre ou crie a conta de novo.' })
+  }
+  req.user = payload
+  next()
 }
 
 app.post('/auth/register', async (req, res) => {
@@ -204,6 +219,12 @@ app.put('/config', auth, (req, res) => {
     cur.ai = cur.ai || {}
     cur.ai.mode = body.ai.mode
   }
+  // Dias, fonte, qualidade, imagens, Amazon e Mercado Livre (afiliados/routes.js)
+  try {
+    afiliados.aplicarConfig(cur, body)
+  } catch (e) {
+    return res.status(e.status || 400).json({ error: e.message })
+  }
   cur.updatedAt = new Date().toISOString()
   configs[req.user.id] = cur
   writeJson(CONFIGS, configs)
@@ -225,6 +246,7 @@ app.get('/subscription', auth, (req, res) => {
 
 const logs = require('./logs')
 const billing = require('./billing')
+const afiliados = require('./afiliados/routes')
 
 function ativarLicenca(userId, info) {
   const configs = readJson(CONFIGS, {})
@@ -353,6 +375,16 @@ divulgacao.startFila({
 })
 
 require('./dashboard')(app, { auth, readJson, CONFIGS, DATA })
+afiliados.mount(app, {
+  auth,
+  readJson,
+  writeJson,
+  CONFIGS,
+  DATA,
+  logs,
+  sessions: require('./sessions'),
+  segredo: JWT_SECRET
+})
 
 app.get('/bot/config', (req, res) => {
   const token = req.headers['x-bot-token'] || req.query.token
@@ -397,6 +429,6 @@ app.listen(PORT, () => {
   console.log('  WhatsApp: sessao real no servidor')
   console.log('')
   if (process.env.RESTORE_SESSIONS !== '0') {
-    require('./sessions').restoreRegistered(wa.gravarStatus)
+    require('./sessions').restoreRegistered(wa.gravarStatus, (id) => !!readJson(CONFIGS, {})[id])
   }
 })

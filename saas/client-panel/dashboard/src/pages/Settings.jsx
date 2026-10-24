@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
-import { CreditCard, LogOut, Plug, PlugZap, RotateCw, Save } from 'lucide-react';
+import { CreditCard, ExternalLink, LogOut, Plug, PlugZap, RotateCw, Save, Unplug } from 'lucide-react';
 import { Card, CardHeader } from '../components/ui/Card';
 import PageHeader from '../components/ui/PageHeader';
 import Badge from '../components/ui/Badge';
@@ -132,6 +132,90 @@ function BotCard({ cfg, onSaved }) {
   );
 }
 
+const ML_RETORNO = {
+  'ml-ok': { tone: 'ok', text: 'Mercado Livre conectado.' },
+  'ml-recusado': { tone: 'warn', text: 'Conexão com o Mercado Livre cancelada.' },
+  'ml-expirado': { tone: 'error', text: 'A conexão expirou. Clique em Conectar de novo.' },
+  'ml-erro': { tone: 'error', text: 'O Mercado Livre recusou a conexão. Tente de novo.' },
+};
+
+function MarketplacesCard({ cfg, onSaved, retorno }) {
+  const [amazonTag, setAmazonTag] = useState(cfg.amazon?.tag || '');
+  const [etiqueta, setEtiqueta] = useState(cfg.mercadolivre?.etiqueta || '');
+  const [toolId, setToolId] = useState(cfg.mercadolivre?.toolId || '');
+  const ml = useAsync(ep.mlStatus, []);
+  const { busy, msg, setMsg, run } = useAction();
+
+  // Volta do OAuth: #configuracoes/ml-ok (ou ml-erro…)
+  useEffect(() => {
+    if (ML_RETORNO[retorno]) {
+      setMsg(ML_RETORNO[retorno]);
+      window.history.replaceState({}, '', window.location.pathname + '#configuracoes');
+    }
+  }, [retorno, setMsg]);
+
+  const save = () => run('save', () => ep.saveConfig({ amazon: { tag: amazonTag }, mercadolivre: { etiqueta, toolId } }), 'Links de afiliado salvos.')
+    .then((c) => c && onSaved(c));
+  const connect = () => run('ml', async () => {
+    const out = await ep.mlConnect();
+    window.location.href = out.url;
+  });
+  const disconnect = () => window.confirm('Desconectar o Mercado Livre? O link pela etiqueta continua funcionando.') &&
+    run('mlout', ep.mlDisconnect, 'Mercado Livre desconectado.').then(() => ml.reload({ silent: true }));
+
+  const st = ml.data;
+  const shopeeOk = !!(cfg.shopee?.appId && cfg.shopee?.secret);
+
+  return (
+    <Card aria-labelledby="mk-title">
+      <CardHeader id="mk-title" title="Marketplaces" subtitle="Seus dados de afiliado. Os links das ofertas são trocados pelos seus antes do envio." />
+      <div className="space-y-5">
+        <div className="flex items-center justify-between gap-3">
+          <div>
+            <p className="text-sm font-medium text-cream">Shopee</p>
+            <p className="text-xs text-subtle">App ID e Secret da API de Afiliados (painel clássico).</p>
+          </div>
+          <Badge variant={shopeeOk ? 'success' : 'neutral'} dot>{shopeeOk ? 'Pronta' : 'Sem chaves'}</Badge>
+        </div>
+
+        <Field label="Amazon — tag de Associado" htmlFor="amz-tag" hint="Ex.: seunome-20. Vai como ?tag= em todo link Amazon.">
+          <Input id="amz-tag" value={amazonTag} onChange={(e) => setAmazonTag(e.target.value.trim())} placeholder="seunome-20" />
+        </Field>
+
+        <div className="space-y-3 rounded-xl border border-line p-3">
+          <div className="flex items-center justify-between gap-3">
+            <p className="text-sm font-medium text-cream">Mercado Livre</p>
+            <Badge variant={st?.conectado ? 'success' : 'neutral'} dot>{st?.conectado ? `OAuth: ${st.nickname || 'conectado'}` : 'OAuth desligado'}</Badge>
+          </div>
+          <div className="grid gap-3 sm:grid-cols-2">
+            <Field label="Etiqueta" htmlFor="ml-tag" hint="Sua etiqueta no programa de afiliados.">
+              <Input id="ml-tag" value={etiqueta} onChange={(e) => setEtiqueta(e.target.value.trim())} placeholder="minhaetiqueta" />
+            </Field>
+            <Field label="ID da ferramenta (matt_tool)" htmlFor="ml-tool" hint="Número que aparece num link gerado no portal.">
+              <Input id="ml-tool" inputMode="numeric" value={toolId} onChange={(e) => setToolId(e.target.value.replace(/\D/g, ''))} placeholder="12345678" />
+            </Field>
+          </div>
+          <p className="text-[11px] leading-relaxed text-subtle">
+            O link sai pela etiqueta, sem cookie nem login no navegador. Conectar via OAuth é opcional: serve para conferir na API se o anúncio existe e está ativo antes do envio.
+          </p>
+          <div className="flex flex-wrap gap-2">
+            {st?.conectado ? (
+              <Button size="sm" variant="secondary" icon={Unplug} busy={busy === 'mlout'} onClick={disconnect}>Desconectar OAuth</Button>
+            ) : (
+              <Button size="sm" variant="secondary" icon={ExternalLink} busy={busy === 'ml'} disabled={st && !st.servidorPronto} onClick={connect}>Conectar com Mercado Livre</Button>
+            )}
+          </div>
+          {st && !st.servidorPronto && (
+            <p className="text-[11px] text-subtle">OAuth não configurado neste servidor (ML_CLIENT_ID, ML_CLIENT_SECRET, PUBLIC_URL e SAAS_MASTER_KEY).</p>
+          )}
+        </div>
+        <Notice msg={msg} />
+        <Button icon={Save} busy={busy === 'save'} onClick={save}>Salvar</Button>
+      </div>
+    </Card>
+  );
+}
+
 function PlanCard({ cfg, onSynced }) {
   const plans = useAsync(ep.getPlans, []);
   const { busy, msg, setMsg, run } = useAction();
@@ -182,7 +266,7 @@ function PlanCard({ cfg, onSynced }) {
   );
 }
 
-export default function Settings({ onDataChanged }) {
+export default function Settings({ onDataChanged, param }) {
   const { data: cfg, loading, error, setData } = useAsync(ep.getConfig, []);
 
   if (loading && !cfg) return <PageHeader title="Configurações" subtitle="Carregando…" />;
@@ -190,9 +274,12 @@ export default function Settings({ onDataChanged }) {
 
   return (
     <>
-      <PageHeader title="Configurações" subtitle="WhatsApp, bot e assinatura." />
+      <PageHeader title="Configurações" subtitle="WhatsApp, marketplaces, bot e assinatura." />
       <div className="grid gap-4 xl:grid-cols-[minmax(0,1fr)_380px]">
-        <WhatsAppCard initialPhone={cfg.phone} onChanged={onDataChanged} />
+        <div className="space-y-4">
+          <WhatsAppCard initialPhone={cfg.phone} onChanged={onDataChanged} />
+          <MarketplacesCard cfg={cfg} onSaved={setData} retorno={param} />
+        </div>
         <div className="space-y-4">
           <BotCard cfg={cfg} onSaved={setData} />
           <PlanCard cfg={cfg} onSynced={setData} />

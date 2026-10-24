@@ -5,6 +5,8 @@
 const sessions = require('./sessions')
 const ofertas = require('./ofertas')
 const { publicarOferta } = require('./divulgar')
+const publicador = require('./afiliados/publicador')
+const nichos = require('./afiliados/nichos')
 const { registrarEnvio } = require('./scheduler')
 
 function jidGrupo(jid) {
@@ -107,10 +109,18 @@ module.exports = function mount(app, { auth, readJson, writeJson, CONFIGS, DATA,
     const configs = readJson(CONFIGS, {})
     const cur = configs[req.user.id]
     if (!cur) return res.status(404).json({ error: 'Conta nao encontrada' })
-    cur.groups = groups.map((g) => ({
-      jid: String(g.jid || '').slice(0, 80),
-      name: String(g.name || g.jid || '').replace(/[<>]/g, '').slice(0, 120)
-    })).filter((g) => jidGrupo(g.jid))
+    // Nicho e palavras extras: o que veio no body, senao o que ja estava salvo (painel classico nao manda)
+    const antes = new Map((cur.groups || []).map((g) => [g.jid, g]))
+    cur.groups = groups.map((g) => {
+      const jid = String(g.jid || '').slice(0, 80)
+      const velho = antes.get(jid) || {}
+      return {
+        jid,
+        name: String(g.name || g.jid || '').replace(/[<>]/g, '').slice(0, 120),
+        niche: nichos.normalizar(g.niche != null ? g.niche : velho.niche),
+        keywords: nichos.palavrasExtras(g.keywords != null ? g.keywords : velho.keywords)
+      }
+    }).filter((g) => jidGrupo(g.jid))
     cur.updatedAt = new Date().toISOString()
     configs[req.user.id] = cur
     writeJson(CONFIGS, configs)
@@ -130,7 +140,7 @@ module.exports = function mount(app, { auth, readJson, writeJson, CONFIGS, DATA,
     if (!podeTestar(req.user.id)) return res.status(429).json({ error: 'Espere 20 segundos entre testes.' })
     const nome = ((cur.groups || []).find((g) => g.jid === jid) || {}).name || jid
     try {
-      const out = await publicarOferta({
+      const out = await publicador.publicar({
         userId: req.user.id,
         cfg: cur,
         groups: [{ jid, name: nome }],
@@ -155,7 +165,7 @@ module.exports = function mount(app, { auth, readJson, writeJson, CONFIGS, DATA,
     }
     if (!podeTestar(req.user.id)) return res.status(429).json({ error: 'Espere 20 segundos entre testes.' })
     try {
-      const out = await publicarOferta({
+      const out = await publicador.publicar({
         userId: req.user.id,
         cfg: cur,
         dataDir: DATA,

@@ -33,6 +33,7 @@ export async function api(path, { method = 'GET', body } = {}) {
   const data = await res.json().catch(() => ({}));
   if (res.status === 401) {
     setToken('');
+    try { if (data.error) sessionStorage.setItem('namy_auth_msg', data.error); } catch { /* sem storage */ }
     listeners.forEach((fn) => fn());
   }
   if (!res.ok) throw new ApiError(data.error || `Erro ${res.status}`, res.status);

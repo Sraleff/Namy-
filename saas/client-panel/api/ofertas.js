@@ -49,6 +49,7 @@ function normalizar(raw) {
     preco,
     desconto: Number.isFinite(desconto) && desconto > 0 ? Math.round(desconto) : null,
     ratingStar: texto(raw.ratingStar),
+    sales: Number(raw.sales) || 0,
     shopName: texto(raw.shopName).slice(0, 80)
   }
 }
@@ -146,14 +147,22 @@ async function encurtar(appId, secret, url) {
   }
 }
 
-async function preparar(dataDir, userId, shopee) {
+/**
+ * opts (todos opcionais, usados pelo publicador por nicho):
+ *   keyword   busca no lugar de shopee.keyword
+ *   aceitar   (oferta) => { ok, motivo }  filtro duro (nicho, qualidade)
+ *   rejeitados  array que recebe { oferta, motivo } das recusadas
+ *   evitar    itemIds ja enviados ao grupo (so preferencia, como o historico)
+ * Com `aceitar`, devolve null quando nenhuma oferta passa.
+ */
+async function preparar(dataDir, userId, shopee, opts = {}) {
   if (!shopee || !shopee.appId || !shopee.secret) {
     const err = new Error('Salve App ID e Secret da Shopee. O anuncio sai da API desta conta.')
     err.code = 'SHOPEE'
     err.status = 400
     throw err
   }
-  const keyword = String(shopee.keyword || '').trim()
+  const keyword = opts.keyword != null ? String(opts.keyword).trim() : String(shopee.keyword || '').trim()
   const page = 1 + Math.floor(Math.random() * 3)
   const data = await graphql(shopee.appId, shopee.secret, queryProdutos(keyword, page, 10))
   const nodes = data.productOfferV2 && data.productOfferV2.nodes
@@ -164,9 +173,20 @@ async function preparar(dataDir, userId, shopee) {
     err.status = 400
     throw err
   }
+  let aceitos = validos
+  if (typeof opts.aceitar === 'function') {
+    aceitos = []
+    for (const p of validos) {
+      const r = opts.aceitar(p) || {}
+      if (r.ok) aceitos.push(p)
+      else if (Array.isArray(opts.rejeitados)) opts.rejeitados.push({ oferta: p, motivo: r.motivo || 'recusada' })
+    }
+    if (!aceitos.length) return null
+  }
   const recentes = new Set(historico(dataDir, userId).map((x) => x.id))
-  const novos = validos.filter((p) => !recentes.has(p.productId))
-  const pool = novos.length ? novos : validos
+  for (const id of opts.evitar || []) recentes.add(String(id))
+  const novos = aceitos.filter((p) => !recentes.has(p.productId))
+  const pool = novos.length ? novos : aceitos
   const oferta = pool[Math.floor(Math.random() * pool.length)]
   const curto = await encurtar(shopee.appId, shopee.secret, oferta.link)
   if (curto) oferta.link = curto
@@ -174,4 +194,4 @@ async function preparar(dataDir, userId, shopee) {
   return oferta
 }
 
-module.exports = { normalizar, mensagem, preparar, lembrar }
+module.exports = { normalizar, mensagem, preparar, lembrar, encurtar }

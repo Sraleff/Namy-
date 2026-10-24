@@ -34,6 +34,29 @@ export const attachOffer = (id) => post('/divulgacao/campanhas/oferta', { id });
 export const setRecipients = (id, contactIds) => post('/divulgacao/campanhas/destinatarios', { id, contactIds });
 export const campaignAction = (action, id) => post(`/divulgacao/campanhas/${action}`, { id });
 
+// Afiliados: nichos, banco de ofertas, auditoria
+export const affiliateSummary = () => api('/afiliados/resumo');
+export const setGroupNiche = (jid, niche, keywords) => post('/whatsapp/groups/nicho', { jid, niche, keywords });
+export const saveSourceGroups = (groups) => post('/afiliados/fontes', { groups });
+export const listPool = () => api('/ofertas/banco');
+export const addPool = (texto, imageUrl) => post('/ofertas/banco', { texto, imageUrl });
+export const removePool = (id) => post('/ofertas/banco/remover', { id });
+export const togglePool = (id, ativo) => post('/ofertas/banco/ativo', { id, ativo });
+export const previewOffer = (body) => post('/ofertas/previa', body);
+export const listDispatches = (tipo = '') => api(`/afiliados/disparos?limite=150${tipo ? `&tipo=${tipo}` : ''}`);
+
+// Mercado Livre (OAuth)
+export const mlStatus = () => api('/mercadolivre/status');
+export const mlConnect = () => post('/mercadolivre/conectar');
+export const mlDisconnect = () => post('/mercadolivre/desconectar');
+
+// Imagens por cenário
+export const imageProducts = () => api('/imagens/produtos');
+export const listImages = (produtoKey) => api(`/imagens?produtoKey=${encodeURIComponent(produtoKey || '')}`);
+export const generateImage = (body) => post('/imagens/gerar', body);
+export const preferImage = (id) => post('/imagens/preferida', { id });
+export const removeImage = (id) => post('/imagens/remover', { id });
+
 // Logs / plano
 export const getLogs = () => api('/logs');
 export const getPlans = () => api('/billing/plans');

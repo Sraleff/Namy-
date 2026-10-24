@@ -8,6 +8,8 @@ import Groups from './pages/Groups';
 import Campaigns from './pages/Campaigns';
 import AI from './pages/AI';
 import Automations from './pages/Automations';
+import Offers from './pages/Offers';
+import Images from './pages/Images';
 import Contacts from './pages/Contacts';
 import Logs from './pages/Logs';
 import Settings from './pages/Settings';
@@ -22,6 +24,8 @@ const pages = {
   campanhas: Campaigns,
   ia: AI,
   automacoes: Automations,
+  ofertas: Offers,
+  imagens: Images,
   contatos: Contacts,
   logs: Logs,
   configuracoes: Settings,

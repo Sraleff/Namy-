@@ -7,6 +7,13 @@ import { useAsync } from '../hooks/useAsync';
 import { useAction } from '../hooks/useAction';
 import * as ep from '../services/endpoints';
 
+const DIAS = [[0, 'Dom'], [1, 'Seg'], [2, 'Ter'], [3, 'Qua'], [4, 'Qui'], [5, 'Sex'], [6, 'Sáb']];
+const FONTES = [
+  ['api', 'API Shopee (busca pelo nicho do grupo)'],
+  ['pool', 'Banco de ofertas (coladas ou capturadas)'],
+  ['misto', 'Banco primeiro, API Shopee se faltar'],
+];
+
 const INTERVALOS = [['5m', '5 minutos'], ['15m', '15 minutos'], ['30m', '30 minutos'], ['1h', '1 hora'], ['2h', '2 horas'], ['3h', '3 horas'], ['6h', '6 horas']];
 
 export default function Automations({ onDataChanged }) {
@@ -17,7 +24,16 @@ export default function Automations({ onDataChanged }) {
 
   useEffect(() => {
     if (!cfg) return;
-    setAds({ enabled: !!cfg.ads?.enabled, interval: cfg.ads?.interval || '2h', dailyLimit: cfg.ads?.dailyLimit || 5, window: { from: cfg.ads?.window?.from || '09:00', to: cfg.ads?.window?.to || '22:00' } });
+    const a = cfg.ads || {};
+    setAds({
+      enabled: !!a.enabled, interval: a.interval || '2h', dailyLimit: a.dailyLimit || 5,
+      window: { from: a.window?.from || '09:00', to: a.window?.to || '22:00' },
+      days: Array.isArray(a.days) && a.days.length ? a.days : [0, 1, 2, 3, 4, 5, 6],
+      source: a.source || 'api',
+      quality: { minDiscount: a.quality?.minDiscount || 0, minRating: a.quality?.minRating || 0, minSales: a.quality?.minSales || 0 },
+      useGeneratedImages: !!a.useGeneratedImages,
+      poolTtlHours: a.poolTtlHours || 48,
+    });
     setAff({ link: cfg.affiliate?.link || '', template: cfg.affiliate?.template || 'Meu link: {link}' });
   }, [cfg]);
 
@@ -31,12 +47,17 @@ export default function Automations({ onDataChanged }) {
   }, 'Automações salvas.');
 
   const groupsCount = (cfg.groups || []).length;
+  const toggleDay = (d) => {
+    const days = ads.days.includes(d) ? ads.days.filter((x) => x !== d) : [...ads.days, d].sort();
+    setAds({ ...ads, days });
+  };
+  const setQ = (k, v) => setAds({ ...ads, quality: { ...ads.quality, [k]: v } });
 
   return (
     <>
       <PageHeader
         title="Automações"
-        subtitle="Anúncios automáticos da Shopee nos grupos escolhidos."
+        subtitle="Anúncios automáticos nos grupos escolhidos, respeitando nicho, dias e horário."
         actions={<Button icon={Save} busy={busy === 'save'} onClick={save}>Salvar</Button>}
       />
       <Notice className="mb-4" msg={msg} />
@@ -65,6 +86,19 @@ export default function Automations({ onDataChanged }) {
               <Input id="ads-to" type="time" value={ads.window.to} onChange={(e) => setAds({ ...ads, window: { ...ads.window, to: e.target.value } })} />
             </Field>
           </div>
+          <fieldset className="mt-4">
+            <legend className="mb-1.5 text-xs font-medium text-muted">Dias de funcionamento</legend>
+            <div className="flex flex-wrap gap-1.5">
+              {DIAS.map(([d, l]) => (
+                <button
+                  key={d} type="button" aria-pressed={ads.days.includes(d)} onClick={() => toggleDay(d)}
+                  className={`h-8 rounded-lg px-3 text-xs font-medium transition ${ads.days.includes(d) ? 'bg-brand-500 text-white' : 'border border-line bg-ink-850 text-muted hover:text-cream'}`}
+                >
+                  {l}
+                </button>
+              ))}
+            </div>
+          </fieldset>
           {!groupsCount && (
             <Notice className="mt-4" msg={{ tone: 'warn', text: 'Nenhum grupo escolhido ainda. Vá em Grupos e marque onde publicar.' }} />
           )}
@@ -73,6 +107,38 @@ export default function Automations({ onDataChanged }) {
               Enviar teste agora
             </Button>
             <a href="#grupos" className="link-subtle self-center">Escolher grupos →</a>
+          </div>
+        </Card>
+
+        <Card aria-labelledby="src-title">
+          <CardHeader id="src-title" title="Origem e qualidade das ofertas" subtitle="Cada grupo só recebe oferta do seu nicho. Sem oferta boa, não dispara." />
+          <div className="space-y-4">
+            <Field label="De onde vêm as ofertas" htmlFor="ads-src" hint="Banco de ofertas: aba Ofertas. Links são trocados pelos seus links de afiliado.">
+              <Select id="ads-src" value={ads.source} onChange={(e) => setAds({ ...ads, source: e.target.value })}>
+                {FONTES.map(([v, l]) => <option key={v} value={v}>{l}</option>)}
+              </Select>
+            </Field>
+            <div className="grid gap-4 sm:grid-cols-3">
+              <Field label="Desconto mínimo (%)" htmlFor="q-disc" hint="0 = sem filtro">
+                <Input id="q-disc" type="number" min={0} max={90} value={ads.quality.minDiscount} onChange={(e) => setQ('minDiscount', e.target.value)} />
+              </Field>
+              <Field label="Nota mínima" htmlFor="q-rate" hint="0 a 5 (API Shopee)">
+                <Input id="q-rate" type="number" min={0} max={5} step={0.1} value={ads.quality.minRating} onChange={(e) => setQ('minRating', e.target.value)} />
+              </Field>
+              <Field label="Vendas mínimas" htmlFor="q-sales" hint="API Shopee">
+                <Input id="q-sales" type="number" min={0} value={ads.quality.minSales} onChange={(e) => setQ('minSales', e.target.value)} />
+              </Field>
+            </div>
+            <Field label="Validade das ofertas do banco (horas)" htmlFor="pool-ttl" hint="Depois disso a oferta sai do rodízio (1 a 168).">
+              <Input id="pool-ttl" type="number" min={1} max={168} value={ads.poolTtlHours} onChange={(e) => setAds({ ...ads, poolTtlHours: e.target.value })} />
+            </Field>
+            <div className="flex items-center justify-between gap-3 rounded-xl border border-line p-3">
+              <div>
+                <p className="text-sm text-cream">Usar imagem gerada quando houver</p>
+                <p className="text-xs text-subtle">Imagem marcada como preferida na aba Imagens. Sem ela, vai a foto original.</p>
+              </div>
+              <Switch on={ads.useGeneratedImages} onChange={(v) => setAds({ ...ads, useGeneratedImages: v })} label="Usar imagem gerada" />
+            </div>
           </div>
         </Card>
 

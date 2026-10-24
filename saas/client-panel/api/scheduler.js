@@ -3,7 +3,7 @@
  * Se o WhatsApp caiu, nao trata como erro da Shopee: so adia.
  */
 const sessions = require('./sessions')
-const { publicarOferta } = require('./divulgar')
+const publicador = require('./afiliados/publicador')
 
 const INTERVAL_MS = {
   '5m': 5 * 60 * 1000,
@@ -29,6 +29,18 @@ function minutosBrasilia(date) {
   const h = (parts.find((p) => p.type === 'hour') || {}).value || '00'
   const m = (parts.find((p) => p.type === 'minute') || {}).value || '00'
   return h + ':' + m
+}
+
+// 0 = domingo ... 6 = sabado, no fuso de Brasilia
+function diaSemanaBrasilia(date) {
+  const nome = new Intl.DateTimeFormat('en-US', { timeZone: 'America/Sao_Paulo', weekday: 'short' }).format(date || new Date())
+  return ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'].indexOf(nome)
+}
+
+// Sem `days` salvo (contas antigas) = todos os dias
+function diaPermitido(days, date) {
+  if (!Array.isArray(days) || !days.length) return true
+  return days.map(Number).includes(diaSemanaBrasilia(date))
 }
 
 function naJanela(from, to, agora) {
@@ -73,7 +85,8 @@ async function um(deps, userId, cfg) {
   const ads = cfg.ads || {}
   if (!ads.enabled) return
   if (!licencaAtiva(cfg)) return
-  if (!cfg.shopee || !cfg.shopee.appId || !cfg.shopee.secret) return
+  const soBanco = ads.source === 'pool' || ads.source === 'misto'
+  if (!soBanco && (!cfg.shopee || !cfg.shopee.appId || !cfg.shopee.secret)) return
   const groups = (cfg.groups || []).filter((g) => g && /^[0-9A-Za-z._-]+@g\.us$/.test(g.jid))
   if (!groups.length) return
   const agoraMs = Date.now()
@@ -82,6 +95,7 @@ async function um(deps, userId, cfg) {
   const espera = INTERVAL_MS[ads.interval] || INTERVAL_MS['2h']
   const last = ads.lastSentAt ? new Date(ads.lastSentAt).getTime() : 0
   if (last && agoraMs - last < espera) return
+  if (!diaPermitido(ads.days)) return
   if (!naJanela(ads.window && ads.window.from, ads.window && ads.window.to, minutosBrasilia())) return
   const dia = diaBrasilia()
   const hoje = ads.sentDay === dia ? Number(ads.sentToday) || 0 : 0
@@ -89,7 +103,7 @@ async function um(deps, userId, cfg) {
   if (hoje >= limite) return
   if (!sessions.publicState(userId).connected) return
   try {
-    const out = await publicarOferta({
+    const out = await publicador.publicar({
       userId,
       cfg,
       groups,
@@ -98,6 +112,8 @@ async function um(deps, userId, cfg) {
       sessions
     })
     if (out.enviados > 0) registrarEnvio(deps, userId)
+    // Sem oferta do nicho: nao martela a API a cada minuto
+    else if (out.semOferta) adiar(deps, userId, Math.min(espera, 15 * 60 * 1000))
     else adiar(deps, userId, 60 * 1000)
   } catch (e) {
     const wa = e.code === 'WA'
@@ -135,4 +151,4 @@ function start(deps) {
   setTimeout(tick, 15000)
 }
 
-module.exports = { start, registrarEnvio, INTERVAL_MS }
+module.exports = { start, registrarEnvio, INTERVAL_MS, diaPermitido, diaSemanaBrasilia, naJanela }

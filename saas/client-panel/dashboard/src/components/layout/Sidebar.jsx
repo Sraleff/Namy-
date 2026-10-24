@@ -125,7 +125,17 @@ export default function Sidebar({ user, active, onSelect, open, onClose, onLogou
 
         <div className="space-y-4 px-4 pb-4 pt-4">
           {user && !['pro', 'premium'].includes(user.plan) && <ProCard license={user.license} />}
-          <div className="border-t border-line pt-3">{user && <UserCard user={user} onLogout={onLogout} />}</div>
+          <div className="border-t border-line pt-3">
+            {user ? (
+              <UserCard user={user} onLogout={onLogout} />
+            ) : (
+              onLogout && (
+                <button type="button" onClick={onLogout} className="flex w-full items-center gap-2 rounded-xl p-2 text-sm text-muted transition-colors hover:bg-white/[0.04] hover:text-cream">
+                  <LogOut className="h-4 w-4" aria-hidden="true" /> Sair
+                </button>
+              )
+            )}
+          </div>
         </div>
       </aside>
     </>
