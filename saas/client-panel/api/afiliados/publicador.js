@@ -16,6 +16,7 @@ const qualidade = require('./qualidade')
 const conversor = require('./conversor')
 const links = require('./links')
 const pool = require('./pool')
+const fila = require('./fila')
 const auditoria = require('./auditoria')
 const imagens = require('./imagens/store')
 
@@ -206,6 +207,7 @@ async function publicar({ userId, cfg, groups, dataDir, logs, sessions }) {
     for (const p of pulados.slice(0, MAX_PULADOS_LOG)) {
       await auditoria.registrar(dataDir, userId, { tipo: 'pulado', motivo: p.motivo, grupo: grupos[0].name, jid: grupos[0].jid, nicho: grupos[0].niche, nome: p.nome, produtoKey: p.produtoKey })
     }
+    await fila.registrarPulos(dataDir, userId, pulados, grupos[0].jid)
 
     if (!oferta) {
       const motivo = erroApi && !pulados.length

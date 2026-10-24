@@ -134,6 +134,8 @@ function candidatas(dataDir, userId, jid) {
   const agora = Date.now()
   return (jsonStore.load(dataDir, PASTA, userId, vazio).itens || [])
     .filter((i) => i.ativo && new Date(i.expiresAt).getTime() > agora && !(i.enviadoPara || {})[jid])
+    // Prioridade maior sai antes; o sort e estavel, entao empate segue a mais nova primeiro
+    .sort((a, b) => (Number(b.prioridade) || 0) - (Number(a.prioridade) || 0))
 }
 
 function marcarEnviado(dataDir, userId, id, jids) {
@@ -145,4 +147,4 @@ function marcarEnviado(dataDir, userId, id, jids) {
   })
 }
 
-module.exports = { adicionar, listar, remover, alternar, candidatas, marcarEnviado, caminhoMidia, titulo }
+module.exports = { adicionar, listar, remover, alternar, candidatas, marcarEnviado, caminhoMidia, titulo, assinatura, ttlHoras }

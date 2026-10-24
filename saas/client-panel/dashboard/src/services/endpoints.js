@@ -44,6 +44,11 @@ export const removePool = (id) => post('/ofertas/banco/remover', { id });
 export const togglePool = (id, ativo) => post('/ofertas/banco/ativo', { id, ativo });
 export const previewOffer = (body) => post('/ofertas/previa', body);
 export const convertLink = (texto) => post('/conversor/link', { texto });
+
+// Fila de produtos (banco de ofertas com status, prioridade e edição)
+export const listProducts = (status = '', limite = 25) => api(`/produtos?limite=${limite}${status ? `&status=${encodeURIComponent(status)}` : ''}`);
+export const editProduct = (body) => post('/produtos/editar', body);
+export const requeueProduct = (id) => post('/produtos/reenfileirar', { id });
 export const listDispatches = (tipo = '') => api(`/afiliados/disparos?limite=150${tipo ? `&tipo=${tipo}` : ''}`);
 
 // Mercado Livre (OAuth)

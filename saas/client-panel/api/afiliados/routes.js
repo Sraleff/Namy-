@@ -17,6 +17,7 @@ const cenarios = require('./imagens/cenarios')
 const gerador = require('./imagens/gerador')
 const imagens = require('./imagens/store')
 const linkRoutes = require('./linkRoutes')
+const produtosRoutes = require('./produtosRoutes')
 
 const JID_RE = /^[0-9A-Za-z._-]+@g\.us$/
 const DIAS = [0, 1, 2, 3, 4, 5, 6]
@@ -452,6 +453,8 @@ function mount(app, deps) {
 
   // Conversor de link (Fase 1.1)
   linkRoutes.mount(app, { auth, readJson, CONFIGS, DATA, logs })
+  // Fila de produtos (Fase 1.2)
+  produtosRoutes.mount(app, { auth, readJson, CONFIGS, DATA }, { midiaUrl })
 
   return { aplicarConfig }
 }

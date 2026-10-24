@@ -10,6 +10,7 @@ import AI from './pages/AI';
 import Automations from './pages/Automations';
 import Offers from './pages/Offers';
 import Converter from './pages/Converter';
+import Produtos from './pages/Produtos';
 import Images from './pages/Images';
 import Contacts from './pages/Contacts';
 import Logs from './pages/Logs';
@@ -27,6 +28,7 @@ const pages = {
   automacoes: Automations,
   ofertas: Offers,
   conversor: Converter,
+  fila: Produtos,
   imagens: Images,
   contatos: Contacts,
   logs: Logs,
