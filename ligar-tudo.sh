@@ -44,10 +44,29 @@ fi
 
 echo "Subindo painel em http://127.0.0.1:3847"
 echo "Dashboard NAMY CONTROL: http://127.0.0.1:3847/app/"
-(cd saas/client-panel && npm start) &
+# Painel anterior ainda vivo (Ctrl+C antigo nao derrubava)? Para ele antes,
+# senao o novo morre com a porta ocupada e o velho segue com codigo antigo.
+PIDFILE="$ROOT/saas/client-panel/.painel.pid"
+if [ -f "$PIDFILE" ] && kill -0 "$(cat "$PIDFILE")" 2>/dev/null; then
+  echo "Parando painel anterior (PID $(cat "$PIDFILE"))..."
+  kill "$(cat "$PIDFILE")" 2>/dev/null || true
+  sleep 2
+fi
+PORTA=$(grep -E '^PORT=' saas/client-panel/.env 2>/dev/null | cut -d= -f2 | tr -d ' "\r')
+PORTA=${PORTA:-3847}
+if curl -s -m 2 "http://127.0.0.1:$PORTA/health" >/dev/null 2>&1; then
+  echo "ATENCAO: a porta $PORTA ja esta em uso por outro processo (painel antigo?)."
+  echo "Pare ele (ex.: pkill -f 'node api/server.js') e rode de novo."
+  exit 1
+fi
+
+# exec: o PID guardado e o do node, nao de um shell intermediario
+(cd saas/client-panel && exec node api/server.js) &
 PANEL_PID=$!
+echo "$PANEL_PID" > "$PIDFILE"
+# Ctrl+C, erro ou fim do bot: derruba o painel junto
+trap 'kill "$PANEL_PID" 2>/dev/null; rm -f "$PIDFILE"' EXIT INT TERM
 sleep 2
 echo "Painel PID $PANEL_PID"
 echo "Agora o bot. Pareamento no terminal."
 node index.js
-kill "$PANEL_PID" 2>/dev/null || true
