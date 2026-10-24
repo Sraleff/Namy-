@@ -43,6 +43,7 @@ export const addPool = (texto, imageUrl) => post('/ofertas/banco', { texto, imag
 export const removePool = (id) => post('/ofertas/banco/remover', { id });
 export const togglePool = (id, ativo) => post('/ofertas/banco/ativo', { id, ativo });
 export const previewOffer = (body) => post('/ofertas/previa', body);
+export const convertLink = (texto) => post('/conversor/link', { texto });
 export const listDispatches = (tipo = '') => api(`/afiliados/disparos?limite=150${tipo ? `&tipo=${tipo}` : ''}`);
 
 // Mercado Livre (OAuth)

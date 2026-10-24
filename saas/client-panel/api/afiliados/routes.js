@@ -16,6 +16,7 @@ const mercadolivre = require('./conectores/mercadolivre')
 const cenarios = require('./imagens/cenarios')
 const gerador = require('./imagens/gerador')
 const imagens = require('./imagens/store')
+const linkRoutes = require('./linkRoutes')
 
 const JID_RE = /^[0-9A-Za-z._-]+@g\.us$/
 const DIAS = [0, 1, 2, 3, 4, 5, 6]
@@ -448,6 +449,9 @@ function mount(app, deps) {
       if (fonte) await capturar(userId, m, cfg, msg, texto)
     })
   }
+
+  // Conversor de link (Fase 1.1)
+  linkRoutes.mount(app, { auth, readJson, CONFIGS, DATA, logs })
 
   return { aplicarConfig }
 }

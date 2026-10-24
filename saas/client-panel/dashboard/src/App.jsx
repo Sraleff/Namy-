@@ -9,6 +9,7 @@ import Campaigns from './pages/Campaigns';
 import AI from './pages/AI';
 import Automations from './pages/Automations';
 import Offers from './pages/Offers';
+import Converter from './pages/Converter';
 import Images from './pages/Images';
 import Contacts from './pages/Contacts';
 import Logs from './pages/Logs';
@@ -25,6 +26,7 @@ const pages = {
   ia: AI,
   automacoes: Automations,
   ofertas: Offers,
+  conversor: Converter,
   imagens: Images,
   contatos: Contacts,
   logs: Logs,
