@@ -30,7 +30,14 @@ function loadEnvFile() {
 }
 loadEnvFile()
 const PORT = process.env.PORT || 3847
-const JWT_SECRET = process.env.JWT_SECRET || 'namy-client-dev-secret-change-me'
+const segredosConfig = require('./afiliados/segredosConfig')
+const jwtCheck = segredosConfig.checarJwt(process.env)
+if (!jwtCheck.ok) {
+  console.error('[SEGURANCA] ' + jwtCheck.aviso)
+  process.exit(1)
+}
+if (jwtCheck.aviso) console.warn('[SEGURANCA] ' + jwtCheck.aviso)
+const JWT_SECRET = process.env.JWT_SECRET || segredosConfig.SEGREDO_PADRAO
 const DATA = path.join(__dirname, 'data')
 const USERS = path.join(DATA, 'users.json')
 const CONFIGS = path.join(DATA, 'configs.json')
@@ -40,15 +47,24 @@ function ensure() {
   if (!fs.existsSync(USERS)) fs.writeFileSync(USERS, '[]')
   if (!fs.existsSync(CONFIGS)) fs.writeFileSync(CONFIGS, '{}')
 }
+// O segredo da Shopee fica cifrado em disco (configs.json); em memoria os modulos veem texto, como sempre
 function readJson(file, fallback) {
-  try { return JSON.parse(fs.readFileSync(file, 'utf8')) } catch { return fallback }
+  try {
+    const dados = JSON.parse(fs.readFileSync(file, 'utf8'))
+    return file === CONFIGS ? segredosConfig.paraMemoria(dados) : dados
+  } catch { return fallback }
 }
 function writeJson(file, data) {
   const tmp = file + '.tmp'
-  fs.writeFileSync(tmp, JSON.stringify(data, null, 2))
+  fs.writeFileSync(tmp, JSON.stringify(file === CONFIGS ? segredosConfig.paraDisco(data) : data, null, 2))
   fs.renameSync(tmp, file)
 }
 ensure()
+try {
+  const m = segredosConfig.migrar(CONFIGS)
+  if (m.migrados) console.log('[SEGURANCA] segredo da Shopee cifrado em ' + m.migrados + ' conta(s); backup em ' + m.backup)
+  else if (/SAAS_MASTER_KEY/.test(m.motivo || '')) console.warn('[SEGURANCA] ' + m.motivo)
+} catch (e) { console.error('[SEGURANCA] migracao do segredo falhou (nada foi alterado):', e.message) }
 
 function defaultConfig(userId, email) {
   const exp = new Date()
