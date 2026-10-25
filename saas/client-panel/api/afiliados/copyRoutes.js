@@ -9,9 +9,10 @@
  */
 const copy = require('./copy')
 const cofre = require('./cofre')
+const cupons = require('./cupons')
 const { criarLimitador } = require('./linkRoutes')
 
-const MODELO_SUGERIDO = '🔥 OFERTA SHOPEE\n\n{nome}\n\n💰 {preco}\n📉 {desconto}\n⭐ {nota}\n🏪 {loja}\n\n🔗 {link}'
+const MODELO_SUGERIDO = '🔥 OFERTA SHOPEE\n\n{nome}\n\n💰 {preco}\n📉 {desconto}\n⭐ {nota}\n🏪 {loja}\n🎟️ Cupom: {cupom}\n\n🔗 {link}'
 const CHAVE_RE = /^[A-Za-z0-9_\-.:]{20,200}$/
 
 function licencaAtiva(cfg) {
@@ -161,7 +162,10 @@ function mount(app, deps, opcoes = {}) {
         if (!podePrevia(ctx.userId)) return res.status(429).json({ error: 'Muitas previas com IA seguidas. Espere um minuto.' })
         simulado.copy.ia = { ativo: true, provedor }
       }
-      const r = await copy.gerar({ userId: ctx.userId, cfg: simulado, dataDir: ctx.dataDir }, copy.OFERTA_EXEMPLO, { fetch: opcoes.fetch })
+      // Previa mostra o seu cupom vigente de verdade; sem nenhum, um cupom de exemplo (so aqui)
+      const real = cupons.escolher(ctx.dataDir, ctx.userId, { loja: 'shopee' })
+      const exemplo = Object.assign({}, copy.OFERTA_EXEMPLO, { cupom: real || { codigo: 'EXEMPLO10', regra: 'cupom de exemplo' } })
+      const r = await copy.gerar({ userId: ctx.userId, cfg: simulado, dataDir: ctx.dataDir }, exemplo, { fetch: opcoes.fetch })
       res.json({ ok: true, texto: r.texto, via: r.via, aviso: r.aviso })
     } catch (e) { falha(res, e, 'Falha na previa') }
   })

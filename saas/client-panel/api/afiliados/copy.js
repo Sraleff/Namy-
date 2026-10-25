@@ -15,8 +15,9 @@
  */
 const ofertasApi = require('../ofertas')
 const cofre = require('./cofre')
+const qualidade = require('./qualidade')
 
-const VARIAVEIS = ['nome', 'preco', 'desconto', 'nota', 'vendas', 'loja', 'link']
+const VARIAVEIS = ['nome', 'preco', 'desconto', 'nota', 'vendas', 'loja', 'cupom', 'link']
 const PROVEDORES = {
   groq: { rotulo: 'Groq', tipo: 'openai', url: 'https://api.groq.com/openai/v1/chat/completions', modelo: () => process.env.IA_MODEL_GROQ || 'openai/gpt-oss-20b' },
   xai: { rotulo: 'Grok (xAI)', tipo: 'openai', url: 'https://api.x.ai/v1/chat/completions', modelo: () => process.env.IA_MODEL_XAI || 'grok-4.6' },
@@ -56,6 +57,8 @@ function valores(o) {
     nota: o.ratingStar || '',
     vendas: Number(o.sales) > 0 ? milhar(o.sales) + ' vendas' : '',
     loja: o.shopName || '',
+    // so existe quando quem chamou anexou um cupom CADASTRADO e vigente (cupons.escolher)
+    cupom: o.cupom && o.cupom.codigo ? o.cupom.codigo + (o.cupom.regra ? ' — ' + o.cupom.regra : '') : '',
     link: o.link || ''
   }
 }
@@ -128,7 +131,7 @@ function validarIA(texto, oferta) {
   if (/https?:\/\/|www\.|\b[a-z0-9-]+\.(com|br|net|org|me|link|ly)\b/i.test(t)) return { ok: false, motivo: 'a IA escreveu um link' }
 
   const v = valores(oferta)
-  const dados = [v.nome, v.preco, v.desconto, v.nota, v.vendas, v.loja].join(' ')
+  const dados = [v.nome, v.preco, v.desconto, v.nota, v.vendas, v.loja, v.cupom].join(' ')
   const permitidos = new Set(numerosDe(dados).map((n) => n.valor).filter((n) => !Number.isNaN(n)))
   for (const n of numerosDe(t)) {
     if (n.abreviado) return { ok: false, motivo: 'numero abreviado (k/mil) em vez do valor real' }
@@ -138,7 +141,12 @@ function validarIA(texto, oferta) {
   const primeiroPreco = numerosDe(v.preco)[0]
   if (primeiroPreco && !numerosDe(t).some((n) => n.valor === primeiroPreco.valor)) return { ok: false, motivo: 'faltou o preco' }
 
-  const dadosSemAcento = semAcento(dados)
+  // Com cupom cadastrado a palavra "cupom" e verdade; sem ele continua proibida
+  const dadosSemAcento = semAcento(dados + (v.cupom ? ' cupom' : ''))
+  if (v.cupom) {
+    const estranho = qualidade.cupons(t).find((c) => c !== oferta.cupom.codigo)
+    if (estranho) return { ok: false, motivo: 'cupom que nao e o cadastrado: ' + estranho }
+  }
   const promessa = semAcento(t).match(PROMESSA)
   if (promessa && !new RegExp(promessa[0].replace(/[.*+?^${}()|[\]\\]/g, '\\$&')).test(dadosSemAcento)) {
     return { ok: false, motivo: 'promessa que os dados nao tem: ' + promessa[0] }
@@ -165,9 +173,11 @@ function promptDe(oferta) {
   const sistema = 'Voce escreve mensagens curtas de promocao para grupos de WhatsApp, em portugues do Brasil, com 2 a 4 emojis. ' +
     'REGRAS: use SOMENTE os dados informados. NAO invente preco, desconto, cupom, frete, prazo nem estoque. ' +
     'Escreva os numeros exatamente como estao nos dados (ex.: 12.300, nao 12k). Inclua o preco. ' +
-    'PROIBIDO falar de frete, entrega, prazo, cupom, estoque, garantia ou parcelamento: esses dados nao existem. ' +
+    (v.cupom
+      ? 'Se citar o cupom, copie o codigo EXATAMENTE como esta nos dados. PROIBIDO falar de frete, entrega, prazo, estoque, garantia ou parcelamento: esses dados nao existem. '
+      : 'PROIBIDO falar de frete, entrega, prazo, cupom, estoque, garantia ou parcelamento: esses dados nao existem. ') +
     'NAO escreva link (ele e colocado depois). Maximo 5 linhas. Responda so com a mensagem.'
-  const dados = ['nome', 'preco', 'desconto', 'nota', 'vendas', 'loja'].filter((k) => v[k]).map((k) => '- ' + k + ': ' + v[k]).join('\n')
+  const dados = ['nome', 'preco', 'desconto', 'nota', 'vendas', 'loja', 'cupom'].filter((k) => v[k]).map((k) => '- ' + k + ': ' + v[k]).join('\n')
   return { sistema, usuario: 'DADOS:\n' + dados + '\n\nMensagem:' }
 }
 

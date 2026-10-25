@@ -10,6 +10,7 @@ const agendadas = require('./agendadas')
 const conversor = require('./conversor')
 const auditoria = require('./auditoria')
 const links = require('./links')
+const cupons = require('./cupons')
 
 const emExecucao = new Set()
 const CONVITE_RE = /https?:\/\/chat\.whatsapp\.com\/\S+/gi
@@ -77,9 +78,20 @@ async function executar(deps, userId, cfg, item, { manual = false, prevista = ''
   reg.falhas = grupos.length
   if (!aEnviar.length) return fim('Nenhum grupo valido para enviar.')
 
+  // {cupom}: so sai com cupom cadastrado e vigente; sem ele a mensagem NAO e enviada
+  let textoItem = item.texto
+  if (/\{cupom\}/.test(textoItem)) {
+    const c = cupons.escolher(dataDir, userId, {})
+    if (!c) {
+      for (const g of aEnviar) grupos.push({ jid: g.jid, name: g.name || g.jid, ok: false, erro: 'sem cupom vigente' })
+      reg.falhas = grupos.length
+      return fim('A mensagem usa {cupom}, mas nao ha cupom vigente. Cadastre ou renove em Cupons.')
+    }
+    textoItem = textoItem.replace(/\{cupom\}/g, c.codigo + (c.regra ? ' — ' + c.regra : ''))
+  }
   const porGrupo = !!(cfg.comissoes && cfg.comissoes.porGrupo)
   const ctx = { userId, cfg, dataDir }
-  const base = await converter(item.texto, Object.assign({}, ctx, { atribuicao: { origem: 'agendada', nicho: 'geral' } }))
+  const base = await converter(textoItem, Object.assign({}, ctx, { atribuicao: { origem: 'agendada', nicho: 'geral' } }))
   if (!base.ok) {
     for (const g of aEnviar) grupos.push({ jid: g.jid, name: g.name || g.jid, ok: false, erro: base.motivo })
     reg.falhas = grupos.length
@@ -92,7 +104,7 @@ async function executar(deps, userId, cfg, item, { manual = false, prevista = ''
     try {
       let texto = base.texto
       if (porGrupo && base.links) {
-        const cv = await converter(item.texto, Object.assign({}, ctx, { atribuicao: { origem: 'agendada', nicho: g.niche || 'geral', grupo: g.jid } }))
+        const cv = await converter(textoItem, Object.assign({}, ctx, { atribuicao: { origem: 'agendada', nicho: g.niche || 'geral', grupo: g.jid } }))
         if (!cv.ok) throw new Error(cv.motivo)
         texto = cv.texto
       }

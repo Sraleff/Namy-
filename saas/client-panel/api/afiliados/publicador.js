@@ -20,6 +20,7 @@ const fila = require('./fila')
 const copy = require('./copy')
 const revalidacao = require('./revalidacao')
 const atribuicao = require('./atribuicao')
+const cupons = require('./cupons')
 const auditoria = require('./auditoria')
 const imagens = require('./imagens/store')
 
@@ -84,6 +85,9 @@ async function doBanco(ctx, grupos, pulados) {
     if (!n.ok) { pulados.push({ nome: item.nome, produtoKey: 'pool:' + item.id, motivo: 'nicho ' + n.nicho + ': ' + n.motivo }); continue }
     const q = qualidade.avaliarTexto(item.texto, ctx.cfg)
     if (!q.ok) { pulados.push({ nome: item.nome, produtoKey: 'pool:' + item.id, motivo: 'qualidade: ' + q.motivo }); continue }
+    // Cita um cupom que voce cadastrou e que ja nao vale: nao sai (nao reescrevemos texto colado)
+    const cv = cupons.vencidoNoTexto(ctx.dataDir, ctx.userId, item.texto)
+    if (cv) { pulados.push({ nome: item.nome, produtoKey: 'pool:' + item.id, motivo: cv.motivo }); continue }
     // Oferta da Vitrine: confere na Shopee antes de enviar (sumiu = pausa e pula; preco mudou = texto novo)
     if (item.shopee && conferidas++ >= 8) { pulados.push({ nome: item.nome, produtoKey: 'pool:' + item.id, motivo: 'conferencia: limite de consultas nesta rodada' }); break }
     const rv = await revalidacao.revalidar(ctx, item)
@@ -146,6 +150,7 @@ async function daApi(ctx, grupos, pulados) {
     for (const r of rejeitados) pulados.push({ nome: r.oferta.nome, produtoKey: 'shopee:' + r.oferta.productId, motivo: r.motivo })
     if (oferta) {
       // Mensagem: modelo do cliente ou IA com trava (fase 1.5a). Sem nada configurado = texto de sempre.
+      oferta.cupom = cupons.escolher(ctx.dataDir, ctx.userId, { loja: 'shopee', nicho: ref.niche })
       const c = await copy.gerar(ctx, oferta, { padrao: oferta.texto })
       return {
         fonte: 'api',
@@ -159,7 +164,7 @@ async function daApi(ctx, grupos, pulados) {
         imagePath: '',
         marketplaces: ['shopee'],
         links: 1,
-        cupons: [],
+        cupons: oferta.cupom ? [oferta.cupom.codigo] : [],
         avisos: c.aviso ? [c.aviso] : []
       }
     }

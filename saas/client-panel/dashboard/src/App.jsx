@@ -14,6 +14,7 @@ import Produtos from './pages/Produtos';
 import Vitrine from './pages/Vitrine';
 import Comissoes from './pages/Comissoes';
 import Agendadas from './pages/Agendadas';
+import Cupons from './pages/Cupons';
 import Images from './pages/Images';
 import Contacts from './pages/Contacts';
 import Logs from './pages/Logs';
@@ -35,6 +36,7 @@ const pages = {
   vitrine: Vitrine,
   comissoes: Comissoes,
   agendadas: Agendadas,
+  cupons: Cupons,
   imagens: Images,
   contatos: Contacts,
   logs: Logs,

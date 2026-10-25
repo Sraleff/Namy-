@@ -15,6 +15,7 @@ const nichos = require('./nichos')
 const conversor = require('./conversor')
 const auditoria = require('./auditoria')
 const copy = require('./copy')
+const cupons = require('./cupons')
 
 // Ordenacoes liberadas = so as validadas na API real (conta de afiliado, 24/10/2026):
 //   5 comissao decrescente (confirmado)      4 preco crescente (confirmado)
@@ -84,6 +85,12 @@ function publica(o, naFila, enviadoRecente) {
  * ctx: { userId, cfg, dataDir }; entrada: { keyword, ordem, pagina } (tudo opcional).
  * Devolve { itens, pagina, ordem, keyword, temMais }.
  */
+// Anexa o cupom CADASTRADO e vigente (se houver) para a mensagem usar {cupom}
+const comCupom = (ctx, o, nicho) => {
+  const c = cupons.escolher(ctx.dataDir, ctx.userId, { loja: 'shopee', nicho: nicho || null })
+  return c ? Object.assign({}, o, { cupom: c }) : o
+}
+
 async function buscar(ctx, entrada = {}, deps = {}) {
   const { userId, cfg, dataDir } = ctx
   if (entrada.keyword != null && typeof entrada.keyword !== 'string') throw erro('Palavra-chave invalida.')
@@ -107,7 +114,7 @@ async function buscar(ctx, entrada = {}, deps = {}) {
     .filter((r) => r.produtoKey && new Date(r.at).getTime() > corte).map((r) => r.produtoKey))
 
   return {
-    itens: itens.map((o) => publica(o, sigsNaFila.has(pool.assinatura(copy.baseTexto(cfg, o))), enviados.has('shopee:' + o.productId))),
+    itens: itens.map((o) => publica(o, sigsNaFila.has(pool.assinatura(copy.baseTexto(cfg, comCupom(ctx, o)))), enviados.has('shopee:' + o.productId))),
     pagina,
     ordem: ordem.id,
     keyword,
@@ -122,7 +129,7 @@ async function salvar(ctx, itemId) {
   const f = links.validarFormato(o.link, 'shopee')
   if (!f.ok) throw erro('A oferta veio sem um link valido da Shopee (' + f.motivo + ').')
   const out = await pool.adicionar(dataDir, userId, cfg, {
-    texto: copy.baseTexto(cfg, o),
+    texto: copy.baseTexto(cfg, comCupom(ctx, o)),
     nome: o.nome,
     imageUrl: o.imageUrl,
     origem: 'vitrine',
@@ -172,7 +179,8 @@ async function enviar(ctx, entrada = {}, deps = {}) {
     o = Object.assign({}, guardada, conf.oferta)
   }
 
-  const c = await copy.gerar(ctx, o)
+  const nichosEnvio = [...new Set(jids.map((j) => nichos.normalizar((destinos.get(j) || {}).niche)))]
+  const c = await copy.gerar(ctx, comCupom(ctx, o, nichosEnvio.length === 1 ? nichosEnvio[0] : null))
   const nichosDest = [...new Set(jids.map((j) => nichos.normalizar((destinos.get(j) || {}).niche)))]
   const atrib = { origem: 'vitrine', nicho: nichosDest.length === 1 ? nichosDest[0] : 'misto' }
   const conv = await conversor.converterTexto(c.texto, Object.assign({}, ctx, { atribuicao: atrib }))

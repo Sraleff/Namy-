@@ -70,6 +70,13 @@ export const refreshCommissions = (de = '', ate = '') => post('/comissoes/atuali
 export const getCommissionsConfig = () => api('/comissoes/config');
 export const saveCommissionsConfig = (porGrupo) => api('/comissoes/config', { method: 'PUT', body: { porGrupo } });
 
+// Cupons cadastrados pelo cliente
+export const listCoupons = () => api('/cupons');
+export const createCoupon = (body) => post('/cupons/criar', body);
+export const editCoupon = (body) => post('/cupons/editar', body);
+export const toggleCoupon = (id, ativo) => post('/cupons/ativar', { id, ativo });
+export const removeCoupon = (id) => post('/cupons/remover', { id });
+
 // Mensagens agendadas
 export const listSchedules = () => api('/agendadas');
 export const createSchedule = (body) => post('/agendadas/criar', body);
