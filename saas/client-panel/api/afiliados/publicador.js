@@ -19,6 +19,7 @@ const pool = require('./pool')
 const fila = require('./fila')
 const copy = require('./copy')
 const revalidacao = require('./revalidacao')
+const atribuicao = require('./atribuicao')
 const auditoria = require('./auditoria')
 const imagens = require('./imagens/store')
 
@@ -87,7 +88,7 @@ async function doBanco(ctx, grupos, pulados) {
     if (item.shopee && conferidas++ >= 8) { pulados.push({ nome: item.nome, produtoKey: 'pool:' + item.id, motivo: 'conferencia: limite de consultas nesta rodada' }); break }
     const rv = await revalidacao.revalidar(ctx, item)
     if (!rv.ok) { pulados.push({ nome: item.nome, produtoKey: 'pool:' + item.id, motivo: (rv.pausada ? 'indisponivel: ' : 'conferencia: ') + rv.motivo }); continue }
-    const conv = await conversor.converterTexto(rv.texto || item.texto, ctx)
+    const conv = await conversor.converterTexto(rv.texto || item.texto, Object.assign({}, ctx, { atribuicao: { origem: 'banco', nicho: ref.niche } }))
     if (!conv.ok) {
       pulados.push({ nome: item.nome, produtoKey: 'pool:' + item.id, motivo: 'link: ' + conv.erros.map((e) => e.motivo).join('; ') })
       continue
@@ -98,6 +99,7 @@ async function doBanco(ctx, grupos, pulados) {
     if (item.imagem && item.imagem.tipo === 'arquivo') imagePath = pool.caminhoMidia(ctx.dataDir, ctx.userId, item.imagem.valor)
     return {
       fonte: 'pool',
+      textoOriginal: rv.texto || item.texto,
       poolId: item.id,
       produtoKey: 'pool:' + item.id,
       nome: item.nome,
@@ -128,6 +130,8 @@ async function daApi(ctx, grupos, pulados) {
     const oferta = await ofertasApi.preparar(ctx.dataDir, ctx.userId, ctx.cfg.shopee, {
       keyword: nichos.buscaDoNicho(ref.niche, ctx.cfg.shopee.keyword),
       evitar: [...evitar],
+      subIds: atribuicao.subIdsDe({ origem: 'api', nicho: ref.niche }),
+      semCurto: porGrupo(ctx.cfg),
       rejeitados,
       aceitar: (p) => {
         const n = nichos.compativel(ref, p.nome)
@@ -145,6 +149,8 @@ async function daApi(ctx, grupos, pulados) {
       const c = await copy.gerar(ctx, oferta, { padrao: oferta.texto })
       return {
         fonte: 'api',
+        // modo por grupo: o texto ainda tem o link original e e convertido a cada grupo no envio
+        textoOriginal: porGrupo(ctx.cfg) ? c.texto : undefined,
         productId: oferta.productId,
         produtoKey: 'shopee:' + oferta.productId,
         nome: oferta.nome,
@@ -161,6 +167,9 @@ async function daApi(ctx, grupos, pulados) {
   }
   return null
 }
+
+// Atribuicao por grupo (fase 2.1): um link de afiliado por grupo, ligado em Comissoes
+const porGrupo = (cfg) => !!(cfg && cfg.comissoes && cfg.comissoes.porGrupo)
 
 function escolherImagem(ctx, oferta) {
   const usarGerada = !!(ctx.cfg.ads && ctx.cfg.ads.useGeneratedImages)
@@ -237,7 +246,13 @@ async function publicar({ userId, cfg, groups, dataDir, logs, sessions }) {
     const ok = []
     for (const g of grupos) {
       try {
-        await sessions.sendOffer(userId, g.jid, { text: oferta.texto, imageUrl: img.imageUrl, imagePath: img.imagePath })
+        let texto = oferta.texto
+        if (porGrupo(cfg) && oferta.textoOriginal) {
+          const cv = await conversor.converterTexto(oferta.textoOriginal, Object.assign({}, ctx, { atribuicao: { origem: oferta.fonte === 'api' ? 'api' : 'banco', nicho: g.niche, grupo: g.jid } }))
+          if (!cv.ok) throw new Error('link: ' + cv.erros.map((e) => e.motivo).join('; '))
+          texto = cv.texto
+        }
+        await sessions.sendOffer(userId, g.jid, { text: texto, imageUrl: img.imageUrl, imagePath: img.imagePath })
         ok.push(g.jid)
         results.push({ jid: g.jid, name: g.name, ok: true, niche: g.niche })
         await auditoria.registrar(dataDir, userId, {

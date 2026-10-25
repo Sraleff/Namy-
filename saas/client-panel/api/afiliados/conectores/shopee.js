@@ -4,6 +4,9 @@
  */
 const ofertas = require('../../ofertas')
 const links = require('../links')
+const atribuicao = require('../atribuicao')
+
+const cacheGrupo = new Map()
 
 function configurado(ctx) {
   const s = ctx.cfg && ctx.cfg.shopee
@@ -25,8 +28,17 @@ async function converter(url, ctx) {
   const origem = canonico(final)
   if (!origem || origem === 'https://shopee.com.br/') throw links.erroLink('Link Shopee sem produto')
   const s = ctx.cfg.shopee
-  const curto = await ofertas.encurtar(s.appId, s.secret, origem)
+  const subIds = atribuicao.subIdsDe(ctx.atribuicao)
+  // Link por grupo: o mesmo produto sai varias vezes com o mesmo subId; guarda por 6 h
+  const chave = ctx.atribuicao && ctx.atribuicao.grupo ? s.appId + '|' + origem + '|' + subIds.join('.') : ''
+  const hit = chave && cacheGrupo.get(chave)
+  if (hit && hit.ate > Date.now()) return hit.link
+  const curto = await ofertas.encurtar(s.appId, s.secret, origem, subIds)
   if (!curto) throw links.erroLink('A API Shopee nao gerou o link de afiliado', true)
+  if (chave) {
+    if (cacheGrupo.size > 2000) cacheGrupo.delete(cacheGrupo.keys().next().value)
+    cacheGrupo.set(chave, { ate: Date.now() + 6 * 3600 * 1000, link: curto })
+  }
   return curto
 }
 

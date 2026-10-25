@@ -64,6 +64,12 @@ export const saveShowcase = (itemId) => post('/vitrine/salvar', { itemId });
 export const sendShowcase = (body) => post('/vitrine/enviar', body);
 export const listDispatches = (tipo = '') => api(`/afiliados/disparos?limite=150${tipo ? `&tipo=${tipo}` : ''}`);
 
+// Comissões (conversionReport da Shopee) e atribuição por grupo
+export const getCommissions = (de = '', ate = '') => api(`/comissoes?${de ? `de=${de}&` : ''}${ate ? `ate=${ate}` : ''}`);
+export const refreshCommissions = (de = '', ate = '') => post('/comissoes/atualizar', { de: de || undefined, ate: ate || undefined });
+export const getCommissionsConfig = () => api('/comissoes/config');
+export const saveCommissionsConfig = (porGrupo) => api('/comissoes/config', { method: 'PUT', body: { porGrupo } });
+
 // Mercado Livre (OAuth)
 export const mlStatus = () => api('/mercadolivre/status');
 export const mlConnect = () => post('/mercadolivre/conectar');

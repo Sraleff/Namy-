@@ -137,9 +137,15 @@ function lembrar(dataDir, userId, productId) {
   fs.writeFileSync(histFile(dataDir, userId), JSON.stringify(list.slice(0, 400)))
 }
 
-async function encurtar(appId, secret, url) {
+// subIds: so letras e numeros (a API recusa o resto); sem nada valido, o padrao de sempre
+function subIdsValidos(subIds) {
+  const ok = (Array.isArray(subIds) ? subIds : []).map((x) => String(x)).filter((x) => /^[A-Za-z0-9]{1,20}$/.test(x)).slice(0, 5)
+  return ok.length ? ok : ['namy']
+}
+
+async function encurtar(appId, secret, url, subIds) {
   if (!url) return null
-  const query = 'mutation { generateShortLink(input: { originUrl: ' + JSON.stringify(url) + ', subIds: ["namy"] }) { shortLink } }'
+  const query = 'mutation { generateShortLink(input: { originUrl: ' + JSON.stringify(url) + ', subIds: ' + JSON.stringify(subIdsValidos(subIds)) + ' }) { shortLink } }'
   try {
     const data = await graphql(appId, secret, query)
     const link = data.generateShortLink && data.generateShortLink.shortLink
@@ -190,8 +196,11 @@ async function preparar(dataDir, userId, shopee, opts = {}) {
   const novos = aceitos.filter((p) => !recentes.has(p.productId))
   const pool = novos.length ? novos : aceitos
   const oferta = pool[Math.floor(Math.random() * pool.length)]
-  const curto = await encurtar(shopee.appId, shopee.secret, oferta.link)
-  if (curto) oferta.link = curto
+  // semCurto: quem chama vai gerar o link depois (um por grupo); aqui fica o link original
+  if (!opts.semCurto) {
+    const curto = await encurtar(shopee.appId, shopee.secret, oferta.link, opts.subIds)
+    if (curto) oferta.link = curto
+  }
   oferta.texto = mensagem(oferta)
   return oferta
 }
@@ -242,4 +251,27 @@ async function porItem(shopee, itemId) {
   return oferta ? { status: 'ok', oferta } : { status: 'indisponivel' }
 }
 
-module.exports = { normalizar, mensagem, preparar, lembrar, encurtar, buscar, porItem }
+/**
+ * Relatorio de conversoes (comissoes) de UMA pagina. Campos verificados por introspeccao na API real.
+ * inicio/fim em segundos (epoch). Devolve { nodes, hasNextPage, scrollId }.
+ */
+async function conversoes(shopee, { inicio, fim, scrollId = '', limit = 100 } = {}) {
+  if (!shopee || !shopee.appId || !shopee.secret) {
+    const err = new Error('Salve App ID e Secret da Shopee.')
+    err.code = 'SHOPEE'
+    err.status = 400
+    throw err
+  }
+  const i = Math.floor(Number(inicio))
+  const f = Math.floor(Number(fim))
+  if (!Number.isFinite(i) || !Number.isFinite(f) || i <= 0 || f <= i) throw Object.assign(new Error('Periodo invalido'), { status: 400 })
+  const l = Math.min(100, Math.max(1, Math.floor(Number(limit)) || 100))
+  const sc = scrollId ? ', scrollId: ' + JSON.stringify(String(scrollId).slice(0, 200)) : ''
+  const query = '{ conversionReport(purchaseTimeStart: ' + i + ', purchaseTimeEnd: ' + f + ', limit: ' + l + sc + ') { nodes { conversionId purchaseTime conversionStatus totalCommission netCommission utmContent orders { orderId items { itemId itemName qty actualAmount itemTotalCommission } } } pageInfo { hasNextPage scrollId } } }'
+  const data = await graphql(shopee.appId, shopee.secret, query)
+  const rel = data.conversionReport || {}
+  const pi = rel.pageInfo || {}
+  return { nodes: Array.isArray(rel.nodes) ? rel.nodes : [], hasNextPage: !!pi.hasNextPage, scrollId: pi.scrollId ? String(pi.scrollId) : '' }
+}
+
+module.exports = { normalizar, mensagem, preparar, lembrar, encurtar, buscar, porItem, subIdsValidos, conversoes }

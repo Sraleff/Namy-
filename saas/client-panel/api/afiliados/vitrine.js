@@ -173,8 +173,11 @@ async function enviar(ctx, entrada = {}, deps = {}) {
   }
 
   const c = await copy.gerar(ctx, o)
-  const conv = await conversor.converterTexto(c.texto, ctx)
+  const nichosDest = [...new Set(jids.map((j) => nichos.normalizar((destinos.get(j) || {}).niche)))]
+  const atrib = { origem: 'vitrine', nicho: nichosDest.length === 1 ? nichosDest[0] : 'misto' }
+  const conv = await conversor.converterTexto(c.texto, Object.assign({}, ctx, { atribuicao: atrib }))
   if (!conv.ok) throw erro('Nao consegui trocar o link: ' + conv.erros.map((e) => e.motivo).join('; '))
+  const porGrupo = !!(cfg.comissoes && cfg.comissoes.porGrupo)
 
   const log = (g, ok, message) => {
     if (!logs) return
@@ -194,7 +197,13 @@ async function enviar(ctx, entrada = {}, deps = {}) {
       continue
     }
     try {
-      await sessions.sendOffer(userId, g.jid, { text: conv.texto, imageUrl: o.imageUrl })
+      let texto = conv.texto
+      if (porGrupo) {
+        const cv = await conversor.converterTexto(c.texto, Object.assign({}, ctx, { atribuicao: { origem: 'vitrine', nicho: base.niche, grupo: g.jid } }))
+        if (!cv.ok) throw new Error('link: ' + cv.erros.map((e) => e.motivo).join('; '))
+        texto = cv.texto
+      }
+      await sessions.sendOffer(userId, g.jid, { text: texto, imageUrl: o.imageUrl })
       enviados++
       results.push(Object.assign(base, { ok: true }))
       await auditoria.registrar(dataDir, userId, {
