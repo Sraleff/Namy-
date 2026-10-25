@@ -17,6 +17,8 @@ const conversor = require('./conversor')
 const links = require('./links')
 const pool = require('./pool')
 const fila = require('./fila')
+const copy = require('./copy')
+const revalidacao = require('./revalidacao')
 const auditoria = require('./auditoria')
 const imagens = require('./imagens/store')
 
@@ -68,6 +70,7 @@ async function doBanco(ctx, grupos, pulados) {
   const ref = grupos[0]
   const jids = grupos.map((g) => g.jid)
   const ja = new Set()
+  let conferidas = 0
   let lista = null
   for (const jid of jids) {
     const c = pool.candidatas(ctx.dataDir, ctx.userId, jid)
@@ -80,7 +83,11 @@ async function doBanco(ctx, grupos, pulados) {
     if (!n.ok) { pulados.push({ nome: item.nome, produtoKey: 'pool:' + item.id, motivo: 'nicho ' + n.nicho + ': ' + n.motivo }); continue }
     const q = qualidade.avaliarTexto(item.texto, ctx.cfg)
     if (!q.ok) { pulados.push({ nome: item.nome, produtoKey: 'pool:' + item.id, motivo: 'qualidade: ' + q.motivo }); continue }
-    const conv = await conversor.converterTexto(item.texto, ctx)
+    // Oferta da Vitrine: confere na Shopee antes de enviar (sumiu = pausa e pula; preco mudou = texto novo)
+    if (item.shopee && conferidas++ >= 8) { pulados.push({ nome: item.nome, produtoKey: 'pool:' + item.id, motivo: 'conferencia: limite de consultas nesta rodada' }); break }
+    const rv = await revalidacao.revalidar(ctx, item)
+    if (!rv.ok) { pulados.push({ nome: item.nome, produtoKey: 'pool:' + item.id, motivo: (rv.pausada ? 'indisponivel: ' : 'conferencia: ') + rv.motivo }); continue }
+    const conv = await conversor.converterTexto(rv.texto || item.texto, ctx)
     if (!conv.ok) {
       pulados.push({ nome: item.nome, produtoKey: 'pool:' + item.id, motivo: 'link: ' + conv.erros.map((e) => e.motivo).join('; ') })
       continue
@@ -100,7 +107,7 @@ async function doBanco(ctx, grupos, pulados) {
       marketplaces: conv.marketplaces,
       links: conv.trocas.length,
       cupons: item.cupons || qualidade.cupons(item.texto),
-      avisos: conv.trocas.map((t) => t.aviso).filter(Boolean)
+      avisos: conv.trocas.map((t) => t.aviso).filter(Boolean).concat(rv.aviso ? [rv.aviso] : [])
     }
   }
   return null
@@ -134,18 +141,20 @@ async function daApi(ctx, grupos, pulados) {
     })
     for (const r of rejeitados) pulados.push({ nome: r.oferta.nome, produtoKey: 'shopee:' + r.oferta.productId, motivo: r.motivo })
     if (oferta) {
+      // Mensagem: modelo do cliente ou IA com trava (fase 1.5a). Sem nada configurado = texto de sempre.
+      const c = await copy.gerar(ctx, oferta, { padrao: oferta.texto })
       return {
         fonte: 'api',
         productId: oferta.productId,
         produtoKey: 'shopee:' + oferta.productId,
         nome: oferta.nome,
-        texto: oferta.texto,
+        texto: c.texto,
         imageUrl: oferta.imageUrl,
         imagePath: '',
         marketplaces: ['shopee'],
         links: 1,
         cupons: [],
-        avisos: []
+        avisos: c.aviso ? [c.aviso] : []
       }
     }
     if (ref.niche === 'geral') break

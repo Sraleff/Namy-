@@ -7,6 +7,7 @@ import { Button, Field, Input, Notice } from '../components/ui/Form';
 import { useAsync } from '../hooks/useAsync';
 import { useAction } from '../hooks/useAction';
 import * as ep from '../services/endpoints';
+import MensagemOfertas from '../components/dashboard/MensagemOfertas';
 
 export default function AI({ onDataChanged }) {
   const { data: cfg, error, setData } = useAsync(ep.getConfig, []);
@@ -78,6 +79,8 @@ export default function AI({ onDataChanged }) {
           </ul>
         </Card>
       </div>
+
+      <MensagemOfertas />
     </>
   );
 }

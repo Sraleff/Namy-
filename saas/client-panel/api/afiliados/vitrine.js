@@ -14,6 +14,7 @@ const links = require('./links')
 const nichos = require('./nichos')
 const conversor = require('./conversor')
 const auditoria = require('./auditoria')
+const copy = require('./copy')
 
 // Ordenacoes liberadas = so as validadas na API real (conta de afiliado, 24/10/2026):
 //   5 comissao decrescente (confirmado)      4 preco crescente (confirmado)
@@ -106,7 +107,7 @@ async function buscar(ctx, entrada = {}, deps = {}) {
     .filter((r) => r.produtoKey && new Date(r.at).getTime() > corte).map((r) => r.produtoKey))
 
   return {
-    itens: itens.map((o) => publica(o, sigsNaFila.has(pool.assinatura(ofertasApi.mensagem(o))), enviados.has('shopee:' + o.productId))),
+    itens: itens.map((o) => publica(o, sigsNaFila.has(pool.assinatura(copy.baseTexto(cfg, o))), enviados.has('shopee:' + o.productId))),
     pagina,
     ordem: ordem.id,
     keyword,
@@ -121,11 +122,12 @@ async function salvar(ctx, itemId) {
   const f = links.validarFormato(o.link, 'shopee')
   if (!f.ok) throw erro('A oferta veio sem um link valido da Shopee (' + f.motivo + ').')
   const out = await pool.adicionar(dataDir, userId, cfg, {
-    texto: ofertasApi.mensagem(o),
+    texto: copy.baseTexto(cfg, o),
     nome: o.nome,
     imageUrl: o.imageUrl,
     origem: 'vitrine',
-    origemGrupo: 'Vitrine Shopee'
+    origemGrupo: 'Vitrine Shopee',
+    shopee: { itemId: o.productId, shopId: o.shopId, precoNum: o.precoNum }
   })
   return { item: { id: out.item.id, nome: out.item.nome }, duplicado: out.duplicado }
 }
@@ -148,16 +150,31 @@ async function enviar(ctx, entrada = {}, deps = {}) {
   const destinos = new Map((cfg.groups || []).map((g) => [g.jid, g]))
   if (jids.some((j) => !destinos.has(j))) throw erro('So envio para grupos que voce salvou como destino (aba Grupos).')
 
-  const o = achar(userId, entrada.itemId)
-  if (!o) throw erro('Esse resultado expirou. Faca a busca de novo.', 404)
+  const guardada = achar(userId, entrada.itemId)
+  if (!guardada) throw erro('Esse resultado expirou. Faca a busca de novo.', 404)
   if (!sessions || (typeof sessions.publicState === 'function' && !sessions.publicState(userId).connected)) {
     throw erro('O WhatsApp nao esta conectado.')
   }
 
-  const conv = await conversor.converterTexto(ofertasApi.mensagem(o), ctx)
-  if (!conv.ok) throw erro('Nao consegui trocar o link: ' + conv.erros.map((e) => e.motivo).join('; '))
-
+  // So cobra a cota de envios aqui, antes de gastar uma consulta na Shopee
   if (typeof deps.liberar === 'function' && !deps.liberar()) throw erro('Muitos envios seguidos. Espere um minuto.', 429)
+
+  // Antes de enviar: confere na Shopee se a oferta ainda existe e usa o preco/link de agora
+  let o = guardada
+  if (cfg.shopee && cfg.shopee.appId && cfg.shopee.secret) {
+    let conf
+    try {
+      conf = await ofertasApi.porItem(cfg.shopee, guardada.productId)
+    } catch (e) {
+      throw erro('Nao consegui conferir a oferta na Shopee agora. Tente de novo em instantes.', 502)
+    }
+    if (conf.status === 'indisponivel') throw erro('Essa oferta nao esta mais disponivel na Shopee.', 409)
+    o = Object.assign({}, guardada, conf.oferta)
+  }
+
+  const c = await copy.gerar(ctx, o)
+  const conv = await conversor.converterTexto(c.texto, ctx)
+  if (!conv.ok) throw erro('Nao consegui trocar o link: ' + conv.erros.map((e) => e.motivo).join('; '))
 
   const log = (g, ok, message) => {
     if (!logs) return
@@ -182,7 +199,7 @@ async function enviar(ctx, entrada = {}, deps = {}) {
       results.push(Object.assign(base, { ok: true }))
       await auditoria.registrar(dataDir, userId, {
         tipo: 'enviado', grupo: g.name, jid: g.jid, nicho: base.niche, fonte: 'vitrine', produtoKey: 'shopee:' + o.productId,
-        nome: o.nome, imageUrl: o.imageUrl, marketplaces: ['shopee'], links: conv.trocas.length, imagem: o.imageUrl ? 'url' : '', avisos: conv.trocas.map((t) => t.aviso).filter(Boolean)
+        nome: o.nome, imageUrl: o.imageUrl, marketplaces: ['shopee'], links: conv.trocas.length, imagem: o.imageUrl ? 'url' : '', avisos: conv.trocas.map((t) => t.aviso).filter(Boolean).concat(c.aviso ? [c.aviso] : [])
       })
       log(g, true, 'Vitrine: ' + o.nome.slice(0, 120))
     } catch (e) {

@@ -21,6 +21,17 @@ ofertas.buscar = async (shopee, opts) => {
   if (resposta instanceof Error) throw resposta
   return resposta || { itens: [], recebidos: 0 }
 }
+// Conferencia antes de enviar (productOfferV2 por itemId): por padrao devolve a oferta como esta
+let porItemModo = 'ok'
+const porItemChamadas = []
+ofertas.porItem = async (shopee, id) => {
+  porItemChamadas.push(String(id))
+  if (porItemModo === 'erro') throw new Error('API fora do ar')
+  if (porItemModo === 'indisponivel') return { status: 'indisponivel' }
+  const o = ((resposta && resposta.itens) || []).find((i) => i.productId === String(id))
+  if (porItemModo === 'preco') return { status: 'ok', oferta: Object.assign({}, o, { preco: 'R$ 8,00', precoNum: 8 }) }
+  return { status: 'ok', oferta: o }
+}
 ofertas.encurtar = async (appId, secret, url) => 'https://s.shopee.com.br/AFIL' + url.replace(/\D/g, '').slice(-4)
 links.validarAoVivo = async () => ({ ok: true, motivo: '' })
 
@@ -73,6 +84,8 @@ function rotasDe(a, opcoes = {}) {
     return res
   }
 }
+
+test.beforeEach(() => { porItemModo = 'ok'; porItemChamadas.length = 0 })
 
 test('ordenacoes liberadas sao so as validadas na API real', () => {
   assert.deepEqual(vitrine.ordens().map((o) => o.id), ['comissao', 'vendas', 'menor-preco', 'relevancia'])
@@ -360,4 +373,55 @@ test('pedido recusado por validacao nao gasta a cota de envios nem de buscas', a
   assert.equal((await chamar('POST', '/vitrine/enviar', 'u1', { body: { itemId: '1001', jids: ['geral@g.us'] } })).code, 200)
   assert.equal(a.enviados.length, 1)
   assert.equal(buscas.length, 1, 'so a busca valida chegou na API')
+})
+
+test('salvar guarda de onde a oferta veio (itemId, loja e preco) para conferir depois', async () => {
+  const a = ambiente()
+  const chamar = rotasDe(a)
+  resposta = { itens: [oferta(1, { shopId: '55', precoNum: 10 })], recebidos: 1 }
+  await chamar('GET', '/vitrine', 'u1', { query: {} })
+  const r = await chamar('POST', '/vitrine/salvar', 'u1', { body: { itemId: '1001' } })
+  const item = pool.listar(a.dir, 'u1').find((i) => i.id === r.body.item.id)
+  assert.deepEqual(item.shopee, { itemId: '1001', shopId: '55', precoNum: 10 })
+})
+
+test('enviar confere na Shopee antes: sumiu = recusa sem enviar; API fora = recusa sem enviar', async () => {
+  const a = ambiente()
+  const chamar = rotasDe(a)
+  resposta = { itens: [oferta(1)], recebidos: 1 }
+  await chamar('GET', '/vitrine', 'u1', { query: {} })
+  porItemModo = 'indisponivel'
+  let r = await chamar('POST', '/vitrine/enviar', 'u1', { body: { itemId: '1001', jids: ['geral@g.us'] } })
+  assert.equal(r.code, 409)
+  assert.match(r.body.error, /nao esta mais disponivel/)
+  porItemModo = 'erro'
+  r = await chamar('POST', '/vitrine/enviar', 'u1', { body: { itemId: '1001', jids: ['geral@g.us'] } })
+  assert.equal(r.code, 502)
+  assert.match(r.body.error, /Nao consegui conferir/)
+  assert.equal(JSON.stringify(r.body).includes('API fora do ar'), false, 'detalhe interno nao vaza')
+  assert.equal(a.enviados.length, 0)
+})
+
+test('enviar com o preco que mudou: a mensagem sai com o preco de agora', async () => {
+  const a = ambiente()
+  const chamar = rotasDe(a)
+  resposta = { itens: [oferta(1)], recebidos: 1 }
+  await chamar('GET', '/vitrine', 'u1', { query: {} })
+  porItemModo = 'preco'
+  const r = await chamar('POST', '/vitrine/enviar', 'u1', { body: { itemId: '1001', jids: ['geral@g.us'] } })
+  assert.equal(r.code, 200)
+  assert.equal(r.body.enviados, 1)
+  assert.match(a.enviados[0].msg.text, /R\$ 8,00/)
+  assert.equal(a.enviados[0].msg.text.includes('R$ 10,00'), false, 'o preco antigo nao sai')
+})
+
+test('a cota recusada (429) nao gasta consulta na Shopee', async () => {
+  const a = ambiente()
+  const chamar = rotasDe(a, { enviosPorMin: 1 })
+  resposta = { itens: [oferta(1)], recebidos: 1 }
+  await chamar('GET', '/vitrine', 'u1', { query: {} })
+  assert.equal((await chamar('POST', '/vitrine/enviar', 'u1', { body: { itemId: '1001', jids: ['geral@g.us'] } })).code, 200)
+  assert.equal(porItemChamadas.length, 1)
+  assert.equal((await chamar('POST', '/vitrine/enviar', 'u1', { body: { itemId: '1001', jids: ['geral@g.us'] } })).code, 429)
+  assert.equal(porItemChamadas.length, 1, 'recusado pela cota: nenhuma consulta nova')
 })

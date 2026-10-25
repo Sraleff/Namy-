@@ -32,6 +32,19 @@ function titulo(texto) {
   return (linha || 'Oferta').slice(0, 120)
 }
 
+// itemId/shopId/preco de uma oferta da Shopee (Vitrine), para conferir antes de enviar. Lixo vira nada.
+function metaShopee(m) {
+  if (!m || typeof m !== 'object') return undefined
+  const itemId = String(m.itemId || '')
+  if (!/^\d{1,20}$/.test(itemId)) return undefined
+  const precoNum = Number(m.precoNum)
+  return {
+    itemId,
+    shopId: /^\d{1,20}$/.test(String(m.shopId || '')) ? String(m.shopId) : '',
+    precoNum: Number.isFinite(precoNum) && precoNum > 0 ? precoNum : null
+  }
+}
+
 function ttlHoras(cfg) {
   const n = Number(cfg && cfg.ads && cfg.ads.poolTtlHours)
   return Number.isFinite(n) ? Math.min(168, Math.max(1, n)) : 48
@@ -75,6 +88,7 @@ async function adicionar(dataDir, userId, cfg, entrada) {
       marketplaces: mks,
       cupons: qualidade.cupons(texto),
       imagem,
+      shopee: metaShopee(entrada.shopee),
       ativo: true,
       createdAt: new Date(agora).toISOString(),
       expiresAt: new Date(agora + ttlHoras(cfg) * 3600000).toISOString(),

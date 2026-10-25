@@ -46,6 +46,13 @@ export const togglePool = (id, ativo) => post('/ofertas/banco/ativo', { id, ativ
 export const previewOffer = (body) => post('/ofertas/previa', body);
 export const convertLink = (texto) => post('/conversor/link', { texto });
 
+// Mensagem das ofertas: modelo, IA e chave do cliente (cifrada no servidor)
+export const getCopy = () => api('/copy/config');
+export const saveCopy = (body) => api('/copy/config', { method: 'PUT', body });
+export const saveCopyKey = (provedor, chave) => post('/copy/chave', { provedor, chave });
+export const removeCopyKey = (provedor) => post('/copy/chave/remover', { provedor });
+export const previewCopy = (body) => post('/copy/previa', body);
+
 // Fila de produtos (banco de ofertas com status, prioridade e edição)
 export const listProducts = (status = '', limite = 25) => api(`/produtos?limite=${limite}${status ? `&status=${encodeURIComponent(status)}` : ''}`);
 export const editProduct = (body) => post('/produtos/editar', body);

@@ -43,10 +43,12 @@ function normalizar(raw) {
   const imagem = texto(raw.imageUrl)
   return {
     productId: itemId,
+    shopId: texto(raw.shopId),
     nome,
     link,
     imageUrl: imagem.startsWith('https://') ? imagem : '',
     preco,
+    precoNum,
     desconto: Number.isFinite(desconto) && desconto > 0 ? Math.round(desconto) : null,
     ratingStar: texto(raw.ratingStar),
     sales: Number(raw.sales) || 0,
@@ -216,4 +218,28 @@ async function buscar(shopee, { keyword = '', page = 1, limit = 20, sortType = 5
   return { itens: lista.map(normalizar).filter(Boolean), recebidos: lista.length }
 }
 
-module.exports = { normalizar, mensagem, preparar, lembrar, encurtar, buscar }
+/**
+ * Confere UM produto na API (productOfferV2 por itemId; validado na conta real: devolve 1 item
+ * igual ao da busca, e 0 itens quando o produto nao existe mais).
+ * Devolve { status: 'ok', oferta } ou { status: 'indisponivel' }. Erro da API lanca.
+ */
+async function porItem(shopee, itemId) {
+  if (!shopee || !shopee.appId || !shopee.secret) {
+    const err = new Error('Salve App ID e Secret da Shopee.')
+    err.code = 'SHOPEE'
+    err.status = 400
+    throw err
+  }
+  const id = String(itemId == null ? '' : itemId)
+  if (!/^\d{1,20}$/.test(id)) {
+    const err = new Error('itemId invalido')
+    err.status = 400
+    throw err
+  }
+  const data = await graphql(shopee.appId, shopee.secret, '{ productOfferV2(itemId: ' + id + ', limit: 1) { nodes { ' + NODES + ' } } }')
+  const nodes = data.productOfferV2 && data.productOfferV2.nodes
+  const oferta = (Array.isArray(nodes) ? nodes : []).map(normalizar).find((o) => o && o.productId === id)
+  return oferta ? { status: 'ok', oferta } : { status: 'indisponivel' }
+}
+
+module.exports = { normalizar, mensagem, preparar, lembrar, encurtar, buscar, porItem }

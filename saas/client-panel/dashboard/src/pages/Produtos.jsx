@@ -125,7 +125,7 @@ function Linha({ item, onChanged }) {
   };
   const verPrevia = () => (previa ? setPrevia(null) : run('pv', () => ep.previewOffer({ id: item.id })).then((o) => o && setPrevia(o)));
 
-  const motivo = item.status === 'erro' ? item.ultimoErro : item.status === 'pulado' ? item.ultimoPulo : null;
+  const motivo = item.status === 'erro' ? item.ultimoErro : item.status === 'pulado' || item.status === 'pausado' ? item.ultimoPulo : null;
 
   return (
     <li className="p-4">
