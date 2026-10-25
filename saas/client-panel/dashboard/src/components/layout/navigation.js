@@ -1,5 +1,5 @@
 import {
-  Home, Users, Megaphone, Sparkles, Workflow, Contact, ScrollText, Settings, Tag, Image, Link2, ListOrdered, Store, Wallet,
+  Home, Users, Megaphone, Sparkles, Workflow, Contact, ScrollText, Settings, Tag, Image, Link2, ListOrdered, Store, Wallet, CalendarClock,
 } from 'lucide-react';
 
 export const navItems = [
@@ -12,6 +12,7 @@ export const navItems = [
   { id: 'vitrine', label: 'Vitrine', icon: Store },
   { id: 'conversor', label: 'Conversor', icon: Link2 },
   { id: 'fila', label: 'Fila', icon: ListOrdered },
+  { id: 'agendadas', label: 'Agendadas', icon: CalendarClock },
   { id: 'comissoes', label: 'Comissões', icon: Wallet },
   { id: 'imagens', label: 'Imagens', icon: Image },
   { id: 'contatos', label: 'Contatos', icon: Contact },

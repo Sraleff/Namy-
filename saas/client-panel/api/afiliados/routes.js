@@ -22,6 +22,7 @@ const vitrineRoutes = require('./vitrineRoutes')
 const automacoesRoutes = require('./automacoesRoutes')
 const copyRoutes = require('./copyRoutes')
 const comissoesRoutes = require('./comissoesRoutes')
+const agendadasRoutes = require('./agendadasRoutes')
 
 const JID_RE = /^[0-9A-Za-z._-]+@g\.us$/
 const DIAS = [0, 1, 2, 3, 4, 5, 6]
@@ -490,6 +491,7 @@ function mount(app, deps) {
   // Mensagem das ofertas: modelo e IA (Fase 1.5a)
   copyRoutes.mount(app, { auth, readJson, writeJson, CONFIGS, DATA })
   comissoesRoutes.mount(app, { auth, readJson, writeJson, CONFIGS, DATA })
+  agendadasRoutes.mount(app, { auth, readJson, writeJson, CONFIGS, DATA, logs, sessions })
 
   return { aplicarConfig }
 }

@@ -70,6 +70,16 @@ export const refreshCommissions = (de = '', ate = '') => post('/comissoes/atuali
 export const getCommissionsConfig = () => api('/comissoes/config');
 export const saveCommissionsConfig = (porGrupo) => api('/comissoes/config', { method: 'PUT', body: { porGrupo } });
 
+// Mensagens agendadas
+export const listSchedules = () => api('/agendadas');
+export const createSchedule = (body) => post('/agendadas/criar', body);
+export const editSchedule = (body) => post('/agendadas/editar', body);
+export const toggleSchedule = (id, ativo) => post('/agendadas/ativar', { id, ativo, confirmo: ativo ? true : undefined });
+export const removeSchedule = (id) => post('/agendadas/remover', { id });
+export const sendScheduleNow = (id) => post('/agendadas/enviar-agora', { id, confirmo: true });
+export const previewSchedule = (recorrencia) => post('/agendadas/previa', { recorrencia });
+export const saveScheduleLimits = (body) => post('/agendadas/config', body);
+
 // Mercado Livre (OAuth)
 export const mlStatus = () => api('/mercadolivre/status');
 export const mlConnect = () => post('/mercadolivre/conectar');

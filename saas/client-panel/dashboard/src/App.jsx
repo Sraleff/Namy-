@@ -13,6 +13,7 @@ import Converter from './pages/Converter';
 import Produtos from './pages/Produtos';
 import Vitrine from './pages/Vitrine';
 import Comissoes from './pages/Comissoes';
+import Agendadas from './pages/Agendadas';
 import Images from './pages/Images';
 import Contacts from './pages/Contacts';
 import Logs from './pages/Logs';
@@ -33,6 +34,7 @@ const pages = {
   fila: Produtos,
   vitrine: Vitrine,
   comissoes: Comissoes,
+  agendadas: Agendadas,
   imagens: Images,
   contatos: Contacts,
   logs: Logs,

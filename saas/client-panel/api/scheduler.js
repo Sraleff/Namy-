@@ -294,6 +294,8 @@ function start(deps) {
   }
   setInterval(tick, 20000)
   setTimeout(tick, 15000)
+  // Mensagens agendadas (fase 2.2): motor proprio, mesmo relogio de 20 s
+  require('./afiliados/agendadasExec').iniciar(Object.assign({ sessions }, deps))
 }
 
 module.exports = {
