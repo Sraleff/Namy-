@@ -79,7 +79,7 @@ export default function Groups({ query = '' }) {
       {error ? (
         <Card>
           <EmptyState action={<a href="#configuracoes" className="link-subtle">Conectar WhatsApp</a>}>
-            {error.message}. Conecte o WhatsApp para ver seus grupos.
+            {/intervalo|limite/i.test(error.message) ? `${error.message}.` : `${error.message}. Conecte o WhatsApp para ver seus grupos.`}
           </EmptyState>
         </Card>
       ) : (

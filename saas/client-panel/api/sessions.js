@@ -398,14 +398,39 @@ function restoreRegistered(onStatus, existe) {
   }
 }
 
+// O WhatsApp limita groupFetchAllParticipating (rate-overlimit) se for chamado em sequencia, o que
+// acontece ao abrir varias telas ou reiniciar o painel. Por isso: cache de 60 s, uma consulta por vez
+// por usuario e, se o WhatsApp recusar, devolve a ultima lista boa (ate 6 h) em vez de erro.
+const GRUPOS_TTL = 60 * 1000
+const GRUPOS_VELHO = 6 * 3600 * 1000
+const gruposCache = new Map() // userId -> { at, list }
+const gruposVoo = new Map() // userId -> Promise
+
 async function listGroups(userId) {
-  const s = vivo(userId)
-  const groups = await s.sock.groupFetchAllParticipating()
-  return Object.values(groups || {}).map((g) => ({
-    jid: g.id,
-    name: g.subject || g.id,
-    participants: Array.isArray(g.participants) ? g.participants.length : 0
-  }))
+  const hit = gruposCache.get(userId)
+  if (hit && Date.now() - hit.at < GRUPOS_TTL) return hit.list
+  if (gruposVoo.has(userId)) return gruposVoo.get(userId)
+  const p = (async () => {
+    const s = vivo(userId)
+    try {
+      const groups = await s.sock.groupFetchAllParticipating()
+      const list = Object.values(groups || {}).map((g) => ({
+        jid: g.id,
+        name: g.subject || g.id,
+        participants: Array.isArray(g.participants) ? g.participants.length : 0
+      }))
+      gruposCache.set(userId, { at: Date.now(), list })
+      return list
+    } catch (e) {
+      if (hit && Date.now() - hit.at < GRUPOS_VELHO) return hit.list
+      const limite = /rate-overlimit|429/i.test(String((e && e.message) || ''))
+      const err = new Error(limite ? 'O WhatsApp pediu um intervalo para listar os grupos. Espere cerca de 1 minuto e clique em Atualizar' : (e && e.message) || 'Falha ao listar grupos')
+      err.code = limite ? 'WA_LIMITE' : 'WA'
+      throw err
+    }
+  })().finally(() => gruposVoo.delete(userId))
+  gruposVoo.set(userId, p)
+  return p
 }
 
 function jidGrupoOk(jid) {
