@@ -19,6 +19,7 @@ const imagens = require('./imagens/store')
 const linkRoutes = require('./linkRoutes')
 const produtosRoutes = require('./produtosRoutes')
 const vitrineRoutes = require('./vitrineRoutes')
+const automacoesRoutes = require('./automacoesRoutes')
 
 const JID_RE = /^[0-9A-Za-z._-]+@g\.us$/
 const DIAS = [0, 1, 2, 3, 4, 5, 6]
@@ -59,6 +60,30 @@ function aplicarConfig(cur, body) {
         minRating: num(q.minRating, 0, 5),
         minSales: Math.round(num(q.minSales, 0, 1000000))
       }
+    }
+    // Disparo v2 (fase 1.4): modo do intervalo e faixas (minimo <= maximo, inteiros)
+    if (body.ads.intervalMode != null) {
+      if (!['fixo', 'aleatorio'].includes(body.ads.intervalMode)) throw Object.assign(new Error('Modo de intervalo invalido (fixo ou aleatorio).'), { status: 400 })
+      cur.ads.intervalMode = body.ads.intervalMode
+    }
+    const faixa = (nomeMin, nomeMax, min, max, rotulo) => {
+      if (body.ads[nomeMin] == null && body.ads[nomeMax] == null) return
+      const a0 = body.ads[nomeMin] != null ? body.ads[nomeMin] : cur.ads[nomeMin]
+      const b0 = body.ads[nomeMax] != null ? body.ads[nomeMax] : cur.ads[nomeMax]
+      if (a0 == null || a0 === '' || b0 == null || b0 === '') throw Object.assign(new Error(rotulo + ': informe o minimo e o maximo.'), { status: 400 })
+      const a = Number(a0)
+      const b = Number(b0)
+      if (!Number.isInteger(a) || !Number.isInteger(b) || a < min || b < min || a > max || b > max) {
+        throw Object.assign(new Error(rotulo + ': use numeros inteiros de ' + min + ' a ' + max + '.'), { status: 400 })
+      }
+      if (a > b) throw Object.assign(new Error(rotulo + ': o minimo nao pode ser maior que o maximo.'), { status: 400 })
+      cur.ads[nomeMin] = a
+      cur.ads[nomeMax] = b
+    }
+    faixa('intervalMin', 'intervalMax', 1, 720, 'Intervalo aleatorio (minutos)')
+    faixa('perRunMin', 'perRunMax', 1, 10, 'Produtos por execucao')
+    if (cur.ads.intervalMode === 'aleatorio' && !(Number.isInteger(cur.ads.intervalMin) && Number.isInteger(cur.ads.intervalMax))) {
+      throw Object.assign(new Error('Informe o intervalo minimo e maximo (em minutos) para o modo aleatorio.'), { status: 400 })
     }
   }
   if (body.amazon) {
@@ -458,6 +483,8 @@ function mount(app, deps) {
   produtosRoutes.mount(app, { auth, readJson, CONFIGS, DATA }, { midiaUrl })
   // Vitrine de ofertas (Fase 1.3)
   vitrineRoutes.mount(app, { auth, readJson, CONFIGS, DATA, logs, sessions })
+  // Executar agora (Fase 1.4)
+  automacoesRoutes.mount(app, { auth, readJson, writeJson, CONFIGS, DATA, logs })
 
   return { aplicarConfig }
 }

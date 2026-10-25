@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { Save, Send } from 'lucide-react';
+import { Play, Save, Send } from 'lucide-react';
 import { Card, CardHeader } from '../components/ui/Card';
 import PageHeader from '../components/ui/PageHeader';
 import { Button, Field, Input, Notice, Select, Switch, Textarea } from '../components/ui/Form';
@@ -14,19 +14,25 @@ const FONTES = [
   ['misto', 'Banco primeiro, API Shopee se faltar'],
 ];
 
+const hora = new Intl.DateTimeFormat('pt-BR', { timeZone: 'America/Sao_Paulo', hour: '2-digit', minute: '2-digit' });
+
 const INTERVALOS = [['5m', '5 minutos'], ['15m', '15 minutos'], ['30m', '30 minutos'], ['1h', '1 hora'], ['2h', '2 horas'], ['3h', '3 horas'], ['6h', '6 horas']];
 
 export default function Automations({ onDataChanged }) {
   const { data: cfg, error, setData } = useAsync(ep.getConfig, []);
   const [ads, setAds] = useState(null);
   const [aff, setAff] = useState(null);
-  const { busy, msg, run } = useAction();
+  const [vivo, setVivo] = useState(null); // contadores atualizados depois de "Executar agora" (nao mexe no formulario)
+  const { busy, msg, setMsg, run } = useAction();
 
   useEffect(() => {
     if (!cfg) return;
     const a = cfg.ads || {};
     setAds({
       enabled: !!a.enabled, interval: a.interval || '2h', dailyLimit: a.dailyLimit || 5,
+      intervalMode: a.intervalMode === 'aleatorio' ? 'aleatorio' : 'fixo',
+      intervalMin: a.intervalMin || 30, intervalMax: a.intervalMax || 90,
+      perRunMin: a.perRunMin || 1, perRunMax: a.perRunMax || 1,
       window: { from: a.window?.from || '09:00', to: a.window?.to || '22:00' },
       days: Array.isArray(a.days) && a.days.length ? a.days : [0, 1, 2, 3, 4, 5, 6],
       source: a.source || 'api',
@@ -47,6 +53,16 @@ export default function Automations({ onDataChanged }) {
   }, 'Automações salvas.');
 
   const groupsCount = (cfg.groups || []).length;
+  const adsVivo = vivo || cfg.ads || {};
+  const proximo = adsVivo.nextTryAt && new Date(adsVivo.nextTryAt).getTime() > Date.now() ? hora.format(new Date(adsVivo.nextTryAt)) : '';
+  const executarAgora = async () => {
+    if (!window.confirm(`Executar agora? Vou enviar até ${ads.perRunMax} produto(s) para ${groupsCount} grupo(s) de destino, ignorando o intervalo e o horário. Vale o que está SALVO (salve antes se mudou algo).`)) return;
+    const o = await run('now', ep.runNow);
+    if (!o) return;
+    setMsg({ tone: o.ok ? 'ok' : 'warn', text: o.message });
+    ep.getConfig().then((c) => setVivo(c.ads || {})).catch(() => {});
+    onDataChanged?.();
+  };
   const toggleDay = (d) => {
     const days = ads.days.includes(d) ? ads.days.filter((x) => x !== d) : [...ads.days, d].sort();
     setAds({ ...ads, days });
@@ -67,16 +83,39 @@ export default function Automations({ onDataChanged }) {
           <CardHeader
             id="ads-title"
             title="Anúncios automáticos"
-            subtitle={`${groupsCount} grupo(s) na divulgação · ${cfg.ads?.sentToday || 0} enviados hoje`}
+            subtitle={`${groupsCount} grupo(s) na divulgação · ${adsVivo.sentToday || 0} enviados hoje`}
             action={<Switch on={ads.enabled} onChange={(v) => setAds({ ...ads, enabled: v })} label="Ligar anúncios automáticos" />}
           />
           <div className="grid gap-4 sm:grid-cols-2">
-            <Field label="Intervalo" htmlFor="ads-int">
-              <Select id="ads-int" value={ads.interval} onChange={(e) => setAds({ ...ads, interval: e.target.value })}>
-                {INTERVALOS.map(([v, l]) => <option key={v} value={v}>{l}</option>)}
+            <Field label="Modo do intervalo" htmlFor="ads-mode">
+              <Select id="ads-mode" value={ads.intervalMode} onChange={(e) => setAds({ ...ads, intervalMode: e.target.value })}>
+                <option value="fixo">Fixo</option>
+                <option value="aleatorio">Aleatório (mín–máx)</option>
               </Select>
             </Field>
-            <Field label="Limite por dia" htmlFor="ads-lim" hint="1 a 200">
+            {ads.intervalMode === 'aleatorio' ? (
+              <Field label="Intervalo aleatório (minutos)" htmlFor="ads-imin" hint="O próximo disparo é sorteado entre o mínimo e o máximo (1 a 720).">
+                <div className="flex items-center gap-2">
+                  <Input id="ads-imin" type="number" min={1} max={720} aria-label="Mínimo em minutos" value={ads.intervalMin} onChange={(e) => setAds({ ...ads, intervalMin: e.target.value })} />
+                  <span className="text-xs text-subtle">a</span>
+                  <Input type="number" min={1} max={720} aria-label="Máximo em minutos" value={ads.intervalMax} onChange={(e) => setAds({ ...ads, intervalMax: e.target.value })} />
+                </div>
+              </Field>
+            ) : (
+              <Field label="Intervalo" htmlFor="ads-int">
+                <Select id="ads-int" value={ads.interval} onChange={(e) => setAds({ ...ads, interval: e.target.value })}>
+                  {INTERVALOS.map(([v, l]) => <option key={v} value={v}>{l}</option>)}
+                </Select>
+              </Field>
+            )}
+            <Field label="Produtos por execução" htmlFor="ads-pmin" hint="Sorteia entre o mínimo e o máximo (1 a 10); pausa de 20 a 40 s entre eles.">
+              <div className="flex items-center gap-2">
+                <Input id="ads-pmin" type="number" min={1} max={10} aria-label="Mínimo de produtos" value={ads.perRunMin} onChange={(e) => setAds({ ...ads, perRunMin: e.target.value })} />
+                <span className="text-xs text-subtle">a</span>
+                <Input type="number" min={1} max={10} aria-label="Máximo de produtos" value={ads.perRunMax} onChange={(e) => setAds({ ...ads, perRunMax: e.target.value })} />
+              </div>
+            </Field>
+            <Field label="Limite por dia" htmlFor="ads-lim" hint="Conta produtos enviados. 1 a 200">
               <Input id="ads-lim" type="number" min={1} max={200} value={ads.dailyLimit} onChange={(e) => setAds({ ...ads, dailyLimit: e.target.value })} />
             </Field>
             <Field label="Publicar a partir de" htmlFor="ads-from">
@@ -86,6 +125,10 @@ export default function Automations({ onDataChanged }) {
               <Input id="ads-to" type="time" value={ads.window.to} onChange={(e) => setAds({ ...ads, window: { ...ads.window, to: e.target.value } })} />
             </Field>
           </div>
+          {Number(ads.perRunMax) > 3 && (
+            <Notice className="mt-4" msg={{ tone: 'warn', text: 'Muitos envios seguidos aumentam o risco de bloqueio do WhatsApp. Recomendo no máximo 3 produtos por execução.' }} />
+          )}
+          {proximo && <p className="mt-3 text-xs text-muted">Próximo disparo a partir de <b className="text-cream">{proximo}</b> (Brasília).</p>}
           <fieldset className="mt-4">
             <legend className="mb-1.5 text-xs font-medium text-muted">Dias de funcionamento</legend>
             <div className="flex flex-wrap gap-1.5">
@@ -105,6 +148,9 @@ export default function Automations({ onDataChanged }) {
           <div className="mt-5 flex flex-wrap gap-2 border-t border-line pt-4">
             <Button variant="secondary" size="sm" icon={Send} busy={busy === 'test'} onClick={() => run('test', ep.adTestAll, (o) => o.message || 'Teste enviado.')}>
               Enviar teste agora
+            </Button>
+            <Button variant="secondary" size="sm" icon={Play} busy={busy === 'now'} onClick={executarAgora}>
+              Executar agora
             </Button>
             <a href="#grupos" className="link-subtle self-center">Escolher grupos →</a>
           </div>

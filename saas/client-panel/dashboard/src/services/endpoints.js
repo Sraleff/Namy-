@@ -18,6 +18,7 @@ export const saveAdGroups = (groups) => post('/whatsapp/groups', { groups });
 // Anúncios / Shopee
 export const adTestToGroup = (jid) => post('/ads/test', { jid });
 export const adTestAll = () => post('/bot/test');
+export const runNow = () => post('/automacoes/executar');
 export const shopeeTest = () => post('/shopee/test');
 
 // Central de divulgação
