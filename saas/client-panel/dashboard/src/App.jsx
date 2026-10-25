@@ -15,6 +15,7 @@ import Vitrine from './pages/Vitrine';
 import Comissoes from './pages/Comissoes';
 import Agendadas from './pages/Agendadas';
 import Cupons from './pages/Cupons';
+import Membros from './pages/Membros';
 import Images from './pages/Images';
 import Contacts from './pages/Contacts';
 import Logs from './pages/Logs';
@@ -37,6 +38,7 @@ const pages = {
   comissoes: Comissoes,
   agendadas: Agendadas,
   cupons: Cupons,
+  membros: Membros,
   imagens: Images,
   contatos: Contacts,
   logs: Logs,

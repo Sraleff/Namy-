@@ -70,6 +70,11 @@ export const refreshCommissions = (de = '', ate = '') => post('/comissoes/atuali
 export const getCommissionsConfig = () => api('/comissoes/config');
 export const saveCommissionsConfig = (porGrupo) => api('/comissoes/config', { method: 'PUT', body: { porGrupo } });
 
+// Monitor de membros (so contagens por grupo e por dia)
+export const getMembers = (dias = 30) => api(`/membros?dias=${dias}`);
+export const refreshMembers = () => post('/membros/atualizar');
+export const saveMembersConfig = (body) => post('/membros/config', body);
+
 // Cupons cadastrados pelo cliente
 export const listCoupons = () => api('/cupons');
 export const createCoupon = (body) => post('/cupons/criar', body);

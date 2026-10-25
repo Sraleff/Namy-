@@ -24,6 +24,7 @@ const copyRoutes = require('./copyRoutes')
 const comissoesRoutes = require('./comissoesRoutes')
 const agendadasRoutes = require('./agendadasRoutes')
 const cuponsRoutes = require('./cuponsRoutes')
+const membrosRoutes = require('./membrosRoutes')
 
 const JID_RE = /^[0-9A-Za-z._-]+@g\.us$/
 const DIAS = [0, 1, 2, 3, 4, 5, 6]
@@ -494,6 +495,7 @@ function mount(app, deps) {
   comissoesRoutes.mount(app, { auth, readJson, writeJson, CONFIGS, DATA })
   agendadasRoutes.mount(app, { auth, readJson, writeJson, CONFIGS, DATA, logs, sessions })
   cuponsRoutes.mount(app, { auth, readJson, CONFIGS, DATA })
+  membrosRoutes.mount(app, { auth, readJson, writeJson, CONFIGS, DATA, sessions })
 
   return { aplicarConfig }
 }

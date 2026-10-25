@@ -35,6 +35,12 @@ function onMensagem(fn) {
   if (typeof fn === 'function') ouvintes.add(fn)
   return () => ouvintes.delete(fn)
 }
+// Entradas e saidas de membros (monitor de membros, fase 2.4): fn(userId, evento do Baileys)
+const ouvintesMembros = new Set()
+function onMembros(fn) {
+  if (typeof fn === 'function') ouvintesMembros.add(fn)
+  return () => ouvintesMembros.delete(fn)
+}
 
 // Diagnostico (desligado por padrao): metadados, sem conteudo, das mensagens de grupo
 // que chegam, em data/captura-debug.jsonl (ultimas 300 linhas). Ligue com NAMY_DEBUG_CAPTURA=1
@@ -354,7 +360,12 @@ async function start(userId, phone, onStatus) {
 
   // Grupo mudou: metadado em cache fica velho
   sock.ev.on('groups.update', (lista) => { for (const g of lista || []) if (g.id) memoria.esquecerGrupo(userId, g.id) })
-  sock.ev.on('group-participants.update', (ev) => { if (ev && ev.id) memoria.esquecerGrupo(userId, ev.id) })
+  sock.ev.on('group-participants.update', (ev) => {
+    if (ev && ev.id) memoria.esquecerGrupo(userId, ev.id)
+    for (const fn of ouvintesMembros) {
+      Promise.resolve().then(() => fn(userId, ev)).catch((e) => console.error('[SESSAO] ouvinte de membros', e.message))
+    }
+  })
 
   return publicState(userId)
 }
@@ -564,4 +575,4 @@ async function sendOffer(userId, jid, { text, imageUrl, imagePath }) {
   }
 }
 
-module.exports = { pareada, start, stop, publicState, restoreRegistered, listGroups, groupInfo, inviteLink, sendText, sendOffer, get, onMensagem }
+module.exports = { pareada, start, stop, publicState, restoreRegistered, listGroups, groupInfo, inviteLink, sendText, sendOffer, get, onMensagem, onMembros }
