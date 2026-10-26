@@ -34,6 +34,7 @@ export default function Groups({ query = '' }) {
   const summary = useAsync(ep.affiliateSummary, []);
   const niches = summary.data?.nichos || [];
   const savedBy = new Map((data?.selected || []).map((g) => [g.jid, g]));
+  const fontes = new Set((data?.sources || []).map((g) => g.jid)); // grupo fonte (captura) nunca é destino
   const [q, setQ] = useState(query);
   const [picked, setPicked] = useState(null); // Set de jids escolhidos (null = ainda não editado)
   const { busy, msg, setMsg, run } = useAction();
@@ -97,15 +98,17 @@ export default function Groups({ query = '' }) {
           <ul className="divide-y divide-line">
             {filtered.map((g) => {
               const on = selected.has(g.jid);
+              const fonte = fontes.has(g.jid);
               return (
                 <li key={g.jid} className="flex flex-col gap-3 p-4 transition-colors hover:bg-white/[0.02] sm:flex-row sm:items-center">
                   <label className="flex min-w-0 flex-1 cursor-pointer items-center gap-3">
-                    <input type="checkbox" checked={on} onChange={() => toggle(g.jid)} className="h-4 w-4 shrink-0 accent-indigo-500" />
+                    <input type="checkbox" checked={on} disabled={fonte && !on} onChange={() => toggle(g.jid)} className="h-4 w-4 shrink-0 accent-indigo-500" />
                     <span className="min-w-0">
                       <span className="block truncate text-sm font-medium text-cream">{g.name}</span>
                       <span className="block text-xs text-subtle">{formatNumber(g.participants)} membros</span>
                     </span>
                     {on && <Badge variant="info">Divulgação</Badge>}
+                    {fonte && <Badge variant="warning">{on ? 'Também é fonte: não recebe ofertas. Desmarque.' : 'Grupo fonte (captura): não recebe ofertas'}</Badge>}
                   </label>
                   <div className="flex flex-wrap gap-2 pl-7 sm:pl-0">
                     {on && savedBy.has(g.jid) && niches.length > 0 && (

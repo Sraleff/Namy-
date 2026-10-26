@@ -5,6 +5,7 @@ import PageHeader from '../components/ui/PageHeader';
 import { Button, Field, Input, Notice, Select, Switch, Textarea } from '../components/ui/Form';
 import { useAsync } from '../hooks/useAsync';
 import { useAction } from '../hooks/useAction';
+import Diagnostico from '../components/dashboard/Diagnostico';
 import * as ep from '../services/endpoints';
 
 const DIAS = [[0, 'Dom'], [1, 'Seg'], [2, 'Ter'], [3, 'Qua'], [4, 'Qui'], [5, 'Sex'], [6, 'Sáb']];
@@ -77,6 +78,7 @@ export default function Automations({ onDataChanged }) {
         actions={<Button icon={Save} busy={busy === 'save'} onClick={save}>Salvar</Button>}
       />
       <Notice className="mb-4" msg={msg} />
+      <Diagnostico />
 
       <div className="grid gap-4 lg:grid-cols-2">
         <Card aria-labelledby="ads-title">

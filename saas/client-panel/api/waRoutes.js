@@ -98,7 +98,8 @@ module.exports = function mount(app, { auth, readJson, writeJson, CONFIGS, DATA,
       const list = await sessions.listGroups(req.user.id)
       const configs = readJson(CONFIGS, {})
       const selected = (configs[req.user.id] && configs[req.user.id].groups) || []
-      res.json({ ok: true, groups: list, selected })
+      const sources = (configs[req.user.id] && configs[req.user.id].sources) || []
+      res.json({ ok: true, groups: list, selected, sources })
     } catch (e) {
       res.status(400).json({ error: e.message || 'Falha ao listar grupos' })
     }
@@ -121,6 +122,12 @@ module.exports = function mount(app, { auth, readJson, writeJson, CONFIGS, DATA,
         keywords: nichos.palavrasExtras(g.keywords != null ? g.keywords : velho.keywords)
       }
     }).filter((g) => jidGrupo(g.jid))
+    // Grupo fonte (captura) nunca e destino: antes isso era ignorado em silencio
+    const fontes = new Set((cur.sources || []).map((g) => g.jid))
+    const conflito = cur.groups.filter((g) => fontes.has(g.jid))
+    if (conflito.length) {
+      return res.status(400).json({ error: conflito.map((g) => '"' + g.name + '"').join(', ') + (conflito.length > 1 ? ' sao grupos fonte' : ' e grupo fonte') + ' (captura). Um grupo nao pode ser fonte e destino: desmarque-' + (conflito.length > 1 ? 'os' : 'o') + ' aqui ou tire da lista de fontes em Ofertas.' })
+    }
     cur.updatedAt = new Date().toISOString()
     configs[req.user.id] = cur
     writeJson(CONFIGS, configs)

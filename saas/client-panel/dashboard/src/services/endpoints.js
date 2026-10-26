@@ -70,6 +70,9 @@ export const refreshCommissions = (de = '', ate = '') => post('/comissoes/atuali
 export const getCommissionsConfig = () => api('/comissoes/config');
 export const saveCommissionsConfig = (porGrupo) => api('/comissoes/config', { method: 'PUT', body: { porGrupo } });
 
+// Diagnóstico: por que não enviou?
+export const getDiagnostic = () => api('/diagnostico');
+
 // Monitor de membros (so contagens por grupo e por dia)
 export const getMembers = (dias = 30) => api(`/membros?dias=${dias}`);
 export const refreshMembers = () => post('/membros/atualizar');
