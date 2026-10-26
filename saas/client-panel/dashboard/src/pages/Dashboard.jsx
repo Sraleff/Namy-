@@ -7,6 +7,7 @@ import CampaignsList from '../components/dashboard/CampaignsList';
 import AIFeatures from '../components/dashboard/AIFeatures';
 import ActivityTimeline from '../components/dashboard/ActivityTimeline';
 import RecentGroups from '../components/dashboard/RecentGroups';
+import Onboarding from '../components/dashboard/Onboarding';
 import Skeleton from '../components/ui/Skeleton';
 import { USE_MOCK } from '../services/dashboard';
 
@@ -47,6 +48,7 @@ export default function Dashboard({ data, loading, error, onRetry, onChange }) {
       <div className="grid gap-6 2xl:grid-cols-[minmax(0,1fr)_280px]">
         <div className="min-w-0 space-y-6">
           <Greeting name={data.user.name} />
+          {!USE_MOCK && <Onboarding />}
 
           <section aria-label="Métricas" className="grid grid-cols-2 gap-3 sm:gap-4 xl:grid-cols-4">
             {data.stats.map((s) => <StatCard key={s.id} {...s} />)}

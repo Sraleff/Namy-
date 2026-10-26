@@ -8,6 +8,7 @@ import { useAsync } from '../hooks/useAsync';
 import { useAction } from '../hooks/useAction';
 import * as ep from '../services/endpoints';
 import { formatDate } from '../lib/format';
+import AjudaWhatsApp from '../components/dashboard/AjudaWhatsApp';
 
 const STATUS = {
   connected: ['success', 'Conectado'],
@@ -90,7 +91,7 @@ function WhatsAppCard({ initialPhone, onChanged }) {
         </p>
       )}
 
-      {st?.error && <Notice className="mt-4" msg={{ tone: 'warn', text: st.error }} />}
+      <AjudaWhatsApp ajuda={st?.ajuda} />
       <Notice className="mt-4" msg={msg} />
 
       <div className="mt-5 flex flex-wrap gap-2 border-t border-line pt-4">

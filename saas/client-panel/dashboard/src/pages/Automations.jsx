@@ -6,6 +6,7 @@ import { Button, Field, Input, Notice, Select, Switch, Textarea } from '../compo
 import { useAsync } from '../hooks/useAsync';
 import { useAction } from '../hooks/useAction';
 import Diagnostico from '../components/dashboard/Diagnostico';
+import PerfilEnvio from '../components/dashboard/PerfilEnvio';
 import * as ep from '../services/endpoints';
 
 const DIAS = [[0, 'Dom'], [1, 'Seg'], [2, 'Ter'], [3, 'Qua'], [4, 'Qui'], [5, 'Sex'], [6, 'Sáb']];
@@ -34,6 +35,7 @@ export default function Automations({ onDataChanged }) {
       intervalMode: a.intervalMode === 'aleatorio' ? 'aleatorio' : 'fixo',
       intervalMin: a.intervalMin || 30, intervalMax: a.intervalMax || 90,
       perRunMin: a.perRunMin || 1, perRunMax: a.perRunMax || 1,
+      groupPauseMin: a.groupPauseMin || 0, groupPauseMax: a.groupPauseMax || 0,
       window: { from: a.window?.from || '09:00', to: a.window?.to || '22:00' },
       days: Array.isArray(a.days) && a.days.length ? a.days : [0, 1, 2, 3, 4, 5, 6],
       source: a.source || 'api',
@@ -79,6 +81,7 @@ export default function Automations({ onDataChanged }) {
       />
       <Notice className="mb-4" msg={msg} />
       <Diagnostico />
+      <PerfilEnvio ads={ads} onPick={(p) => setAds({ ...ads, ...p })} />
 
       <div className="grid gap-4 lg:grid-cols-2">
         <Card aria-labelledby="ads-title">
@@ -115,6 +118,13 @@ export default function Automations({ onDataChanged }) {
                 <Input id="ads-pmin" type="number" min={1} max={10} aria-label="Mínimo de produtos" value={ads.perRunMin} onChange={(e) => setAds({ ...ads, perRunMin: e.target.value })} />
                 <span className="text-xs text-subtle">a</span>
                 <Input type="number" min={1} max={10} aria-label="Máximo de produtos" value={ads.perRunMax} onChange={(e) => setAds({ ...ads, perRunMax: e.target.value })} />
+              </div>
+            </Field>
+            <Field label="Pausa entre grupos (segundos)" htmlFor="ads-gpmin" hint="Espera entre um grupo e o próximo ao enviar a mesma oferta (0 a 60). 0 = sem pausa.">
+              <div className="flex items-center gap-2">
+                <Input id="ads-gpmin" type="number" min={0} max={60} aria-label="Pausa mínima em segundos" value={ads.groupPauseMin} onChange={(e) => setAds({ ...ads, groupPauseMin: e.target.value })} />
+                <span className="text-xs text-muted">a</span>
+                <Input type="number" min={0} max={60} aria-label="Pausa máxima em segundos" value={ads.groupPauseMax} onChange={(e) => setAds({ ...ads, groupPauseMax: e.target.value })} />
               </div>
             </Field>
             <Field label="Limite por dia" htmlFor="ads-lim" hint="Conta produtos enviados. 1 a 200">

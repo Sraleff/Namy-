@@ -176,6 +176,16 @@ async function daApi(ctx, grupos, pulados) {
 // Atribuicao por grupo (fase 2.1): um link de afiliado por grupo, ligado em Comissoes
 const porGrupo = (cfg) => !!(cfg && cfg.comissoes && cfg.comissoes.porGrupo)
 
+const dormirReal = (ms) => new Promise((r) => setTimeout(r, ms))
+
+// ads.groupPauseMin..Max (segundos); ausente/invalido = sem pausa
+function pausaEntreGrupos(ads, random = Math.random) {
+  const a = Number(ads && ads.groupPauseMin)
+  const b = Number(ads && ads.groupPauseMax)
+  if (!Number.isFinite(a) || !Number.isFinite(b) || b <= 0 || a < 0 || a > b || b > 60) return 0
+  return Math.round((a + random() * (b - a)) * 1000)
+}
+
 function escolherImagem(ctx, oferta) {
   const usarGerada = !!(ctx.cfg.ads && ctx.cfg.ads.useGeneratedImages)
   const gerada = usarGerada ? imagens.preferidaDe(ctx.dataDir, ctx.userId, oferta.produtoKey) : ''
@@ -193,7 +203,7 @@ function log(logs, ctx, entry) {
  * Mesmo contrato do divulgar.publicarOferta. Extra no retorno:
  *   pulados (grupos sem oferta relevante) e semOferta (nada para ninguem).
  */
-async function publicar({ userId, cfg, groups, dataDir, logs, sessions }) {
+async function publicar({ userId, cfg, groups, dataDir, logs, sessions, dormir, random }) {
   const destinos = destinosDe(cfg, groups)
   if (!destinos.length) {
     const err = new Error('Salve pelo menos um grupo na aba Anuncios.')
@@ -249,7 +259,13 @@ async function publicar({ userId, cfg, groups, dataDir, logs, sessions }) {
     amostra = amostra || oferta.nome
     const img = escolherImagem(ctx, oferta)
     const ok = []
-    for (const g of grupos) {
+    for (let gi = 0; gi < grupos.length; gi++) {
+      const g = grupos[gi]
+      // Pausa entre grupos (C1): evita mandar a mesma oferta para todos de uma vez. 0 = como antes.
+      if (gi > 0) {
+        const ms = pausaEntreGrupos(cfg.ads, random)
+        if (ms > 0) await (dormir || dormirReal)(ms)
+      }
       try {
         let texto = oferta.texto
         if (porGrupo(cfg) && oferta.textoOriginal) {
@@ -297,4 +313,4 @@ async function publicar({ userId, cfg, groups, dataDir, logs, sessions }) {
   }
 }
 
-module.exports = { publicar, destinosDe, agrupar, fontesDe }
+module.exports = { publicar, destinosDe, agrupar, fontesDe, pausaEntreGrupos }

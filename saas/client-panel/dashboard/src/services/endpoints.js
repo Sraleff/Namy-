@@ -70,6 +70,13 @@ export const refreshCommissions = (de = '', ate = '') => post('/comissoes/atuali
 export const getCommissionsConfig = () => api('/comissoes/config');
 export const saveCommissionsConfig = (porGrupo) => api('/comissoes/config', { method: 'PUT', body: { porGrupo } });
 
+// Primeiros passos (checklist)
+export const getOnboarding = () => api('/onboarding');
+
+// Perfis de envio e medidor de risco (não gravam nada)
+export const getProfiles = () => api('/automacoes/perfis');
+export const checkRisk = (ads) => post('/automacoes/risco', { ads });
+
 // Diagnóstico: por que não enviou?
 export const getDiagnostic = () => api('/diagnostico');
 

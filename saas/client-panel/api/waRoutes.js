@@ -47,7 +47,8 @@ module.exports = function mount(app, { auth, readJson, writeJson, CONFIGS, DATA,
   }
 
   app.get('/whatsapp/status', auth, (req, res) => {
-    res.json(sessions.publicState(req.user.id))
+    const st = sessions.publicState(req.user.id)
+    res.json(Object.assign({}, st, { ajuda: require('./waAjuda').ajudaDe(st) }))
   })
 
   app.post('/whatsapp/connect', auth, async (req, res) => {

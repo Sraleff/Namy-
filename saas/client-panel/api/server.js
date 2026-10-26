@@ -87,7 +87,9 @@ function defaultConfig(userId, email) {
       source: 'api',
       quality: { minDiscount: 0, minRating: 0, minSales: 0 },
       useGeneratedImages: false,
-      poolTtlHours: 48
+      poolTtlHours: 48,
+      groupPauseMin: 4,
+      groupPauseMax: 8
     },
     amazon: { tag: '' },
     mercadolivre: { etiqueta: '', toolId: '' },

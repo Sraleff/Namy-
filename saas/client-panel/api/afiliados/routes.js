@@ -26,6 +26,8 @@ const agendadasRoutes = require('./agendadasRoutes')
 const cuponsRoutes = require('./cuponsRoutes')
 const membrosRoutes = require('./membrosRoutes')
 const diagnosticoRoutes = require('./diagnosticoRoutes')
+const perfisRoutes = require('./perfisRoutes')
+const onboarding = require('./onboarding')
 
 const JID_RE = /^[0-9A-Za-z._-]+@g\.us$/
 const DIAS = [0, 1, 2, 3, 4, 5, 6]
@@ -88,6 +90,8 @@ function aplicarConfig(cur, body) {
     }
     faixa('intervalMin', 'intervalMax', 1, 720, 'Intervalo aleatorio (minutos)')
     faixa('perRunMin', 'perRunMax', 1, 10, 'Produtos por execucao')
+    // Pausa entre grupos no envio automatico (C1): 0 = sem pausa, como era antes
+    faixa('groupPauseMin', 'groupPauseMax', 0, 60, 'Pausa entre grupos (segundos)')
     if (cur.ads.intervalMode === 'aleatorio' && !(Number.isInteger(cur.ads.intervalMin) && Number.isInteger(cur.ads.intervalMax))) {
       throw Object.assign(new Error('Informe o intervalo minimo e maximo (em minutos) para o modo aleatorio.'), { status: 400 })
     }
@@ -498,6 +502,8 @@ function mount(app, deps) {
   cuponsRoutes.mount(app, { auth, readJson, CONFIGS, DATA })
   membrosRoutes.mount(app, { auth, readJson, writeJson, CONFIGS, DATA, sessions })
   diagnosticoRoutes.mount(app, { auth, readJson, CONFIGS, DATA, sessions })
+  perfisRoutes.mount(app, { auth, readJson, CONFIGS })
+  onboarding.mount(app, { auth, readJson, CONFIGS, DATA, sessions })
 
   return { aplicarConfig }
 }
