@@ -412,16 +412,8 @@ app.get('/bot/config', (req, res) => {
   if (!cfg.license.active || exp < new Date()) {
     return res.status(403).json({ error: 'Licenca expirada', license: cfg.license })
   }
-  res.json({
-    tenantId: cfg.tenantId,
-    botName: cfg.botName,
-    phone: cfg.phone,
-    affiliate: cfg.affiliate,
-    shopee: cfg.shopee,
-    ads: cfg.ads,
-    ai: cfg.ai,
-    license: cfg.license
-  })
+  // O segredo da Shopee nunca vai para o bot (B6): ver botConfig.js
+  res.json(require('./botConfig').paraBot(cfg))
 })
 
 app.post('/bot/status', (req, res) => {

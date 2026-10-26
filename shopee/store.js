@@ -1,7 +1,8 @@
 const fs = require('fs')
 const path = require('path')
 
-const ARQUIVO = path.join(__dirname, '..', 'dados', 'shopee.json')
+// NAMY_SHOPEE_STORE existe so para teste (o selftest aponta para uma pasta temporaria); sem ela, nada muda
+const ARQUIVO = process.env.NAMY_SHOPEE_STORE ? path.resolve(process.env.NAMY_SHOPEE_STORE) : path.join(__dirname, '..', 'dados', 'shopee.json')
 
 function vazio() {
     return {

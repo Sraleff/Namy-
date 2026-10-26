@@ -1,5 +1,14 @@
 const assert = require('assert')
 const crypto = require('crypto')
+const fs = require('fs')
+const os = require('os')
+const path = require('path')
+
+// O selftest NUNCA toca em dados/shopee.json: o store aponta para uma pasta temporaria, apagada no fim.
+// Precisa vir antes de qualquer require do modulo shopee.
+const TMP = fs.mkdtempSync(path.join(os.tmpdir(), 'namy-shopee-selftest-'))
+process.env.NAMY_SHOPEE_STORE = path.join(TMP, 'shopee.json')
+const limparTmp = () => { try { fs.rmSync(TMP, { recursive: true, force: true }) } catch { /* melhor esforco */ } }
 const produtos = require('./produtos')
 const templates = require('./templates')
 const commands = require('./commands')
@@ -119,13 +128,18 @@ function testarLimiteEDuplicata() {
 function testarModuloSemCredencial() {
     const prevId = process.env.SHOPEE_APP_ID
     const prevSec = process.env.SHOPEE_SECRET
+    const prevEn = process.env.SHOPEE_ENABLED
     delete process.env.SHOPEE_APP_ID
     delete process.env.SHOPEE_SECRET
+    // SHOPEE_ENABLED=false: o resultado nao depende de haver grupo de cliente nesta maquina
+    process.env.SHOPEE_ENABLED = 'false'
     const cfg = require('./config')
     assert.strictEqual(cfg.credenciaisOk(), false)
     assert.strictEqual(cfg.habilitado(), false)
     if (prevId) process.env.SHOPEE_APP_ID = prevId
     if (prevSec) process.env.SHOPEE_SECRET = prevSec
+    if (prevEn !== undefined) process.env.SHOPEE_ENABLED = prevEn
+    else delete process.env.SHOPEE_ENABLED
 }
 
 async function testarIniciarSemCredencial() {
@@ -135,11 +149,12 @@ async function testarIniciarSemCredencial() {
     try {
         delete process.env.SHOPEE_APP_ID
         delete process.env.SHOPEE_SECRET
-        delete process.env.SHOPEE_ENABLED
+        process.env.SHOPEE_ENABLED = 'false'
         const shopee = require('./index')
         const r = await shopee.iniciar({ sendMessage() { throw new Error('nao deveria enviar') } })
         assert.strictEqual(r.ok, false)
-        assert.strictEqual(r.motivo, 'sem_credenciais')
+        // o modulo hoje responde 'desligado' (antes: 'sem_credenciais')
+        assert.strictEqual(r.motivo, 'desligado')
     } finally {
         if (prevId !== undefined) process.env.SHOPEE_APP_ID = prevId
         else delete process.env.SHOPEE_APP_ID
@@ -220,7 +235,8 @@ async function main() {
     console.log('shopee selftest ok')
 }
 
-main().catch((erro) => {
+main().then(limparTmp, (erro) => {
+    limparTmp()
     console.error(erro)
     process.exit(1)
 })
