@@ -5,6 +5,10 @@
 const sessions = require('./sessions')
 const logs = require('./logs')
 const store = require('./divulgacao/store')
+const diagnostico = require('./afiliados/diagnostico')
+const pool = require('./afiliados/pool')
+const comissoes = require('./afiliados/comissoes')
+const limites = require('./afiliados/limites')
 
 let BAILEYS_VERSION = ''
 try { BAILEYS_VERSION = require('@whiskeysockets/baileys/package.json').version } catch (_) {}
@@ -105,6 +109,19 @@ module.exports = function mount(app, { auth, readJson, CONFIGS, DATA }) {
     const contatosHoje = db.contacts.filter((c) => c.createdAt && diaBR(c.createdAt) === hoje).length
     const automacoes = (cfg.ads && cfg.ads.enabled ? 1 : 0) + rodando
     const ads = cfg.ads || {}
+
+    // --- Resumo da tela Início: o que já existe nos dados, nada estimado
+    const fontes = Array.isArray(cfg.sources) ? cfg.sources : []
+    const jidsFonte = new Set(fontes.map((g) => g && g.jid))
+    let diag = null
+    try { diag = diagnostico.diagnosticar({ userId, cfg, dataDir: DATA, sessions }) } catch (_) {}
+    let ofertasNoBanco = null
+    try { ofertasNoBanco = pool.listar(DATA, userId).filter((i) => i.ativo && !i.expirado).length } catch (_) {}
+    let comissao = null
+    try {
+      const u = limites.podeRecurso(cfg, 'comissoes') ? comissoes.ultimo(DATA, userId) : null
+      if (u) comissao = { pendente: u.totais.pendente, concluido: u.totais.concluido, vendasPendentes: u.vendas.pendente, atualizadoEm: u.atualizadoEm }
+    } catch (_) {}
 
     res.json({
       user: {
@@ -207,6 +224,20 @@ module.exports = function mount(app, { auth, readJson, CONFIGS, DATA }) {
           id: `log-${i}`, title: l.message, time: diaBR(l.at) === hoje ? horaBR(l.at) : diaBR(l.at), unread: diaBR(l.at) === hoje
         }))
       ],
+      resumo: {
+        automacao: {
+          ligada: !!ads.enabled,
+          intervalo: ads.interval || '',
+          enviadosHoje: diag ? diag.hoje.enviados : null,
+          limiteHoje: diag ? diag.hoje.limite : null,
+          pode: diag ? diag.pode : null,
+          frase: diag ? diag.frase : ''
+        },
+        ofertasNoBanco,
+        comissao,
+        grupos: { divulgacao: salvos.length, captura: fontes.length, total: grupos.live ? grupos.list.length : null },
+        conflitos: salvos.filter((g) => jidsFonte.has(g.jid)).map((g) => ({ jid: g.jid, name: g.name }))
+      },
       meta: { groupsLive: grupos.live, generatedAt: new Date().toISOString() }
     })
   })

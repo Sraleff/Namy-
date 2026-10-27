@@ -1,22 +1,20 @@
-import { useEffect } from 'react';
-import { Crown, LogOut, X } from 'lucide-react';
+import { Crown, LogOut } from 'lucide-react';
 import Logo from '../ui/Logo';
 import { navItems } from './navigation';
 import { cx } from '../../lib/format';
 
-function NavLink({ item, active, onSelect }) {
+function NavLink({ item, active }) {
   const Icon = item.icon;
   return (
     <li>
       <a
         href={`#${item.id}`}
-        onClick={() => onSelect(item.id)}
         aria-current={active ? 'page' : undefined}
         className={cx(
           'group flex items-center gap-3 rounded-xl px-3.5 py-2.5 text-sm font-medium transition-all',
           active
             ? 'bg-brand-gradient text-white shadow-glow'
-            : 'text-slate-300 hover:bg-white/[0.04] hover:text-cream',
+            : 'text-slate-300 hover:translate-x-0.5 hover:bg-white/[0.06] hover:text-cream',
         )}
       >
         <Icon
@@ -31,7 +29,7 @@ function NavLink({ item, active, onSelect }) {
 
 function ProCard({ license }) {
   return (
-    <div className="relative overflow-hidden rounded-2xl border border-line bg-gradient-to-br from-ink-750 to-ink-800 p-4">
+    <div className="glass relative overflow-hidden rounded-2xl p-4">
       <div aria-hidden="true" className="absolute -right-8 -top-10 h-28 w-28 rounded-full bg-brand-500/20 blur-2xl" />
       <p className="flex items-center gap-2 text-sm font-semibold text-cream">
         <Crown className="h-4 w-4 text-amber-400" aria-hidden="true" />
@@ -73,52 +71,23 @@ function UserCard({ user, onLogout }) {
   );
 }
 
-export default function Sidebar({ user, active, onSelect, open, onClose, onLogout }) {
-  // Fecha o drawer mobile com ESC
-  useEffect(() => {
-    if (!open) return;
-    const onKey = (e) => e.key === 'Escape' && onClose();
-    window.addEventListener('keydown', onKey);
-    return () => window.removeEventListener('keydown', onKey);
-  }, [open, onClose]);
-
-  const handleSelect = (id) => {
-    onSelect(id);
-    onClose();
-  };
-
+// Só no desktop (lg). No celular e no tablet a navegação é a barra inferior + o Perfil.
+export default function Sidebar({ user, active, onLogout }) {
   return (
     <>
-      {/* Overlay mobile */}
-      <div
-        aria-hidden="true"
-        onClick={onClose}
-        className={cx(
-          'fixed inset-0 z-30 bg-black/60 backdrop-blur-sm transition-opacity lg:hidden',
-          open ? 'opacity-100' : 'pointer-events-none opacity-0',
-        )}
-      />
-
       <aside
         id="sidebar"
         aria-label="Navegação principal"
-        className={cx(
-          'fixed inset-y-0 left-0 z-40 flex w-[272px] flex-col border-r border-line bg-ink-900 transition-transform duration-300',
-          'lg:translate-x-0',
-          open ? 'translate-x-0' : '-translate-x-full',
-        )}
+        className="fixed inset-y-0 left-0 z-40 hidden w-[272px] flex-col border-r border-line bg-ink-900/70 backdrop-blur-xl lg:flex"
       >
         <div className="flex items-center justify-between px-6 pb-6 pt-6">
           <Logo />
-          <button type="button" onClick={onClose} className="icon-btn h-9 w-9 lg:hidden" aria-label="Fechar menu">
-            <X className="h-4 w-4" />
-          </button>
         </div>
 
         <nav className="scrollbar-thin flex-1 overflow-y-auto px-4">
           <ul className="space-y-1">
             {navItems.map((item) => (
-              <NavLink key={item.id} item={item} active={active === item.id} onSelect={handleSelect} />
+              <NavLink key={item.id} item={item} active={active === item.id} />
             ))}
           </ul>
         </nav>

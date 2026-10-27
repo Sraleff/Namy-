@@ -2,7 +2,9 @@ import { useCallback, useEffect, useState } from 'react';
 import Sidebar from './components/layout/Sidebar';
 import Topbar from './components/layout/Topbar';
 import Footer from './components/layout/Footer';
-import { navItems } from './components/layout/navigation';
+import BottomNav from './components/layout/BottomNav';
+import { navItems, extraRoutes } from './components/layout/navigation';
+import Perfil from './pages/Perfil';
 import Dashboard from './pages/Dashboard';
 import Groups from './pages/Groups';
 import Campaigns from './pages/Campaigns';
@@ -49,14 +51,14 @@ const pages = {
   contatos: Contacts,
   logs: Logs,
   configuracoes: Settings,
+  perfil: Perfil,
 };
+const rotas = new Set([...navItems, ...extraRoutes].map((n) => n.id));
 
 export default function App() {
   const [authed, setAuthed] = useState(() => USE_MOCK || !!getToken());
   const { page, param } = useHashRoute();
-  const [menuOpen, setMenuOpen] = useState(false);
   const { data, loading, error, reload, setData } = useAsync(getDashboard, [authed], { refreshMs: 30000, enabled: authed });
-  const closeMenu = useCallback(() => setMenuOpen(false), []);
   const refreshSummary = useCallback(() => reload({ silent: true }), [reload]);
 
   useEffect(() => onUnauthorized(() => setAuthed(false)), []);
@@ -68,7 +70,7 @@ export default function App() {
 
   if (!authed) return <Login onSuccess={() => setAuthed(true)} />;
 
-  const route = navItems.some((n) => n.id === page) ? page : 'inicio';
+  const route = rotas.has(page) ? page : 'inicio';
   const Page = pages[route];
 
   return (
@@ -77,14 +79,14 @@ export default function App() {
         Pular para o conteúdo
       </a>
 
-      <Sidebar user={data?.user} active={route} onSelect={() => {}} open={menuOpen} onClose={closeMenu} onLogout={handleLogout} />
+      <Sidebar user={data?.user} active={route} onLogout={handleLogout} />
 
-      <div className="flex min-h-screen flex-col lg:pl-[272px]">
-        <Topbar connection={data?.connection} notifications={data?.notifications} onOpenMenu={() => setMenuOpen(true)} />
+      <div className="pb-nav flex min-h-screen flex-col lg:pb-0 lg:pl-[272px]">
+        <Topbar user={data?.user} connection={data?.connection} notifications={data?.notifications} />
 
-        <main id="main" className="mx-auto w-full max-w-[1600px] flex-1 px-4 py-6 sm:px-6 lg:px-8 lg:py-8">
+        <main id="main" className="mx-auto w-full max-w-[1600px] flex-1 px-4 py-5 sm:px-6 sm:py-6 lg:px-8 lg:py-8">
           {Page ? (
-            <Page key={route} param={param} query={param} onDataChanged={refreshSummary} />
+            <Page key={route} param={param} query={param} onDataChanged={refreshSummary} user={data?.user} connection={data?.connection} onLogout={handleLogout} />
           ) : (
             <Dashboard data={data} loading={loading} error={error} onRetry={reload} onChange={setData} />
           )}
@@ -92,6 +94,8 @@ export default function App() {
 
         <Footer />
       </div>
+
+      <BottomNav active={route} />
     </div>
   );
 }

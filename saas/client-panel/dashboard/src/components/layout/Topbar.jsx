@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
-import { Bell, ChevronDown, Menu, Search, SunMedium } from 'lucide-react';
+import { Bell, ChevronDown, Search } from 'lucide-react';
 import Badge from '../ui/Badge';
 import WhatsAppIcon from '../ui/WhatsAppIcon';
 import { useClickOutside } from '../../hooks/useClickOutside';
@@ -12,6 +12,8 @@ const statusMap = {
   connecting: { label: 'Conectando…', dot: 'bg-amber-400 animate-pulse' },
   disconnected: { label: 'WhatsApp Desconectado', dot: 'bg-rose-500' },
 };
+
+const saudacao = (d = new Date()) => (d.getHours() < 12 ? 'Bom dia' : d.getHours() < 18 ? 'Boa tarde' : 'Boa noite');
 
 function SearchField() {
   const inputRef = useRef(null);
@@ -31,13 +33,13 @@ function SearchField() {
   return (
     <form
       role="search"
-      className="relative min-w-0 flex-1 md:max-w-xl"
+      className="relative hidden min-w-0 flex-1 md:block md:max-w-xl"
       onSubmit={(e) => {
         e.preventDefault();
         // Nome de seção abre a seção; número vai para Contatos; o resto filtra Grupos
         const q = inputRef.current.value.trim();
         if (!q) return;
-        const norm = (s) => s.normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase();
+        const norm = (s) => s.normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase();
         const nav = navItems.find((n) => norm(n.label).startsWith(norm(q)));
         if (nav) go(nav.id);
         else go(/^\+?\d[\d\s-]{3,}$/.test(q) ? 'contatos' : 'grupos', q.replace(/^\+/, ''));
@@ -51,7 +53,7 @@ function SearchField() {
         id="global-search"
         type="search"
         placeholder="Buscar por grupos, contatos ou comandos..."
-        className="h-11 w-full rounded-xl border border-line bg-ink-800 pl-11 pr-16 text-sm text-cream placeholder:text-subtle transition-colors focus:border-brand-500/60 focus:bg-ink-750 focus:outline-none focus:ring-0"
+        className="glass h-11 w-full rounded-xl pl-11 pr-16 text-sm text-cream placeholder:text-subtle transition hover:border-line-strong focus:border-brand-400/60 focus:bg-ink-750 focus:outline-none focus:ring-4 focus:ring-brand-500/15"
       />
       <kbd className="pointer-events-none absolute right-3 top-1/2 hidden -translate-y-1/2 rounded-md border border-line bg-ink-750 px-1.5 py-0.5 text-[10px] font-medium text-subtle sm:block">
         Ctrl K
@@ -65,12 +67,12 @@ function ConnectionPill({ connection }) {
   return (
     <a
       href="#configuracoes"
-      className="hidden h-12 items-center gap-3 rounded-xl border border-line bg-ink-800 pl-2 pr-3 transition-colors hover:bg-ink-750 md:flex"
+      className="glass glass-hover hidden h-12 items-center gap-3 rounded-xl pl-2 pr-3 lg:flex"
       aria-label={`${s.label}. Gerenciar conexão`}
     >
       <span className="relative flex h-8 w-8 items-center justify-center rounded-full bg-emerald-500/15 text-emerald-400">
         <WhatsAppIcon className="h-[18px] w-[18px]" />
-        <span className={cx('absolute bottom-0 right-0 h-2.5 w-2.5 rounded-full ring-2 ring-ink-800', s.dot)} />
+        <span className={cx('absolute bottom-0 right-0 h-2.5 w-2.5 rounded-full ring-2 ring-ink-950', s.dot)} />
       </span>
       <span className="text-left leading-tight">
         <span className="block text-sm font-medium text-cream">{s.label}</span>
@@ -92,24 +94,24 @@ function Notifications({ items = [] }) {
     <div ref={ref} className="relative">
       <button
         type="button"
-        className="icon-btn relative"
+        className="icon-btn relative h-11 w-11 lg:h-10 lg:w-10"
         aria-label={`Notificações${unread ? ` (${unread} não lidas)` : ''}`}
         aria-expanded={open}
         aria-haspopup="true"
         onClick={() => setOpen((v) => !v)}
       >
         <Bell className="h-[18px] w-[18px]" />
-        {unread > 0 && <span className="absolute right-2.5 top-2.5 h-2 w-2 rounded-full bg-rose-500 ring-2 ring-ink-800" />}
+        {unread > 0 && <span className="absolute right-2.5 top-2.5 h-2 w-2 rounded-full bg-rose-500 ring-2 ring-ink-950" />}
       </button>
 
       {open && (
-        <div className="card absolute right-0 top-12 z-50 w-80 p-2" role="dialog" aria-label="Notificações">
-          <p className="px-3 py-2 text-xs font-semibold uppercase tracking-wider text-subtle">Notificações</p>
+        <div className="glass-pop absolute right-0 top-[52px] z-50 w-[min(20rem,calc(100vw-2rem))] p-2" role="dialog" aria-label="Notificações">
+          <p className="px-3 py-2 text-xs font-semibold text-subtle">Notificações</p>
           {!items.length && <p className="px-3 pb-3 text-sm text-muted">Nada novo por aqui.</p>}
-          <ul>
+          <ul className="max-h-[60vh] overflow-y-auto">
             {items.map((n) => (
               <li key={n.id}>
-                <a href="#logs" className="flex gap-3 rounded-lg px-3 py-2.5 transition-colors hover:bg-white/[0.04]">
+                <a href="#logs" onClick={close} className="flex gap-3 rounded-xl px-3 py-2.5 transition-colors hover:bg-white/[0.06]">
                   <span className={cx('mt-1.5 h-2 w-2 shrink-0 rounded-full', n.unread ? 'bg-brand-400' : 'bg-transparent')} aria-hidden="true" />
                   <span>
                     <span className="block text-sm text-cream">{n.title}</span>
@@ -125,29 +127,34 @@ function Notifications({ items = [] }) {
   );
 }
 
-export default function Topbar({ connection, notifications, onOpenMenu }) {
+// Celular: quem está logado e o plano (o resto da navegação fica na barra inferior)
+function Conta({ user }) {
+  if (!user) return <span className="min-w-0 flex-1 md:hidden" />;
+  const lic = user.license || {};
+  const plano = lic.active === false ? 'Licença vencida' : user.plan === 'trial' && lic.daysLeft != null ? `${user.role}, ${lic.daysLeft} dia(s) restantes` : user.role;
   return (
-    <header className="sticky top-0 z-20 border-b border-line bg-ink-950/80 backdrop-blur-xl">
-      <div className="flex h-[76px] items-center gap-3 px-4 sm:px-6 lg:px-8">
-        <button
-          type="button"
-          className="icon-btn lg:hidden"
-          onClick={onOpenMenu}
-          aria-label="Abrir menu"
-          aria-controls="sidebar"
-        >
-          <Menu className="h-5 w-5" />
-        </button>
+    <a href="#perfil" className="flex min-w-0 flex-1 items-center gap-3 rounded-xl md:hidden" aria-label={`Perfil de ${user.name}`}>
+      <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-brand-gradient text-sm font-bold text-white shadow-glow">
+        {user.name.charAt(0)}
+      </span>
+      <span className="min-w-0 leading-tight">
+        <span className="block truncate text-[15px] font-semibold text-cream">{saudacao()}, {user.name}</span>
+        <span className={cx('block truncate text-xs', lic.active === false ? 'text-rose-300' : 'text-muted')}>{plano}</span>
+      </span>
+    </a>
+  );
+}
 
+export default function Topbar({ user, connection, notifications }) {
+  return (
+    <header className="pt-safe sticky top-0 z-20 border-b border-line bg-ink-950/70 backdrop-blur-xl">
+      <div className="flex h-16 items-center gap-3 px-4 sm:px-6 lg:h-[76px] lg:px-8">
+        <Conta user={user} />
         <SearchField />
 
         <div className="ml-auto flex items-center gap-2 sm:gap-3">
           <ConnectionPill connection={connection} />
           <Notifications items={notifications} />
-          <button type="button" className="icon-btn hidden w-auto gap-1 px-3 sm:inline-flex" aria-label="Preferências de aparência">
-            <SunMedium className="h-[18px] w-[18px]" />
-            <ChevronDown className="h-3.5 w-3.5" />
-          </button>
         </div>
       </div>
     </header>

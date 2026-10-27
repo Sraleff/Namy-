@@ -2,11 +2,17 @@
   "name": "NAMY CONTROL",
   "short_name": "Namy",
   "description": "Painel de controle inteligente para seu bot de WhatsApp.",
+  "id": "/app/",
   "start_url": "/app/",
+  "scope": "/app/",
   "display": "standalone",
   "background_color": "#080c17",
-  "theme_color": "#0b1120",
+  "theme_color": "#080c17",
   "lang": "pt-BR",
+  "shortcuts": [
+    { "name": "Converter link", "short_name": "Converter", "url": "/app/#conversor", "icons": [{ "src": "icon-192.png", "sizes": "192x192" }] },
+    { "name": "Vitrine", "url": "/app/#vitrine", "icons": [{ "src": "icon-192.png", "sizes": "192x192" }] }
+  ],
   "icons": [
     {
       "src": "icon-192.png",
