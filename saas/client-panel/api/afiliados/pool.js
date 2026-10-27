@@ -124,7 +124,7 @@ function listar(dataDir, userId) {
 function remover(dataDir, userId, id) {
   return jsonStore.update(dataDir, PASTA, userId, vazio, (db) => {
     const item = (db.itens || []).find((i) => i.id === id)
-    if (!item) throw Object.assign(new Error('Oferta nao encontrada'), { status: 404 })
+    if (!item) throw Object.assign(new Error('Oferta não encontrada'), { status: 404 })
     apagarMidia(dataDir, userId, item)
     db.itens = db.itens.filter((i) => i.id !== id)
     return { ok: true }
@@ -134,7 +134,7 @@ function remover(dataDir, userId, id) {
 function alternar(dataDir, userId, id, ativo) {
   return jsonStore.update(dataDir, PASTA, userId, vazio, (db) => {
     const item = (db.itens || []).find((i) => i.id === id)
-    if (!item) throw Object.assign(new Error('Oferta nao encontrada'), { status: 404 })
+    if (!item) throw Object.assign(new Error('Oferta não encontrada'), { status: 404 })
     item.ativo = !!ativo
     return item
   })

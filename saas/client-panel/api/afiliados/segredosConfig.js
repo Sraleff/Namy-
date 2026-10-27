@@ -66,7 +66,7 @@ function migrar(arquivo) {
   let bruto
   try { bruto = fs.readFileSync(arquivo, 'utf8') } catch { return { migrados: 0, motivo: 'sem arquivo' } }
   let dados
-  try { dados = JSON.parse(bruto) } catch { return { migrados: 0, motivo: 'arquivo ilegivel' } }
+  try { dados = JSON.parse(bruto) } catch { return { migrados: 0, motivo: 'arquivo ilegível' } }
   const pendentes = Object.values(dados || {}).filter((c) => c && c.shopee && c.shopee.secret && !cifrado(c.shopee.secret))
   if (!pendentes.length) return { migrados: 0, motivo: 'nada a migrar' }
   if (!cripto.disponivel()) return { migrados: 0, motivo: 'sem SAAS_MASTER_KEY: segredo segue em texto puro' }
@@ -88,8 +88,8 @@ function checarJwt(env) {
   const v = String(env.JWT_SECRET || '')
   const fraco = !v || v === SEGREDO_PADRAO || v.length < 32
   if (!fraco) return { ok: true }
-  const msg = 'JWT_SECRET ausente, igual ao padrao ou com menos de 32 caracteres: qualquer um que conheca o padrao consegue forjar login.'
-  return env.NODE_ENV === 'production' ? { ok: false, aviso: msg + ' Defina um valor aleatorio longo no .env.' } : { ok: true, aviso: msg + ' (aceito so em desenvolvimento)' }
+  const msg = 'JWT_SECRET ausente, igual ao padrão ou com menos de 32 caracteres: qualquer um que conheça o padrão consegue forjar login.'
+  return env.NODE_ENV === 'production' ? { ok: false, aviso: msg + ' Defina um valor aleatorio longo no .env.' } : { ok: true, aviso: msg + ' (aceito só em desenvolvimento)' }
 }
 
 module.exports = { PREFIXO, paraMemoria, paraDisco, migrar, checarJwt, SEGREDO_PADRAO, _presos: presos }

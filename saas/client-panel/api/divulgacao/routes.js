@@ -33,7 +33,7 @@ function mount(app, deps) {
   app.get('/divulgacao/ficha', auth, async (req, res) => {
     try {
       const info = await sessions.groupInfo(req.user.id, String(req.query.jid || ''))
-      res.json({ ok: true, group: info, aviso: 'Nome de perfil nao vem nesta consulta. Numero so aparece se o WhatsApp enviar.' })
+      res.json({ ok: true, group: info, aviso: 'Nome de perfil não vem nesta consulta. Número só aparece se o WhatsApp enviar.' })
     } catch (e) {
       res.status(e.status || 400).json({ error: e.message || 'Falha ao ler participantes' })
     }
@@ -56,14 +56,14 @@ function mount(app, deps) {
   app.post('/divulgacao/registrar', auth, async (req, res) => {
     try {
       const jid = String((req.body && req.body.jid) || '')
-      if (!jidGrupo(jid)) return res.status(400).json({ error: 'Grupo invalido' })
+      if (!jidGrupo(jid)) return res.status(400).json({ error: 'Grupo inválido' })
       const info = await sessions.groupInfo(req.user.id, jid)
       const contacts = await store.update(DATA, req.user.id, (db) => regras.importarParticipantes(db, jid, info.participants))
       res.json({
         ok: true,
         total: contacts.length,
         consent: 'nenhum',
-        aviso: 'Registrar nao autoriza mensagem. Autorize cada contato na mao.'
+        aviso: 'Registrar não autoriza mensagem. Autorize cada contato na mão.'
       })
     } catch (e) {
       res.status(e.status || 400).json({ error: e.message || 'Falha ao registrar' })
@@ -121,13 +121,13 @@ function mount(app, deps) {
       const camp = await store.update(DATA, req.user.id, (db) => regras.definirConvite(db, body.id, String(body.url || '').trim()))
       res.json({ ok: true, campaign: camp })
     } catch (e) {
-      res.status(e.status || 400).json({ error: e.message || 'Link invalido' })
+      res.status(e.status || 400).json({ error: e.message || 'Link inválido' })
     }
   })
 
   app.post('/divulgacao/campanhas/oferta', auth, async (req, res) => {
     try {
-      if (!licencaAtiva(req.user.id)) return res.status(403).json({ error: 'Licenca expirada ou inativa.' })
+      if (!licencaAtiva(req.user.id)) return res.status(403).json({ error: 'Licença expirada ou inativa.' })
       const configs = readJson(CONFIGS, {})
       const cfg = configs[req.user.id]
       const oferta = await ofertas.preparar(DATA, req.user.id, cfg && cfg.shopee)
@@ -146,7 +146,7 @@ function mount(app, deps) {
           texto: oferta.texto,
           cupom: null
         },
-        aviso: oferta.desconto ? null : 'Sem codigo de cupom nesta API. Promocao so segue se a oferta trouxer desconto.',
+        aviso: oferta.desconto ? null : 'Sem código de cupom nesta API. Promoção só segue se a oferta trouxer desconto.',
         campaign
       })
     } catch (e) {
@@ -166,7 +166,7 @@ function mount(app, deps) {
 
   app.post('/divulgacao/campanhas/aprovar', auth, async (req, res) => {
     try {
-      if (!licencaAtiva(req.user.id)) return res.status(403).json({ error: 'Licenca expirada ou inativa.' })
+      if (!licencaAtiva(req.user.id)) return res.status(403).json({ error: 'Licença expirada ou inativa.' })
       const camp = await store.update(DATA, req.user.id, (db) => regras.aprovar(db, (req.body || {}).id))
       res.json({ ok: true, campaign: camp })
     } catch (e) {

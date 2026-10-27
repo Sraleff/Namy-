@@ -246,7 +246,7 @@ test('OAuth ML: state de uso unico, PKCE e renovacao com 401', async () => {
     const out = await oauth.concluir(data, state, 'CODE')
     assert.equal(out.userId, 'u6')
     assert.equal(out.nickname, 'LOJA')
-    await assert.rejects(() => oauth.concluir(data, state, 'CODE'), /expirada|invalida/)
+    await assert.rejects(() => oauth.concluir(data, state, 'CODE'), /expirada|inválida/)
     // forca 401 no primeiro GET: renova e repete
     tokenAtual = 'AT1-velho'
     const item = await oauth.get(data, 'u6', '/items/MLB1')

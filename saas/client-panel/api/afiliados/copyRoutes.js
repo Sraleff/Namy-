@@ -28,7 +28,7 @@ function mount(app, deps, opcoes = {}) {
 
   function contexto(req, res) {
     const cfg = readJson(CONFIGS, {})[req.user.id]
-    if (!cfg) { res.status(404).json({ error: 'Conta nao encontrada' }); return null }
+    if (!cfg) { res.status(404).json({ error: 'Conta não encontrada' }); return null }
     return { userId: req.user.id, cfg, dataDir: DATA }
   }
 
@@ -72,7 +72,7 @@ function mount(app, deps, opcoes = {}) {
     try {
       const ctx = contexto(req, res)
       if (ctx) res.json(visao(ctx))
-    } catch (e) { falha(res, e, 'Falha ao ler a configuracao') }
+    } catch (e) { falha(res, e, 'Falha ao ler a configuração') }
   })
 
   app.put('/copy/config', auth, (req, res) => {
@@ -91,12 +91,12 @@ function mount(app, deps, opcoes = {}) {
       }
       let ia
       if (body.ia != null) {
-        if (typeof body.ia !== 'object' || Array.isArray(body.ia)) return res.status(400).json({ error: 'Configuracao de IA invalida.' })
+        if (typeof body.ia !== 'object' || Array.isArray(body.ia)) return res.status(400).json({ error: 'Configuração de IA inválida.' })
         const atual = (ctx.cfg.copy && ctx.cfg.copy.ia) || { ativo: false, provedor: 'groq' }
         const provedor = body.ia.provedor != null ? body.ia.provedor : atual.provedor
         const ativo = body.ia.ativo != null ? body.ia.ativo : atual.ativo
         if (typeof ativo !== 'boolean') return res.status(400).json({ error: 'ia.ativo deve ser verdadeiro ou falso.' })
-        if (typeof provedor !== 'string' || !provedorValido(provedor, ctx.cfg)) return res.status(400).json({ error: 'Provedor de IA invalido ou nao liberado para esta conta.' })
+        if (typeof provedor !== 'string' || !provedorValido(provedor, ctx.cfg)) return res.status(400).json({ error: 'Provedor de IA inválido ou não liberado para esta conta.' })
         if (ativo && provedor !== 'ollama' && !chaves(ctx)[provedor]) return res.status(400).json({ error: 'Salve a chave de ' + copy.PROVEDORES[provedor].rotulo + ' antes de ligar a IA.' })
         ia = { ativo, provedor }
       }
@@ -113,10 +113,10 @@ function mount(app, deps, opcoes = {}) {
       const ctx = contexto(req, res)
       if (!ctx) return
       const { provedor, chave } = req.body || {}
-      if (typeof provedor !== 'string' || !copy.NUVEM.includes(provedor)) return res.status(400).json({ error: 'Provedor invalido (groq, xai ou gemini).' })
+      if (typeof provedor !== 'string' || !copy.NUVEM.includes(provedor)) return res.status(400).json({ error: 'Provedor inválido (groq, xai ou gemini).' })
       const limpa = typeof chave === 'string' ? chave.trim() : ''
-      if (!CHAVE_RE.test(limpa)) return res.status(400).json({ error: 'Chave invalida: cole a chave inteira, sem espacos (20 a 200 caracteres).' })
-      if (!cofre.disponivel()) return res.status(503).json({ error: 'O servidor ainda nao tem a chave mestra (SAAS_MASTER_KEY). Fale com o administrador.' })
+      if (!CHAVE_RE.test(limpa)) return res.status(400).json({ error: 'Chave inválida: cole a chave inteira, sem espaços (20 a 200 caracteres).' })
+      if (!cofre.disponivel()) return res.status(503).json({ error: 'O servidor ainda não tem a chave mestra (SAAS_MASTER_KEY). Fale com o administrador.' })
       const atuais = Object.assign({}, chaves(ctx), { [provedor]: limpa })
       await cofre.gravar(ctx.dataDir, ctx.userId, 'ia', atuais)
       res.json({ ok: true, provedor, mascara: copy.mascara(limpa) })
@@ -128,7 +128,7 @@ function mount(app, deps, opcoes = {}) {
       const ctx = contexto(req, res)
       if (!ctx) return
       const provedor = (req.body || {}).provedor
-      if (typeof provedor !== 'string' || !copy.NUVEM.includes(provedor)) return res.status(400).json({ error: 'Provedor invalido.' })
+      if (typeof provedor !== 'string' || !copy.NUVEM.includes(provedor)) return res.status(400).json({ error: 'Provedor inválido.' })
       const atuais = Object.assign({}, chaves(ctx))
       delete atuais[provedor]
       if (Object.keys(atuais).length) await cofre.gravar(ctx.dataDir, ctx.userId, 'ia', atuais)
@@ -155,9 +155,9 @@ function mount(app, deps, opcoes = {}) {
       const usarIA = body.ia === true
       const simulado = { email: ctx.cfg.email, copy: { modelo, ia: { ativo: false, provedor: 'groq' } } }
       if (usarIA) {
-        if (!licencaAtiva(ctx.cfg)) return res.status(403).json({ error: 'Licenca expirada ou inativa.' })
+        if (!licencaAtiva(ctx.cfg)) return res.status(403).json({ error: 'Licença expirada ou inativa.' })
         const provedor = typeof body.provedor === 'string' ? body.provedor : (c.ia && c.ia.provedor)
-        if (!provedor || !provedorValido(provedor, ctx.cfg)) return res.status(400).json({ error: 'Escolha um provedor de IA valido.' })
+        if (!provedor || !provedorValido(provedor, ctx.cfg)) return res.status(400).json({ error: 'Escolha um provedor de IA válido.' })
         if (provedor !== 'ollama' && !chaves(ctx)[provedor]) return res.status(400).json({ error: 'Salve a chave de ' + copy.PROVEDORES[provedor].rotulo + ' primeiro.' })
         if (!podePrevia(ctx.userId)) return res.status(429).json({ error: 'Muitas previas com IA seguidas. Espere um minuto.' })
         simulado.copy.ia = { ativo: true, provedor }

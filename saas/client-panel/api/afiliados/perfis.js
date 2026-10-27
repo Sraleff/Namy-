@@ -6,7 +6,7 @@
 const PERFIS = {
   seguro: {
     id: 'seguro', rotulo: 'Seguro', recomendado: true,
-    descricao: 'Poucos envios, bem espacados, com pausa entre grupos. O melhor para numero novo ou que voce nao quer arriscar.',
+    descricao: 'Poucos envios, bem espaçados, com pausa entre grupos. O melhor para número novo ou que você não quer arriscar.',
     ads: { intervalMode: 'aleatorio', intervalMin: 90, intervalMax: 180, perRunMin: 1, perRunMax: 1, dailyLimit: 4, window: { from: '09:00', to: '21:00' }, groupPauseMin: 6, groupPauseMax: 12 }
   },
   equilibrado: {
@@ -16,7 +16,7 @@ const PERFIS = {
   },
   intenso: {
     id: 'intenso', rotulo: 'Intenso',
-    descricao: 'Muitos envios. Aumenta o risco de o WhatsApp limitar o numero: use so se aceitar esse risco.',
+    descricao: 'Muitos envios. Aumenta o risco de o WhatsApp limitar o número: use só se aceitar esse risco.',
     ads: { intervalMode: 'aleatorio', intervalMin: 20, intervalMax: 60, perRunMin: 1, perRunMax: 3, dailyLimit: 20, window: { from: '08:00', to: '23:00' }, groupPauseMin: 3, groupPauseMax: 6 }
   }
 }
@@ -48,19 +48,19 @@ function risco(ads, nGrupos = 1) {
   const porDia = Math.max(1, Math.round(Math.min(n.limite, Math.max(cabem, n.perRunMed))))
   const avisos = []
   let pontos = 0
-  if (porDia > 20) { pontos += 3; avisos.push('Ate ' + porDia + ' ofertas por dia em cada grupo: muito.') }
-  else if (porDia > 10) { pontos += 2; avisos.push('Ate ' + porDia + ' ofertas por dia em cada grupo.') }
+  if (porDia > 20) { pontos += 3; avisos.push('Até ' + porDia + ' ofertas por dia em cada grupo: muito.') }
+  else if (porDia > 10) { pontos += 2; avisos.push('Até ' + porDia + ' ofertas por dia em cada grupo.') }
   else if (porDia > 5) pontos += 1
-  if (n.intervaloMed < 20) { pontos += 3; avisos.push('Intervalo medio de ' + Math.round(n.intervaloMed) + ' min entre envios: muito curto.') }
-  else if (n.intervaloMed < 45) { pontos += 2; avisos.push('Intervalo medio de ' + Math.round(n.intervaloMed) + ' min entre envios.') }
+  if (n.intervaloMed < 20) { pontos += 3; avisos.push('Intervalo médio de ' + Math.round(n.intervaloMed) + ' min entre envios: muito curto.') }
+  else if (n.intervaloMed < 45) { pontos += 2; avisos.push('Intervalo médio de ' + Math.round(n.intervaloMed) + ' min entre envios.') }
   else if (n.intervaloMed < 90) pontos += 1
-  if (n.perRunMax > 3) { pontos += 2; avisos.push('Ate ' + n.perRunMax + ' produtos seguidos por execucao.') }
+  if (n.perRunMax > 3) { pontos += 2; avisos.push('Até ' + n.perRunMax + ' produtos seguidos por execução.') }
   else if (n.perRunMax > 1) pontos += 1
   if (nGrupos > 1) {
     if (n.pausaMax === 0) { pontos += 2; avisos.push('Sem pausa entre grupos: a oferta vai para os ' + nGrupos + ' grupos de uma vez, em rajada.') }
     else if (n.pausaMin < 4) pontos += 1
   }
-  if (n.janelaMin > 16 * 60) { pontos += 1; avisos.push('Janela de ' + Math.round(n.janelaMin / 60) + ' h por dia: o numero fica ativo quase o dia todo.') }
+  if (n.janelaMin > 16 * 60) { pontos += 1; avisos.push('Janela de ' + Math.round(n.janelaMin / 60) + ' h por dia: o número fica ativo quase o dia todo.') }
   const nivel = pontos <= 2 ? 'baixo' : pontos <= 4 ? 'medio' : 'alto'
   return { nivel, pontos, porGrupoPorDia: porDia, nGrupos, avisos }
 }

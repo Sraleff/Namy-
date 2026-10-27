@@ -130,7 +130,7 @@ test('resumo: totais, por dia, por grupo, saldo, tamanho e ordenacao; retencao d
   const r30 = await membros.resumo(deps, 'u1', deps.cfgs.u1, 30, agora)
   assert.equal(r30.entrou, 12, 'o de 8 dias atras entra no periodo de 30')
   assert.equal(r30.monitorandoDesde, '2026-10-17')
-  await assert.rejects(() => membros.resumo(deps, 'u1', deps.cfgs.u1, 15, agora), /Periodo/)
+  await assert.rejects(() => membros.resumo(deps, 'u1', deps.cfgs.u1, 15, agora), /Período/)
   // grupo sem nenhum evento aparece zerado
   deps.cfgs.u1 = CFG({ groups: [{ jid: 'g1@g.us', name: 'Casa 1' }, { jid: 'g3@g.us', name: 'Nova' }] })
   const r = await membros.resumo(deps, 'u1', deps.cfgs.u1, 7, agora)

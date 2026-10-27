@@ -64,19 +64,19 @@ async function executar(deps, userId, cfg, item, { manual = false, prevista = ''
     return reg
   }
 
-  if (!licencaAtiva(cfg)) return fim('Licenca expirada ou inativa.')
+  if (!licencaAtiva(cfg)) return fim('Licença expirada ou inativa.')
 
   const validos = []
   for (const jid of item.destinos) {
     const g = salvos.get(jid)
-    if (!g) grupos.push({ jid, name: jid, ok: false, erro: 'nao e mais um destino salvo' })
+    if (!g) grupos.push({ jid, name: jid, ok: false, erro: 'não é mais um destino salvo' })
     else if (fontes.has(jid)) grupos.push({ jid, name: g.name || jid, ok: false, erro: 'virou grupo de captura (fonte)' })
     else validos.push(g)
   }
   const aEnviar = validos.slice(0, lim.maxGrupos)
-  for (const g of validos.slice(lim.maxGrupos)) grupos.push({ jid: g.jid, name: g.name || g.jid, ok: false, erro: 'acima do limite de ' + lim.maxGrupos + ' grupos por execucao' })
+  for (const g of validos.slice(lim.maxGrupos)) grupos.push({ jid: g.jid, name: g.name || g.jid, ok: false, erro: 'acima do limite de ' + lim.maxGrupos + ' grupos por execução' })
   reg.falhas = grupos.length
-  if (!aEnviar.length) return fim('Nenhum grupo valido para enviar.')
+  if (!aEnviar.length) return fim('Nenhum grupo válido para enviar.')
 
   // {cupom}: so sai com cupom cadastrado e vigente; sem ele a mensagem NAO e enviada
   let textoItem = item.texto
@@ -85,7 +85,7 @@ async function executar(deps, userId, cfg, item, { manual = false, prevista = ''
     if (!c) {
       for (const g of aEnviar) grupos.push({ jid: g.jid, name: g.name || g.jid, ok: false, erro: 'sem cupom vigente' })
       reg.falhas = grupos.length
-      return fim('A mensagem usa {cupom}, mas nao ha cupom vigente. Cadastre ou renove em Cupons.')
+      return fim('A mensagem usa {cupom}, mas não há cupom vigente. Cadastre ou renove em Cupons.')
     }
     textoItem = textoItem.replace(/\{cupom\}/g, c.codigo + (c.regra ? ' — ' + c.regra : ''))
   }

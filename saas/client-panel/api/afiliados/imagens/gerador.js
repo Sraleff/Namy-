@@ -46,7 +46,7 @@ async function gerar({ referencia, prompt }) {
       })
     })
   } catch (e) {
-    throw erroImg(e.name === 'AbortError' ? 'O gerador demorou demais. Tente de novo.' : 'Nao consegui falar com o gerador de imagens.')
+    throw erroImg(e.name === 'AbortError' ? 'O gerador demorou demais. Tente de novo.' : 'Não consegui falar com o gerador de imagens.')
   } finally {
     clearTimeout(t)
   }
@@ -58,7 +58,7 @@ async function gerar({ referencia, prompt }) {
   const img = parts.map((p) => p.inlineData || p.inline_data).find((d) => d && d.data)
   if (!img) {
     const bloqueio = data.promptFeedback && data.promptFeedback.blockReason
-    throw erroImg(bloqueio ? 'O gerador recusou esta imagem (' + bloqueio + ').' : 'O gerador nao devolveu imagem.', 422)
+    throw erroImg(bloqueio ? 'O gerador recusou esta imagem (' + bloqueio + ').' : 'O gerador não devolveu imagem.', 422)
   }
   return { buffer: Buffer.from(img.data, 'base64'), mime: img.mimeType || img.mime_type || 'image/png' }
 }

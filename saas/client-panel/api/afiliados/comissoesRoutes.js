@@ -17,7 +17,7 @@ function mount(app, deps, opcoes = {}) {
 
   function contexto(req, res) {
     const cfg = readJson(CONFIGS, {})[req.user.id]
-    if (!cfg) { res.status(404).json({ error: 'Conta nao encontrada' }); return null }
+    if (!cfg) { res.status(404).json({ error: 'Conta não encontrada' }); return null }
     return { userId: req.user.id, cfg, dataDir: DATA }
   }
 
@@ -36,7 +36,7 @@ function mount(app, deps, opcoes = {}) {
       if (!d) return res.status(400).json({ error: 'Datas no formato AAAA-MM-DD.' })
       if (!(forcar ? podeAtualizar : podeLer)(ctx.userId)) return res.status(429).json({ error: 'Muitas consultas seguidas. Espere um minuto.' })
       res.json(await comissoes.resumo(ctx, { de: d.de, ate: d.ate, forcar }))
-    } catch (e) { falha(res, e, 'Falha ao ler as comissoes') }
+    } catch (e) { falha(res, e, 'Falha ao ler as comissões') }
   }
 
   app.get('/comissoes', auth, (req, res) => entregar(req, res, false))

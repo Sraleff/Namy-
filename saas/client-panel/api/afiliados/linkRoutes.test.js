@@ -64,7 +64,7 @@ test('entrada invalida: vazio, nao-string, sem link, grande demais e links demai
   const muitos = Array.from({ length: linkRoutes.MAX_LINKS + 1 }, (_, i) => 'https://shopee.com.br/Prod-i.1.' + (1000 + i)).join(' ')
   const r = await a.chamar('u1', { texto: muitos })
   assert.equal(r.code, 400)
-  assert.match(r.body.error, /maximo/i)
+  assert.match(r.body.error, /máximo/i)
 })
 
 test('licenca expirada: 403', async () => {

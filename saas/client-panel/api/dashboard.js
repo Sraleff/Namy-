@@ -77,7 +77,7 @@ module.exports = function mount(app, { auth, readJson, CONFIGS, DATA }) {
     const userId = req.user.id
     const configs = readJson(CONFIGS, {})
     const cfg = configs[userId]
-    if (!cfg) return res.status(404).json({ error: 'Conta nao encontrada' })
+    if (!cfg) return res.status(404).json({ error: 'Conta não encontrada' })
 
     const hoje = diaBR(Date.now())
     const wa = sessions.publicState(userId)

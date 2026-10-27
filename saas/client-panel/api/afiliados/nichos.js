@@ -21,7 +21,7 @@ const NICHOS = {
     buscas: ['utensilios cozinha', 'organizador casa', 'decoracao casa', 'cama mesa banho', 'airfryer']
   },
   bebe: {
-    label: 'Bebe e infantil',
+    label: 'Bebê e infantil',
     termos: ['bebe', 'bebes', 'infantil', 'crianca', 'criancas', 'kids', 'recem nascido', 'recem-nascido', 'fralda', 'fraldas', 'chupeta', 'mamadeira', 'body bebe', 'body infantil', 'macacao bebe', 'carrinho de bebe', 'berco', 'babador', 'mordedor', 'enxoval', 'banheira bebe', 'cadeirinha', 'bebe conforto', 'brinquedo', 'brinquedos', 'pelucia', 'maternidade', 'gestante'],
     evitar: [],
     buscas: ['bebe', 'enxoval bebe', 'brinquedo infantil', 'roupa infantil', 'fralda']
@@ -33,13 +33,13 @@ const NICHOS = {
     buscas: ['maquiagem', 'skincare', 'perfume', 'cabelo', 'kit beleza']
   },
   moda: {
-    label: 'Moda e acessorios',
+    label: 'Moda e acessórios',
     termos: ['vestido', 'blusa', 'camiseta', 'camisa', 'calca', 'jeans', 'saia', 'short', 'bermuda', 'jaqueta', 'casaco', 'moletom', 'cropped', 'conjunto feminino', 'conjunto masculino', 'lingerie', 'sutia', 'calcinha', 'cueca', 'meia', 'tenis', 'sandalia', 'chinelo', 'sapato', 'bota', 'bolsa', 'mochila', 'carteira', 'cinto', 'bone', 'oculos de sol', 'relogio', 'colar', 'brinco', 'pulseira', 'anel', 'semijoia'],
     evitar: ['body bebe', 'tenis infantil'],
     buscas: ['moda feminina', 'moda masculina', 'tenis', 'bolsa feminina', 'acessorios moda']
   },
   eletronicos: {
-    label: 'Eletronicos e celulares',
+    label: 'Eletrônicos e celulares',
     termos: ['celular', 'smartphone', 'iphone', 'samsung', 'xiaomi', 'fone', 'fones', 'headset', 'bluetooth', 'carregador', 'cabo usb', 'usb-c', 'power bank', 'smartwatch', 'smartband', 'notebook', 'tablet', 'teclado', 'mouse', 'monitor', 'caixa de som', 'tv', 'smart tv', 'roteador', 'camera', 'webcam', 'ssd', 'pendrive', 'cartao de memoria', 'alexa', 'echo dot', 'chromecast', 'projetor'],
     evitar: ['carregador veicular'],
     buscas: ['fone bluetooth', 'smartwatch', 'carregador celular', 'acessorios celular', 'caixa de som']
@@ -63,7 +63,7 @@ const NICHOS = {
     buscas: ['gamer', 'controle ps5', 'headset gamer', 'mouse gamer', 'console']
   },
   ferramentas: {
-    label: 'Ferramentas e construcao',
+    label: 'Ferramentas e construção',
     termos: ['ferramenta', 'ferramentas', 'furadeira', 'parafusadeira', 'esmerilhadeira', 'serra eletrica', 'serra circular', 'martelo', 'chave de fenda', 'jogo de chaves', 'alicate', 'trena', 'nivel a laser', 'broca', 'brocas', 'maleta de ferramentas', 'solda', 'compressor', 'lavadora de alta pressao', 'mangueira', 'jardinagem'],
     evitar: [],
     buscas: ['ferramentas', 'furadeira', 'parafusadeira', 'jogo de chaves', 'kit ferramentas']

@@ -254,10 +254,10 @@ test('aplicarConfig valida modo, faixas e minimo <= maximo', () => {
   assert.deepEqual(ok({}), {}, 'conta antiga: nada muda')
 
   falha({ intervalMode: 'maluco' }, /Modo de intervalo/)
-  falha({ intervalMode: 'aleatorio' }, /minimo e maximo/)
-  falha({ intervalMode: 'aleatorio', intervalMin: 10 }, /minimo e o maximo/)
-  falha({ intervalMin: 30, intervalMax: 10 }, /minimo nao pode ser maior/)
-  falha({ perRunMin: 5, perRunMax: 2 }, /minimo nao pode ser maior/)
+  falha({ intervalMode: 'aleatorio' }, /mínimo e máximo/)
+  falha({ intervalMode: 'aleatorio', intervalMin: 10 }, /mínimo e o máximo/)
+  falha({ intervalMin: 30, intervalMax: 10 }, /mínimo não pode ser maior/)
+  falha({ perRunMin: 5, perRunMax: 2 }, /mínimo não pode ser maior/)
   falha({ intervalMin: 0, intervalMax: 10 }, /inteiros de 1 a 720/)
   falha({ intervalMin: 1, intervalMax: 721 }, /inteiros de 1 a 720/)
   falha({ perRunMin: 1, perRunMax: 11 }, /inteiros de 1 a 10/)
@@ -265,7 +265,7 @@ test('aplicarConfig valida modo, faixas e minimo <= maximo', () => {
   falha({ perRunMin: 'abc', perRunMax: 2 }, /inteiros/)
   falha({ perRunMin: 0, perRunMax: 2 }, /inteiros/)
   // mandar so um dos lados valida contra o que ja estava salvo
-  falha({ perRunMax: 1 }, /minimo nao pode ser maior/, { ads: { perRunMin: 3, perRunMax: 5 } })
+  falha({ perRunMax: 1 }, /mínimo não pode ser maior/, { ads: { perRunMin: 3, perRunMax: 5 } })
   assert.deepEqual(ok2({ perRunMax: 6 }, { perRunMin: 3, perRunMax: 5 }), { perRunMin: 3, perRunMax: 6 })
   function ok2(ads, antes) { const cur = { ads: Object.assign({}, antes) }; aplicarConfig(cur, { ads }); return cur.ads }
 })
@@ -399,7 +399,7 @@ test('rota: executa, devolve mensagem, traduz as recusas em HTTP e limita a 1 ex
   const lic = ambiente({}, { license: { active: true, expiresAt: new Date(Date.now() - 1000).toISOString() } })
   r = await rotaDe(lic)(lic.userId)
   assert.equal(r.code, 403)
-  assert.match(r.body.error, /Licenca/)
+  assert.match(r.body.error, /Licença/)
 
   const semConta = await rotaDe(a)('nao-existe')
   assert.equal(semConta.code, 404)

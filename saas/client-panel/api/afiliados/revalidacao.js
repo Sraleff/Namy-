@@ -35,12 +35,12 @@ async function revalidar(ctx, item) {
     } catch (e) {
       let det = String(e.message || 'erro')
       for (const segredo of [chaves.secret, chaves.appId]) if (segredo) det = det.split(String(segredo)).join('***')
-      return { ok: false, temporario: true, motivo: 'nao consegui conferir a oferta agora (' + det.slice(0, 80) + ')' }
+      return { ok: false, temporario: true, motivo: 'não consegui conferir a oferta agora (' + det.slice(0, 80) + ')' }
     }
     if (r.status === 'indisponivel') {
       cache.delete(chave)
       await pool.alternar(ctx.dataDir, ctx.userId, item.id, false)
-      return { ok: false, pausada: true, motivo: 'oferta indisponivel na Shopee (pausada na fila)' }
+      return { ok: false, pausada: true, motivo: 'oferta indisponível na Shopee (pausada na fila)' }
     }
     fresca = r.oferta
     if (cache.size > 1000) cache.delete(cache.keys().next().value)
@@ -58,7 +58,7 @@ async function revalidar(ctx, item) {
       it.shopee = Object.assign({}, it.shopee, { precoNum: fresca.precoNum })
       it.revalidadoEm = new Date().toISOString()
     })
-    return { ok: true, mudou: true, texto, aviso: 'preco atualizado: ' + brl(antes) + ' -> ' + fresca.preco }
+    return { ok: true, mudou: true, texto, aviso: 'preço atualizado: ' + brl(antes) + ' -> ' + fresca.preco }
   }
   return { ok: true, mudou: false }
 }

@@ -76,7 +76,7 @@ test('preco mudou: reescreve o texto, grava na fila e avisa', async () => {
   assert.equal(r.ok, true)
   assert.equal(r.mudou, true)
   assert.match(r.texto, /R\$\s?8,00/)
-  assert.match(r.aviso, /preco atualizado/)
+  assert.match(r.aviso, /preço atualizado/)
   const salvo = pool.listar(d, 'u1').find((i) => i.id === item.id)
   assert.match(salvo.texto, /R\$\s?8,00/)
   assert.equal(salvo.shopee.precoNum, 8)
@@ -92,7 +92,7 @@ test('oferta sumiu: pausa o item e pula', async () => {
   const r = await revalidacao.revalidar({ userId: 'u1', cfg, dataDir: d }, item)
   assert.equal(r.ok, false)
   assert.equal(r.pausada, true)
-  assert.match(r.motivo, /indisponivel/)
+  assert.match(r.motivo, /indisponível/)
   assert.equal(pool.listar(d, 'u1').find((i) => i.id === item.id).ativo, false)
 })
 
@@ -133,7 +133,7 @@ test('porItem: monta a consulta so com digitos, devolve a oferta ou indisponivel
     nodes = [{ itemId: '1', productName: 'Outro', offerLink: 'https://s.shopee.com.br/y', priceMin: '1', priceMax: '1' }]
     assert.deepEqual(await ofertas.porItem(CHAVES, '4242'), { status: 'indisponivel' }, 'item diferente do pedido nao vale')
     for (const ruim of ['', 'abc', '12; drop', '1 } { x', '1'.repeat(21), null, undefined]) {
-      await assert.rejects(() => ofertas.porItem(CHAVES, ruim), /itemId invalido/)
+      await assert.rejects(() => ofertas.porItem(CHAVES, ruim), /itemId inválido/)
     }
     await assert.rejects(() => ofertas.porItem({}, '1'), /App ID/)
     assert.equal(corpos.length, 3, 'id invalido nunca chega na rede')

@@ -37,18 +37,18 @@ function checarQuantidade(cfg, tipo, quantidade) {
   const max = l[tipo]
   if (quantidade > max) {
     const nome = tipo === 'destinos' ? 'grupos de destino' : 'grupos fonte'
-    throw erroLimite('O plano ' + l.rotulo + ' permite ate ' + max + ' ' + nome + '. Faca upgrade para o Pro para liberar mais.')
+    throw erroLimite('O plano ' + l.rotulo + ' permite até ' + max + ' ' + nome + '. Faça upgrade para o Pro para liberar mais.')
   }
 }
 
-const NOMES = { agendadas: 'Mensagens agendadas', cupons: 'Cupons', comissoes: 'Comissoes', membros: 'Monitor de membros' }
+const NOMES = { agendadas: 'Mensagens agendadas', cupons: 'Cupons', comissoes: 'Comissões', membros: 'Monitor de membros' }
 
-// Middleware (depois de `auth`): barra o recurso se o plano nao tem
+// Middleware (depois de `auth`): barra o recurso se o plano não tem
 function exigir(recurso, { readJson, CONFIGS }) {
   return (req, res, next) => {
     const cfg = (readJson(CONFIGS, {}) || {})[req.user && req.user.id]
     if (!cfg || podeRecurso(cfg, recurso)) return next()
-    res.status(402).json({ error: (NOMES[recurso] || 'Este recurso') + ' faz parte do plano Pro. Faca upgrade para usar.', upgrade: true, recurso })
+    res.status(402).json({ error: (NOMES[recurso] || 'Este recurso') + ' faz parte do plano Pro. Faça upgrade para usar.', upgrade: true, recurso })
   }
 }
 

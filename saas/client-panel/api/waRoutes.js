@@ -54,11 +54,11 @@ module.exports = function mount(app, { auth, readJson, writeJson, CONFIGS, DATA,
 
   app.post('/whatsapp/connect', auth, async (req, res) => {
     const phone = String((req.body && req.body.phone) || '').replace(/\D/g, '')
-    if (phone.length < 10) return res.status(400).json({ error: 'Numero invalido. Use DDI+DDD+numero.' })
+    if (phone.length < 10) return res.status(400).json({ error: 'Número inválido. Use DDI+DDD+número.' })
     const configs = readJson(CONFIGS, {})
     const cur = configs[req.user.id]
-    if (!cur) return res.status(404).json({ error: 'Conta nao encontrada' })
-    if (!licencaAtiva(cur)) return res.status(403).json({ error: 'Licenca expirada ou inativa.' })
+    if (!cur) return res.status(404).json({ error: 'Conta não encontrada' })
+    if (!licencaAtiva(cur)) return res.status(403).json({ error: 'Licença expirada ou inativa.' })
     cur.phone = phone
     cur.updatedAt = new Date().toISOString()
     configs[req.user.id] = cur
@@ -68,7 +68,7 @@ module.exports = function mount(app, { auth, readJson, writeJson, CONFIGS, DATA,
       res.json(Object.assign({ ok: true }, st))
     } catch (e) {
       console.error('[SESSAO] connect', e.message)
-      res.status(500).json({ error: 'Nao consegui abrir o WhatsApp agora. Tente de novo.' })
+      res.status(500).json({ error: 'Não consegui abrir o WhatsApp agora. Tente de novo.' })
     }
   })
 
@@ -82,8 +82,8 @@ module.exports = function mount(app, { auth, readJson, writeJson, CONFIGS, DATA,
   app.post('/whatsapp/reconnect', auth, async (req, res) => {
     const configs = readJson(CONFIGS, {})
     const cur = configs[req.user.id]
-    if (!cur) return res.status(404).json({ error: 'Conta nao encontrada' })
-    if (!licencaAtiva(cur)) return res.status(403).json({ error: 'Licenca expirada ou inativa.' })
+    if (!cur) return res.status(404).json({ error: 'Conta não encontrada' })
+    if (!licencaAtiva(cur)) return res.status(403).json({ error: 'Licença expirada ou inativa.' })
     try {
       await sessions.stop(req.user.id, false)
       const st = await sessions.start(req.user.id, cur.phone || '', gravarStatus)
@@ -111,7 +111,7 @@ module.exports = function mount(app, { auth, readJson, writeJson, CONFIGS, DATA,
     const groups = Array.isArray(req.body && req.body.groups) ? req.body.groups : []
     const configs = readJson(CONFIGS, {})
     const cur = configs[req.user.id]
-    if (!cur) return res.status(404).json({ error: 'Conta nao encontrada' })
+    if (!cur) return res.status(404).json({ error: 'Conta não encontrada' })
     // Nicho e palavras extras: o que veio no body, senao o que ja estava salvo (painel classico nao manda)
     const antes = new Map((cur.groups || []).map((g) => [g.jid, g]))
     cur.groups = groups.map((g) => {
@@ -129,7 +129,7 @@ module.exports = function mount(app, { auth, readJson, writeJson, CONFIGS, DATA,
     const fontes = new Set((cur.sources || []).map((g) => g.jid))
     const conflito = cur.groups.filter((g) => fontes.has(g.jid))
     if (conflito.length) {
-      return res.status(400).json({ error: conflito.map((g) => '"' + g.name + '"').join(', ') + (conflito.length > 1 ? ' sao grupos fonte' : ' e grupo fonte') + ' (captura). Um grupo nao pode ser fonte e destino: desmarque-' + (conflito.length > 1 ? 'os' : 'o') + ' aqui ou tire da lista de fontes em Ofertas.' })
+      return res.status(400).json({ error: conflito.map((g) => '"' + g.name + '"').join(', ') + (conflito.length > 1 ? ' são grupos fonte' : ' é grupo fonte') + ' (captura). Um grupo não pode ser fonte e destino: desmarque-' + (conflito.length > 1 ? 'os' : 'o') + ' aqui ou tire da lista de fontes em Ofertas.' })
     }
     cur.updatedAt = new Date().toISOString()
     configs[req.user.id] = cur
@@ -140,12 +140,12 @@ module.exports = function mount(app, { auth, readJson, writeJson, CONFIGS, DATA,
   app.post('/ads/test', auth, async (req, res) => {
     const configs = readJson(CONFIGS, {})
     const cur = configs[req.user.id]
-    if (!cur) return res.status(404).json({ error: 'Conta nao encontrada' })
-    if (!licencaAtiva(cur)) return res.status(403).json({ error: 'Licenca expirada ou inativa.' })
+    if (!cur) return res.status(404).json({ error: 'Conta não encontrada' })
+    if (!licencaAtiva(cur)) return res.status(403).json({ error: 'Licença expirada ou inativa.' })
     const jid = String((req.body && req.body.jid) || '')
-    if (!jidGrupo(jid)) return res.status(400).json({ error: 'Escolha um grupo valido para o teste.' })
+    if (!jidGrupo(jid)) return res.status(400).json({ error: 'Escolha um grupo válido para o teste.' })
     if (!sessions.publicState(req.user.id).connected) {
-      return res.status(400).json({ error: 'WhatsApp nao esta conectado.' })
+      return res.status(400).json({ error: 'WhatsApp não está conectado.' })
     }
     if (!podeTestar(req.user.id)) return res.status(429).json({ error: 'Espere 20 segundos entre testes.' })
     const nome = ((cur.groups || []).find((g) => g.jid === jid) || {}).name || jid
@@ -168,10 +168,10 @@ module.exports = function mount(app, { auth, readJson, writeJson, CONFIGS, DATA,
   app.post('/bot/test', auth, async (req, res) => {
     const configs = readJson(CONFIGS, {})
     const cur = configs[req.user.id]
-    if (!cur) return res.status(404).json({ error: 'Conta nao encontrada' })
-    if (!licencaAtiva(cur)) return res.status(403).json({ error: 'Licenca expirada ou inativa.' })
+    if (!cur) return res.status(404).json({ error: 'Conta não encontrada' })
+    if (!licencaAtiva(cur)) return res.status(403).json({ error: 'Licença expirada ou inativa.' })
     if (!sessions.publicState(req.user.id).connected) {
-      return res.status(400).json({ error: 'WhatsApp nao esta conectado.' })
+      return res.status(400).json({ error: 'WhatsApp não está conectado.' })
     }
     if (!podeTestar(req.user.id)) return res.status(429).json({ error: 'Espere 20 segundos entre testes.' })
     try {
@@ -192,7 +192,7 @@ module.exports = function mount(app, { auth, readJson, writeJson, CONFIGS, DATA,
   app.post('/shopee/test', auth, async (req, res) => {
     const configs = readJson(CONFIGS, {})
     const cur = configs[req.user.id]
-    if (!cur) return res.status(404).json({ error: 'Conta nao encontrada' })
+    if (!cur) return res.status(404).json({ error: 'Conta não encontrada' })
     if (!podeTestar(req.user.id)) return res.status(429).json({ error: 'Espere 20 segundos entre testes.' })
     let oferta
     try {
@@ -204,8 +204,8 @@ module.exports = function mount(app, { auth, readJson, writeJson, CONFIGS, DATA,
     const conectado = sessions.publicState(req.user.id).connected
     if (!groups.length || !conectado) {
       const porque = !groups.length
-        ? 'Salve um grupo na aba Anuncios para publicar.'
-        : 'WhatsApp nao esta conectado.'
+        ? 'Salve um grupo na aba Anúncios para publicar.'
+        : 'WhatsApp não está conectado.'
       return res.json({
         ok: true,
         message: 'Oferta da sua API: ' + oferta.nome + '. ' + porque,
@@ -232,11 +232,11 @@ module.exports = function mount(app, { auth, readJson, writeJson, CONFIGS, DATA,
 
   app.post('/bot/pair', auth, async (req, res) => {
     const phone = String((req.body && req.body.phone) || '').replace(/\D/g, '')
-    if (phone.length < 10) return res.status(400).json({ error: 'Numero invalido. Use DDI+DDD+numero.' })
+    if (phone.length < 10) return res.status(400).json({ error: 'Número inválido. Use DDI+DDD+número.' })
     const configs = readJson(CONFIGS, {})
     const cur = configs[req.user.id]
-    if (!cur) return res.status(404).json({ error: 'Conta nao encontrada' })
-    if (!licencaAtiva(cur)) return res.status(403).json({ error: 'Licenca expirada ou inativa.' })
+    if (!cur) return res.status(404).json({ error: 'Conta não encontrada' })
+    if (!licencaAtiva(cur)) return res.status(403).json({ error: 'Licença expirada ou inativa.' })
     cur.phone = phone
     configs[req.user.id] = cur
     writeJson(CONFIGS, configs)
@@ -246,7 +246,7 @@ module.exports = function mount(app, { auth, readJson, writeJson, CONFIGS, DATA,
         ok: true,
         code: st.pairingCode,
         status: st.status,
-        message: 'Codigo real do WhatsApp. Se ainda nao apareceu, aguarde o status.'
+        message: 'Código real do WhatsApp. Se ainda não apareceu, aguarde o status.'
       })
     } catch (e) {
       res.status(500).json({ error: e.message || 'Falha no pareamento' })

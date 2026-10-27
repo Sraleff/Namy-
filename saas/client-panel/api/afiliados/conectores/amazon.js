@@ -15,7 +15,7 @@ function tagDe(ctx) {
 function configurado(ctx) {
   const tag = tagDe(ctx)
   if (!tag) return { ok: false, motivo: 'salve sua tag de Associado Amazon' }
-  if (!TAG_RE.test(tag)) return { ok: false, motivo: 'tag Amazon invalida' }
+  if (!TAG_RE.test(tag)) return { ok: false, motivo: 'tag Amazon inválida' }
   return { ok: true, motivo: '' }
 }
 
@@ -28,7 +28,7 @@ function asinDe(url) {
 
 async function converter(url, ctx) {
   const final = await links.resolver(url)
-  if (links.marketplaceDe(final) !== 'amazon') throw links.erroLink('Link curto nao levou para a Amazon')
+  if (links.marketplaceDe(final) !== 'amazon') throw links.erroLink('Link curto não levou para a Amazon')
   const asin = asinDe(final)
   if (!asin) throw links.erroLink('Link Amazon sem produto (ASIN)')
   return 'https://www.amazon.com.br/dp/' + asin + '?tag=' + encodeURIComponent(tagDe(ctx))
@@ -38,10 +38,10 @@ async function validar(url, ctx) {
   const f = links.validarFormato(url, 'amazon')
   if (!f.ok) return f
   let u
-  try { u = new URL(url) } catch { return { ok: false, motivo: 'link invalido' } }
+  try { u = new URL(url) } catch { return { ok: false, motivo: 'link inválido' } }
   if (u.hostname !== 'www.amazon.com.br') return { ok: false, motivo: 'link Amazon fora do dominio .com.br' }
-  if (!ASIN_RE.test(asinDe(url))) return { ok: false, motivo: 'ASIN invalido' }
-  if (u.searchParams.get('tag') !== tagDe(ctx)) return { ok: false, motivo: 'tag do link nao e a sua' }
+  if (!ASIN_RE.test(asinDe(url))) return { ok: false, motivo: 'ASIN inválido' }
+  if (u.searchParams.get('tag') !== tagDe(ctx)) return { ok: false, motivo: 'tag do link não é a sua' }
   return { ok: true, motivo: '' }
 }
 

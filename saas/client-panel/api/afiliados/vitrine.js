@@ -93,14 +93,14 @@ const comCupom = (ctx, o, nicho) => {
 
 async function buscar(ctx, entrada = {}, deps = {}) {
   const { userId, cfg, dataDir } = ctx
-  if (entrada.keyword != null && typeof entrada.keyword !== 'string') throw erro('Palavra-chave invalida.')
+  if (entrada.keyword != null && typeof entrada.keyword !== 'string') throw erro('Palavra-chave inválida.')
   const keyword = (entrada.keyword || '').trim()
-  if (keyword.length > KEYWORD_MAX) throw erro('Palavra-chave muito longa (maximo ' + KEYWORD_MAX + ' caracteres).')
+  if (keyword.length > KEYWORD_MAX) throw erro('Palavra-chave muito longa (máximo ' + KEYWORD_MAX + ' caracteres).')
   const ordemId = entrada.ordem == null || entrada.ordem === '' ? ORDENS[0].id : entrada.ordem
   const ordem = ORDENS.find((o) => o.id === ordemId)
-  if (!ordem) throw erro('Ordenacao invalida.')
+  if (!ordem) throw erro('Ordenação inválida.')
   const pagina = entrada.pagina == null || entrada.pagina === '' ? 1 : Number(entrada.pagina)
-  if (!Number.isInteger(pagina) || pagina < 1 || pagina > PAGINA_MAX) throw erro('Pagina invalida (1 a ' + PAGINA_MAX + ').')
+  if (!Number.isInteger(pagina) || pagina < 1 || pagina > PAGINA_MAX) throw erro('Página inválida (1 a ' + PAGINA_MAX + ').')
 
   // So cobra a cota depois de validar: erro de digitacao nao gasta busca
   if (typeof deps.liberar === 'function' && !deps.liberar()) throw erro('Muitas buscas seguidas. Espere um minuto.', 429)
@@ -125,9 +125,9 @@ async function buscar(ctx, entrada = {}, deps = {}) {
 async function salvar(ctx, itemId) {
   const { userId, cfg, dataDir } = ctx
   const o = achar(userId, itemId)
-  if (!o) throw erro('Esse resultado expirou. Faca a busca de novo.', 404)
+  if (!o) throw erro('Esse resultado expirou. Faça a busca de novo.', 404)
   const f = links.validarFormato(o.link, 'shopee')
-  if (!f.ok) throw erro('A oferta veio sem um link valido da Shopee (' + f.motivo + ').')
+  if (!f.ok) throw erro('A oferta veio sem um link válido da Shopee (' + f.motivo + ').')
   const out = await pool.adicionar(dataDir, userId, cfg, {
     texto: copy.baseTexto(cfg, comCupom(ctx, o)),
     nome: o.nome,
@@ -150,17 +150,17 @@ async function enviar(ctx, entrada = {}, deps = {}) {
   const pausaMs = deps.pausaMs == null ? 1200 : deps.pausaMs
 
   if (!Array.isArray(entrada.jids) || !entrada.jids.length) throw erro('Escolha pelo menos um grupo.')
-  if (entrada.jids.some((j) => typeof j !== 'string')) throw erro('Grupo invalido.')
+  if (entrada.jids.some((j) => typeof j !== 'string')) throw erro('Grupo inválido.')
   if (entrada.forcarNicho != null && typeof entrada.forcarNicho !== 'boolean') throw erro('forcarNicho deve ser verdadeiro ou falso.')
   const jids = [...new Set(entrada.jids)]
-  if (jids.length > MAX_GRUPOS) throw erro('No maximo ' + MAX_GRUPOS + ' grupos por envio.')
+  if (jids.length > MAX_GRUPOS) throw erro('No máximo ' + MAX_GRUPOS + ' grupos por envio.')
   const destinos = new Map((cfg.groups || []).map((g) => [g.jid, g]))
-  if (jids.some((j) => !destinos.has(j))) throw erro('So envio para grupos que voce salvou como destino (aba Grupos).')
+  if (jids.some((j) => !destinos.has(j))) throw erro('Só envio para grupos que você salvou como destino (aba Grupos).')
 
   const guardada = achar(userId, entrada.itemId)
-  if (!guardada) throw erro('Esse resultado expirou. Faca a busca de novo.', 404)
+  if (!guardada) throw erro('Esse resultado expirou. Faça a busca de novo.', 404)
   if (!sessions || (typeof sessions.publicState === 'function' && !sessions.publicState(userId).connected)) {
-    throw erro('O WhatsApp nao esta conectado.')
+    throw erro('O WhatsApp não está conectado.')
   }
 
   // So cobra a cota de envios aqui, antes de gastar uma consulta na Shopee
@@ -173,9 +173,9 @@ async function enviar(ctx, entrada = {}, deps = {}) {
     try {
       conf = await ofertasApi.porItem(cfg.shopee, guardada.productId)
     } catch (e) {
-      throw erro('Nao consegui conferir a oferta na Shopee agora. Tente de novo em instantes.', 502)
+      throw erro('Não consegui conferir a oferta na Shopee agora. Tente de novo em instantes.', 502)
     }
-    if (conf.status === 'indisponivel') throw erro('Essa oferta nao esta mais disponivel na Shopee.', 409)
+    if (conf.status === 'indisponivel') throw erro('Essa oferta não está mais disponível na Shopee.', 409)
     o = Object.assign({}, guardada, conf.oferta)
   }
 
@@ -184,7 +184,7 @@ async function enviar(ctx, entrada = {}, deps = {}) {
   const nichosDest = [...new Set(jids.map((j) => nichos.normalizar((destinos.get(j) || {}).niche)))]
   const atrib = { origem: 'vitrine', nicho: nichosDest.length === 1 ? nichosDest[0] : 'misto' }
   const conv = await conversor.converterTexto(c.texto, Object.assign({}, ctx, { atribuicao: atrib }))
-  if (!conv.ok) throw erro('Nao consegui trocar o link: ' + conv.erros.map((e) => e.motivo).join('; '))
+  if (!conv.ok) throw erro('Não consegui trocar o link: ' + conv.erros.map((e) => e.motivo).join('; '))
   const porGrupo = !!(cfg.comissoes && cfg.comissoes.porGrupo)
 
   const log = (g, ok, message) => {

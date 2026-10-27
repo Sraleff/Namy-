@@ -58,7 +58,7 @@ function publicBase(req) {
 async function mp(pathname, opts) {
   const access = token()
   if (!access) {
-    const err = new Error('Mercado Pago ainda nao configurado no servidor (MP_ACCESS_TOKEN).')
+    const err = new Error('Mercado Pago ainda não configurado no servidor (MP_ACCESS_TOKEN).')
     err.status = 503
     throw err
   }
@@ -82,7 +82,7 @@ async function mp(pathname, opts) {
 async function createCheckout({ userId, email, planId, baseUrl, returnPath = '/' }) {
   const plan = PLANS[planId]
   if (!plan || plan.legado) {
-    const err = new Error('Plano invalido. Use start_mensal, start_anual, pro_mensal ou pro_anual.')
+    const err = new Error('Plano inválido. Use start_mensal, start_anual, pro_mensal ou pro_anual.')
     err.status = 400
     throw err
   }

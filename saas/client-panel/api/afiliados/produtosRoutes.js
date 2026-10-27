@@ -24,7 +24,7 @@ function mount(app, deps, opcoes = {}) {
   app.get('/produtos', auth, (req, res) => {
     try {
       const status = typeof req.query.status === 'string' ? req.query.status : ''
-      if (status && !fila.STATUS.includes(status)) return res.status(400).json({ error: 'Status invalido.' })
+      if (status && !fila.STATUS.includes(status)) return res.status(400).json({ error: 'Status inválido.' })
       const out = fila.listar(DATA, req.user.id, { status, limite: req.query.limite, midiaUrl: opcoes.midiaUrl })
       res.json({ ok: true, prioridades: fila.PRIORIDADES, ...out })
     } catch (e) { falha(res, e, 'Falha ao listar a fila') }

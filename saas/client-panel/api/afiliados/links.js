@@ -115,7 +115,7 @@ async function hostPublico(host) {
     lista = await dns.lookup(host, { all: true })
   } catch (e) {
     if (e.code === 'ENOTFOUND') return false
-    throw erroLink('Nao consegui resolver ' + host, true)
+    throw erroLink('Não consegui resolver ' + host, true)
   }
   return lista.length > 0 && lista.every((r) => !ipPrivado(r.address))
 }
@@ -128,11 +128,11 @@ async function buscarSeguro(url, { method = 'GET', hostsPermitidos = null, salto
   let atual = url
   for (let i = 0; i <= saltos; i++) {
     let u
-    try { u = new URL(atual) } catch { throw erroLink('Link invalido') }
-    if (u.protocol !== 'https:') throw erroLink('So aceito link https')
+    try { u = new URL(atual) } catch { throw erroLink('Link inválido') }
+    if (u.protocol !== 'https:') throw erroLink('Só aceito link https')
     const host = u.hostname.toLowerCase().replace(/^www\./, '')
     if (hostsPermitidos && !casaHost(host, hostsPermitidos)) throw erroLink('Redirecionou para fora do marketplace: ' + host)
-    if (!(await hostPublico(u.hostname))) throw erroLink('Host nao permitido')
+    if (!(await hostPublico(u.hostname))) throw erroLink('Host não permitido')
     const ctrl = new AbortController()
     const t = setTimeout(() => ctrl.abort(), timeoutMs)
     let r
@@ -144,7 +144,7 @@ async function buscarSeguro(url, { method = 'GET', hostsPermitidos = null, salto
         headers: Object.assign({ 'User-Agent': 'Mozilla/5.0 (Namy link check)', Accept: '*/*' }, headers)
       })
     } catch (e) {
-      throw erroLink(e.name === 'AbortError' ? 'Tempo esgotado ao abrir o link' : 'Nao consegui abrir o link', true)
+      throw erroLink(e.name === 'AbortError' ? 'Tempo esgotado ao abrir o link' : 'Não consegui abrir o link', true)
     } finally {
       clearTimeout(t)
     }
@@ -178,7 +178,7 @@ function validarFormato(url, marketplace) {
   if (!/^https:\/\/[^\s]+$/.test(String(url || ''))) return { ok: false, motivo: 'link sem https' }
   const mk = marketplaceDe(url)
   if (!mk) return { ok: false, motivo: 'host fora dos marketplaces suportados' }
-  if (marketplace && mk !== marketplace) return { ok: false, motivo: 'link nao e de ' + MARKETPLACES[marketplace].label }
+  if (marketplace && mk !== marketplace) return { ok: false, motivo: 'link não é de ' + MARKETPLACES[marketplace].label }
   return { ok: true, motivo: '' }
 }
 

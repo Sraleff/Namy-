@@ -25,8 +25,8 @@ function mount(app, deps, opcoes = {}) {
   function contexto(req, res, { exigeChave = true } = {}) {
     const userId = req.user.id
     const cfg = readJson(CONFIGS, {})[userId]
-    if (!cfg) { res.status(404).json({ error: 'Conta nao encontrada' }); return null }
-    if (!licencaAtiva(cfg)) { res.status(403).json({ error: 'Licenca expirada ou inativa.' }); return null }
+    if (!cfg) { res.status(404).json({ error: 'Conta não encontrada' }); return null }
+    if (!licencaAtiva(cfg)) { res.status(403).json({ error: 'Licença expirada ou inativa.' }); return null }
     if (exigeChave) {
       const pronto = shopee.configurado({ cfg })
       if (!pronto.ok) { res.status(400).json({ error: pronto.motivo, codigo: 'SEM_CHAVE' }); return null }
@@ -54,7 +54,7 @@ function mount(app, deps, opcoes = {}) {
       const ctx = contexto(req, res, { exigeChave: false })
       if (!ctx) return
       const itemId = itemIdDe(req.body)
-      if (!itemId) return res.status(400).json({ error: 'Oferta invalida.' })
+      if (!itemId) return res.status(400).json({ error: 'Oferta inválida.' })
       res.json({ ok: true, ...(await vitrine.salvar(ctx, itemId)) })
     } catch (e) { falha(res, e, 'Falha ao salvar na fila') }
   })
@@ -64,7 +64,7 @@ function mount(app, deps, opcoes = {}) {
       const ctx = contexto(req, res, { exigeChave: false })
       if (!ctx) return
       const itemId = itemIdDe(req.body)
-      if (!itemId) return res.status(400).json({ error: 'Oferta invalida.' })
+      if (!itemId) return res.status(400).json({ error: 'Oferta inválida.' })
       const out = await vitrine.enviar(ctx, { itemId, jids: req.body.jids, forcarNicho: req.body.forcarNicho }, { sessions, logs, pausaMs: opcoes.pausaMs, liberar: () => podeEnviar(ctx.userId) })
       res.json({ ...out })
     } catch (e) { falha(res, e, 'Falha ao enviar a oferta') }

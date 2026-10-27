@@ -201,7 +201,7 @@ async function rodar(deps, userId) {
           source: wa ? 'whatsapp' : 'shopee',
           level: 'error',
           ok: false,
-          message: wa ? ('WhatsApp caiu. Anuncio adiado. ' + (e.message || '')) : (e.message || 'Falha na API')
+          message: wa ? ('WhatsApp caiu. Anúncio adiado. ' + (e.message || '')) : (e.message || 'Falha na API')
         })
       }
       adiar(deps, userId, wa ? 60 * 1000 : 2 * 60 * 1000)
@@ -249,12 +249,12 @@ async function um(deps, userId, cfg) {
 
 const MENSAGENS = {
   concluido: (n) => 'Enviei ' + n + ' produto(s).',
-  limite: (n) => (n ? 'Enviei ' + n + ' produto(s) e o limite do dia foi atingido.' : 'O limite de envios de hoje ja foi atingido.'),
+  limite: (n) => (n ? 'Enviei ' + n + ' produto(s) e o limite do dia foi atingido.' : 'O limite de envios de hoje já foi atingido.'),
   'sem-oferta': (n) => (n ? 'Enviei ' + n + ' produto(s); acabaram as ofertas do nicho.' : 'Nenhuma oferta relevante agora. Nada foi enviado.'),
   whatsapp: (n) => 'O WhatsApp caiu durante o envio.' + (n ? ' Enviei ' + n + ' produto(s) antes.' : ''),
-  erro: (n) => 'Nao consegui enviar. Veja os Logs.' + (n ? ' Enviei ' + n + ' produto(s) antes.' : ''),
+  erro: (n) => 'Não consegui enviar. Veja os Logs.' + (n ? ' Enviei ' + n + ' produto(s) antes.' : ''),
   nada: () => 'Nada foi enviado. Veja os Logs.',
-  'sem-conta': () => 'Conta nao encontrada.'
+  'sem-conta': () => 'Conta não encontrada.'
 }
 
 /**
@@ -265,16 +265,16 @@ const MENSAGENS = {
 async function executarAgora(deps, userId, opcoes = {}) {
   const cfg = deps.readJson(deps.CONFIGS, {})[userId]
   const recusa = (status, codigo, mensagem) => ({ ok: false, status, codigo, mensagem })
-  if (!cfg) return recusa(404, 'sem-conta', 'Conta nao encontrada')
-  if (!licencaAtiva(cfg)) return recusa(403, 'licenca', 'Licenca expirada ou inativa.')
+  if (!cfg) return recusa(404, 'sem-conta', 'Conta não encontrada')
+  if (!licencaAtiva(cfg)) return recusa(403, 'licenca', 'Licença expirada ou inativa.')
   if (!origemPronta(cfg)) return recusa(400, 'sem-chave', 'Salve App ID e Secret da Shopee (ou use o banco de ofertas).')
   if (!destinosDe(cfg).length) return recusa(400, 'sem-grupos', 'Escolha pelo menos um grupo de destino em Grupos.')
-  if (!sessions.publicState(userId).connected) return recusa(400, 'whatsapp', 'O WhatsApp nao esta conectado.')
+  if (!sessions.publicState(userId).connected) return recusa(400, 'whatsapp', 'O WhatsApp não está conectado.')
   const ads = cfg.ads || {}
   if (enviadosHoje(ads) >= limiteDiario(ads, cfg)) {
     return { ok: false, status: 200, codigo: 'limite', enviados: 0, parou: 'limite', mensagem: MENSAGENS.limite(0) }
   }
-  if (emExecucao.has(userId)) return recusa(409, 'ocupado', 'Ja existe uma execucao em andamento. Aguarde terminar.')
+  if (emExecucao.has(userId)) return recusa(409, 'ocupado', 'Já existe uma execução em andamento. Aguarde terminar.')
   if (typeof opcoes.liberar === 'function' && !opcoes.liberar()) return recusa(429, 'espere', 'Espere alguns segundos antes de executar de novo.')
 
   emExecucao.add(userId)

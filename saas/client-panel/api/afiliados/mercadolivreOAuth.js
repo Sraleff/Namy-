@@ -46,10 +46,10 @@ function limparEstados() {
 // URL para o navegador do cliente. state e de uso unico e amarrado ao userId do JWT.
 function urlDeConexao(userId) {
   const cfg = app()
-  if (!cfg.ok) throw erroML('Mercado Livre nao configurado no servidor (ML_CLIENT_ID, ML_CLIENT_SECRET, PUBLIC_URL).', 503, 'ML_CONFIG')
+  if (!cfg.ok) throw erroML('Mercado Livre não configurado no servidor (ML_CLIENT_ID, ML_CLIENT_SECRET, PUBLIC_URL).', 503, 'ML_CONFIG')
   if (!cofre.disponivel()) throw erroML('Defina SAAS_MASTER_KEY no .env do client-panel antes de conectar.', 503, 'ML_CONFIG')
   limparEstados()
-  if (estados.size > 5000) throw erroML('Muitas conexoes pendentes. Tente em alguns minutos.', 429, 'ML_RATE')
+  if (estados.size > 5000) throw erroML('Muitas conexões pendentes. Tente em alguns minutos.', 429, 'ML_RATE')
   const state = base64url(crypto.randomBytes(32))
   const verifier = base64url(crypto.randomBytes(48))
   const challenge = base64url(crypto.createHash('sha256').update(verifier).digest())
@@ -82,7 +82,7 @@ async function postToken(params) {
       body: new URLSearchParams(params).toString()
     })
   } catch {
-    throw erroML('Nao consegui falar com o Mercado Livre.', 502, 'ML_REDE')
+    throw erroML('Não consegui falar com o Mercado Livre.', 502, 'ML_REDE')
   }
   const data = await r.json().catch(() => ({}))
   if (r.status === 429) throw erroML('Mercado Livre pediu para esperar (429).', 429, 'ML_RATE')
@@ -109,8 +109,8 @@ function guardar(data, anterior) {
 // Callback: valida state, troca code (com PKCE) e grava cifrado
 async function concluir(dataDir, state, code) {
   const s = consumirEstado(state)
-  if (!s) throw erroML('Conexao expirada ou invalida. Comece de novo pelo painel.', 400, 'ML_STATE')
-  if (!code) throw erroML('Mercado Livre nao devolveu o codigo.', 400, 'ML')
+  if (!s) throw erroML('Conexão expirada ou inválida. Comece de novo pelo painel.', 400, 'ML_STATE')
+  if (!code) throw erroML('Mercado Livre não devolveu o código.', 400, 'ML')
   const cfg = app()
   const data = await postToken({
     grant_type: 'authorization_code',
@@ -163,7 +163,7 @@ async function fetchJson(url, token) {
   try {
     r = await fetch(url, { headers: { Accept: 'application/json', Authorization: 'Bearer ' + token } })
   } catch {
-    throw erroML('Nao consegui falar com o Mercado Livre.', 502, 'ML_REDE')
+    throw erroML('Não consegui falar com o Mercado Livre.', 502, 'ML_REDE')
   }
   const data = await r.json().catch(() => ({}))
   return { ok: r.ok, status: r.status, data, retryAfter: Number(r.headers.get('retry-after')) || 0 }
@@ -178,7 +178,7 @@ async function get(dataDir, userId, caminho) {
   const pausa = esperaAte.get(userId) || 0
   if (pausa > Date.now()) throw erroML('Mercado Livre limitou as chamadas. Tente em ' + Math.ceil((pausa - Date.now()) / 1000) + 's.', 429, 'ML_RATE')
   let tok = cofre.ler(dataDir, userId, 'mercadolivre')
-  if (!tok.access_token) throw erroML('Mercado Livre nao conectado.', 401, 'ML_DESCONECTADO')
+  if (!tok.access_token) throw erroML('Mercado Livre não conectado.', 401, 'ML_DESCONECTADO')
   if (!tok.expires_at || tok.expires_at - 60000 < Date.now()) tok = await renovar(dataDir, userId)
   let out = await fetchJson(API + caminho, tok.access_token)
   if (out.status === 401) {
@@ -190,8 +190,8 @@ async function get(dataDir, userId, caminho) {
     throw erroML('Mercado Livre limitou as chamadas (429).', 429, 'ML_RATE')
   }
   if (out.status === 401) throw erroML('Token do Mercado Livre recusado. Conecte de novo.', 401, 'ML_RECONECTAR')
-  if (out.status === 403) throw erroML('Mercado Livre negou acesso (403). Confira as permissoes do app.', 403, 'ML_PROIBIDO')
-  if (out.status === 404) throw erroML('Nao encontrado no Mercado Livre.', 404, 'ML_404')
+  if (out.status === 403) throw erroML('Mercado Livre negou acesso (403). Confira as permissões do app.', 403, 'ML_PROIBIDO')
+  if (out.status === 404) throw erroML('Não encontrado no Mercado Livre.', 404, 'ML_404')
   if (!out.ok) throw erroML('Mercado Livre respondeu ' + out.status + '.', 502, 'ML')
   return out.data
 }

@@ -94,7 +94,7 @@ async function graphql(appId, secret, query) {
     status = r.status
     data = await r.json().catch(() => ({}))
   } catch {
-    const err = new Error('Nao consegui falar com a API Shopee.')
+    const err = new Error('Não consegui falar com a API Shopee.')
     err.code = 'SHOPEE'
     err.status = 502
     throw err
@@ -165,7 +165,7 @@ async function encurtar(appId, secret, url, subIds) {
  */
 async function preparar(dataDir, userId, shopee, opts = {}) {
   if (!shopee || !shopee.appId || !shopee.secret) {
-    const err = new Error('Salve App ID e Secret da Shopee. O anuncio sai da API desta conta.')
+    const err = new Error('Salve App ID e Secret da Shopee. O anúncio sai da API desta conta.')
     err.code = 'SHOPEE'
     err.status = 400
     throw err
@@ -176,7 +176,7 @@ async function preparar(dataDir, userId, shopee, opts = {}) {
   const nodes = data.productOfferV2 && data.productOfferV2.nodes
   const validos = (Array.isArray(nodes) ? nodes : []).map(normalizar).filter(Boolean)
   if (!validos.length) {
-    const err = new Error(keyword ? 'Nenhuma oferta com link para "' + keyword + '".' : 'A API nao devolveu oferta com nome, preco e link.')
+    const err = new Error(keyword ? 'Nenhuma oferta com link para "' + keyword + '".' : 'A API não devolveu oferta com nome, preço e link.')
     err.code = 'SHOPEE'
     err.status = 400
     throw err
@@ -241,7 +241,7 @@ async function porItem(shopee, itemId) {
   }
   const id = String(itemId == null ? '' : itemId)
   if (!/^\d{1,20}$/.test(id)) {
-    const err = new Error('itemId invalido')
+    const err = new Error('itemId inválido')
     err.status = 400
     throw err
   }
@@ -264,7 +264,7 @@ async function conversoes(shopee, { inicio, fim, scrollId = '', limit = 100 } = 
   }
   const i = Math.floor(Number(inicio))
   const f = Math.floor(Number(fim))
-  if (!Number.isFinite(i) || !Number.isFinite(f) || i <= 0 || f <= i) throw Object.assign(new Error('Periodo invalido'), { status: 400 })
+  if (!Number.isFinite(i) || !Number.isFinite(f) || i <= 0 || f <= i) throw Object.assign(new Error('Período inválido'), { status: 400 })
   const l = Math.min(100, Math.max(1, Math.floor(Number(limit)) || 100))
   const sc = scrollId ? ', scrollId: ' + JSON.stringify(String(scrollId).slice(0, 200)) : ''
   const query = '{ conversionReport(purchaseTimeStart: ' + i + ', purchaseTimeEnd: ' + f + ', limit: ' + l + sc + ') { nodes { conversionId purchaseTime conversionStatus totalCommission netCommission utmContent orders { orderId items { itemId itemName qty actualAmount itemTotalCommission } } } pageInfo { hasNextPage scrollId } } }'

@@ -33,10 +33,10 @@ const em = (ymd, hora) => Date.parse(ymd + 'T' + hora + ':00-03:00')
 
 function validarRecorrencia(r, agora = Date.now()) {
   if (!r || typeof r !== 'object') throw erro('Escolha quando enviar.')
-  if (typeof r.hora !== 'string' || !HORA_RE.test(r.hora)) throw erro('Horario invalido (use HH:MM).')
+  if (typeof r.hora !== 'string' || !HORA_RE.test(r.hora)) throw erro('Horário inválido (use HH:MM).')
   const tipo = r.tipo
   if (tipo === 'uma') {
-    if (typeof r.data !== 'string' || !dataValida(r.data)) throw erro('Data invalida (AAAA-MM-DD).')
+    if (typeof r.data !== 'string' || !dataValida(r.data)) throw erro('Data inválida (AAAA-MM-DD).')
     return { tipo, hora: r.hora, data: r.data }
   }
   if (tipo === 'diaria') return { tipo, hora: r.hora }
@@ -49,10 +49,10 @@ function validarRecorrencia(r, agora = Date.now()) {
     const n = Number(r.cadaDias)
     if (!Number.isInteger(n) || n < 1 || n > 60) throw erro('"A cada N dias": N de 1 a 60.')
     const inicio = r.inicio == null || r.inicio === '' ? ymdBR(agora) : String(r.inicio)
-    if (!dataValida(inicio)) throw erro('Data de inicio invalida (AAAA-MM-DD).')
+    if (!dataValida(inicio)) throw erro('Data de início inválida (AAAA-MM-DD).')
     return { tipo, hora: r.hora, cadaDias: n, inicio }
   }
-  throw erro('Tipo de recorrencia invalido.')
+  throw erro('Tipo de recorrência inválido.')
 }
 
 /** Proxima execucao (ms) estritamente depois de `desde`; null se nao ha mais (agenda unica no passado). */
@@ -90,13 +90,13 @@ function proximas(rec, desde, n = 5) {
 function validarDestinos(destinos, cfg) {
   if (!Array.isArray(destinos) || !destinos.length) throw erro('Escolha pelo menos um grupo.')
   const lista = [...new Set(destinos.map(String))]
-  if (lista.length > MAX_DESTINOS) throw erro('No maximo ' + MAX_DESTINOS + ' grupos por agenda.')
+  if (lista.length > MAX_DESTINOS) throw erro('No máximo ' + MAX_DESTINOS + ' grupos por agenda.')
   const salvos = new Set((cfg.groups || []).map((g) => g && g.jid))
   const fontes = new Set((cfg.sources || []).map((g) => g && g.jid))
   for (const j of lista) {
-    if (!JID_RE.test(j)) throw erro('Grupo invalido.')
-    if (!salvos.has(j)) throw erro('So envio para grupos que voce salvou como destino (aba Grupos).')
-    if (fontes.has(j)) throw erro('Um grupo de captura (fonte) nao pode ser destino.')
+    if (!JID_RE.test(j)) throw erro('Grupo inválido.')
+    if (!salvos.has(j)) throw erro('Só envio para grupos que você salvou como destino (aba Grupos).')
+    if (fontes.has(j)) throw erro('Um grupo de captura (fonte) não pode ser destino.')
   }
   return lista
 }
@@ -104,10 +104,10 @@ function validarDestinos(destinos, cfg) {
 function validar(entrada, cfg, agora = Date.now()) {
   const e = entrada || {}
   const nome = String(e.nome == null ? '' : e.nome).trim().slice(0, 80)
-  if (!nome) throw erro('De um nome para a agenda.')
+  if (!nome) throw erro('Dê um nome para a agenda.')
   const texto = String(e.texto == null ? '' : e.texto).replace(/\r\n/g, '\n').trim()
   if (!texto) throw erro('Escreva a mensagem.')
-  if (texto.length > MAX_TEXTO) throw erro('Mensagem grande demais (maximo ' + MAX_TEXTO + ' caracteres).')
+  if (texto.length > MAX_TEXTO) throw erro('Mensagem grande demais (máximo ' + MAX_TEXTO + ' caracteres).')
   const imagemUrl = String(e.imagemUrl || '').trim()
   if (imagemUrl && !/^https:\/\/\S+$/.test(imagemUrl)) throw erro('A imagem precisa ser um link https.')
   if (imagemUrl.length > 500) throw erro('Link da imagem grande demais.')
@@ -139,7 +139,7 @@ async function editar(dataDir, userId, cfg, id, entrada) {
   const v = validar(entrada, cfg)
   return jsonStore.update(dataDir, PASTA, userId, vazio, (db) => {
     const it = (db.itens || []).find((i) => i.id === id)
-    if (!it) throw erro('Agenda nao encontrada.', 404)
+    if (!it) throw erro('Agenda não encontrada.', 404)
     Object.assign(it, v, { atualizadoEm: new Date().toISOString() })
     // Mudou a recorrencia: recalcula (ou pausa, se a unica ja passou)
     if (it.ativo) {
@@ -153,10 +153,10 @@ async function editar(dataDir, userId, cfg, id, entrada) {
 async function ativar(dataDir, userId, id, ativo) {
   return jsonStore.update(dataDir, PASTA, userId, vazio, (db) => {
     const it = (db.itens || []).find((i) => i.id === id)
-    if (!it) throw erro('Agenda nao encontrada.', 404)
+    if (!it) throw erro('Agenda não encontrada.', 404)
     if (ativo) {
       const p = proxima(it.recorrencia, Date.now())
-      if (p == null) throw erro('Essa data ja passou. Edite a agenda.')
+      if (p == null) throw erro('Essa data já passou. Edite a agenda.')
       it.ativo = true
       it.proximaEm = new Date(p).toISOString()
     } else { it.ativo = false; it.proximaEm = null }
@@ -169,7 +169,7 @@ async function remover(dataDir, userId, id) {
   return jsonStore.update(dataDir, PASTA, userId, vazio, (db) => {
     const antes = (db.itens || []).length
     db.itens = (db.itens || []).filter((i) => i.id !== id)
-    if (db.itens.length === antes) throw erro('Agenda nao encontrada.', 404)
+    if (db.itens.length === antes) throw erro('Agenda não encontrada.', 404)
     return true
   })
 }

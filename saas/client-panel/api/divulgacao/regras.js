@@ -19,7 +19,7 @@ function achar(lista, id) {
 
 function registrarContato(db, input) {
   const stableId = String(input.stableId || '').trim().slice(0, 120)
-  if (!stableId) throw erro('Identificador do contato obrigatorio')
+  if (!stableId) throw erro('Identificador do contato obrigatório')
   const ja = db.contacts.find((c) => c.stableId === stableId)
   if (ja) return { contact: ja, created: false }
   const contact = {
@@ -60,8 +60,8 @@ function importarParticipantes(db, groupJid, participants) {
 
 function setConsent(db, contactId, consent, source) {
   const c = achar(db.contacts, contactId)
-  if (!c) throw erro('Contato nao encontrado', 404)
-  if (!['nenhum', 'autorizado', 'revogado'].includes(consent)) throw erro('Consentimento invalido')
+  if (!c) throw erro('Contato não encontrado', 404)
+  if (!['nenhum', 'autorizado', 'revogado'].includes(consent)) throw erro('Consentimento inválido')
   c.consent = consent
   c.consentAt = new Date().toISOString()
   c.consentSource = String(source || 'painel').slice(0, 40)
@@ -71,14 +71,14 @@ function setConsent(db, contactId, consent, source) {
 
 function setPrefs(db, contactId, prefs) {
   const c = achar(db.contacts, contactId)
-  if (!c) throw erro('Contato nao encontrado', 404)
+  if (!c) throw erro('Contato não encontrado', 404)
   c.prefs = String(prefs || '').slice(0, 120)
   return c
 }
 
 function criarCampanha(db, input) {
   const type = String(input.type || '')
-  if (!TIPOS.has(type)) throw erro('Tipo invalido. Use grupo, oferta ou promocao.')
+  if (!TIPOS.has(type)) throw erro('Tipo inválido. Use grupo, oferta ou promoção.')
   const intervalSec = Math.min(3600, Math.max(20, Number(input.intervalSec) || 30))
   const cap = Math.min(50, Math.max(1, Number(input.dailyCap) || 20))
   const camp = {
@@ -102,7 +102,7 @@ function criarCampanha(db, input) {
     lastError: ''
   }
   if (camp.scheduledAt && Number.isNaN(new Date(camp.scheduledAt).getTime())) {
-    throw erro('Data programada invalida')
+    throw erro('Data programada inválida')
   }
   db.campaigns.unshift(camp)
   return camp
@@ -110,10 +110,10 @@ function criarCampanha(db, input) {
 
 function definirConvite(db, campaignId, url) {
   const camp = achar(db.campaigns, campaignId)
-  if (!camp) throw erro('Campanha nao encontrada', 404)
-  if (camp.status !== 'rascunho') throw erro('So da para alterar rascunho')
-  if (camp.type !== 'grupo') throw erro('Convite so vale para divulgacao de grupo')
-  if (!CONVITE.test(String(url || ''))) throw erro('Link de convite invalido')
+  if (!camp) throw erro('Campanha não encontrada', 404)
+  if (camp.status !== 'rascunho') throw erro('Só dá para alterar rascunho')
+  if (camp.type !== 'grupo') throw erro('Convite só vale para divulgação de grupo')
+  if (!CONVITE.test(String(url || ''))) throw erro('Link de convite inválido')
   camp.inviteUrl = url
   camp.updatedAt = new Date().toISOString()
   return camp
@@ -121,16 +121,16 @@ function definirConvite(db, campaignId, url) {
 
 function anexarOferta(db, campaignId, oferta) {
   const camp = achar(db.campaigns, campaignId)
-  if (!camp) throw erro('Campanha nao encontrada', 404)
-  if (camp.status !== 'rascunho') throw erro('So da para alterar rascunho')
-  if (camp.type === 'grupo') throw erro('Oferta nao entra em campanha de grupo')
+  if (!camp) throw erro('Campanha não encontrada', 404)
+  if (camp.status !== 'rascunho') throw erro('Só dá para alterar rascunho')
+  if (camp.type === 'grupo') throw erro('Oferta não entra em campanha de grupo')
   const nome = String((oferta && oferta.nome) || '').trim()
   const link = String((oferta && oferta.link) || '').trim()
   if (!nome || !/^https:\/\//.test(link)) throw erro('Oferta sem nome ou link real da API')
   const desconto = Number(oferta.desconto)
   const temDesconto = Number.isFinite(desconto) && desconto > 0
   if (camp.type === 'promocao' && !temDesconto) {
-    throw erro('A API nao trouxe desconto e esta integracao nao recebe codigo de cupom. Nao invento cupom.')
+    throw erro('A API não trouxe desconto e esta integração não recebe código de cupom. Não invento cupom.')
   }
   camp.content = {
     nome: nome.slice(0, 180),
@@ -145,8 +145,8 @@ function anexarOferta(db, campaignId, oferta) {
 
 function definirDestinatarios(db, campaignId, contactIds) {
   const camp = achar(db.campaigns, campaignId)
-  if (!camp) throw erro('Campanha nao encontrada', 404)
-  if (camp.status !== 'rascunho' && camp.status !== 'pausada') throw erro('Campanha nao aceita nova lista agora')
+  if (!camp) throw erro('Campanha não encontrada', 404)
+  if (camp.status !== 'rascunho' && camp.status !== 'pausada') throw erro('Campanha não aceita nova lista agora')
   const vistos = new Set()
   const lista = []
   const pulados = []
@@ -163,7 +163,7 @@ function definirDestinatarios(db, campaignId, contactIds) {
       continue
     }
     if (c.consent !== 'autorizado') {
-      pulados.push({ contactId: c.id, reason: c.consent === 'revogado' ? 'revogado' : 'sem autorizacao' })
+      pulados.push({ contactId: c.id, reason: c.consent === 'revogado' ? 'revogado' : 'sem autorização' })
       continue
     }
     lista.push({ contactId: c.id, state: 'fila' })
@@ -175,8 +175,8 @@ function definirDestinatarios(db, campaignId, contactIds) {
 
 function aprovar(db, campaignId) {
   const camp = achar(db.campaigns, campaignId)
-  if (!camp) throw erro('Campanha nao encontrada', 404)
-  if (camp.status !== 'rascunho' && camp.status !== 'agendada') throw erro('So da para aprovar rascunho')
+  if (!camp) throw erro('Campanha não encontrada', 404)
+  if (camp.status !== 'rascunho' && camp.status !== 'agendada') throw erro('Só dá para aprovar rascunho')
   const fila = (camp.recipients || []).filter((r) => r.state === 'fila')
   if (!fila.length) throw erro('Escolha ao menos um contato autorizado')
   if (camp.type === 'grupo' && !CONVITE.test(camp.inviteUrl || '')) {
@@ -194,8 +194,8 @@ function aprovar(db, campaignId) {
 
 function mudar(db, campaignId, status, de) {
   const camp = achar(db.campaigns, campaignId)
-  if (!camp) throw erro('Campanha nao encontrada', 404)
-  if (!de.includes(camp.status)) throw erro('Nao da para ' + status + ' a partir de ' + camp.status)
+  if (!camp) throw erro('Campanha não encontrada', 404)
+  if (!de.includes(camp.status)) throw erro('Não dá para ' + status + ' a partir de ' + camp.status)
   camp.status = status
   camp.updatedAt = new Date().toISOString()
   return camp
@@ -254,7 +254,7 @@ function prepararEnvio(db, userId, now) {
       const at = new Date(now).toISOString()
       if (!contact || contact.consent !== 'autorizado') {
         item.state = 'pulado'
-        db.sends.push({ id: store.id(), campaignId: camp.id, contactId: item.contactId, state: 'pulado', at, detail: 'sem autorizacao' })
+        db.sends.push({ id: store.id(), campaignId: camp.id, contactId: item.contactId, state: 'pulado', at, detail: 'sem autorização' })
         continue
       }
       if (emCooldown(db, camp, contact.id, now)) {
@@ -283,7 +283,7 @@ function aplicarResultado(db, job, result, now) {
     item.state = 'aceito'
     camp.sentToday = (camp.sentToday || 0) + 1
     camp.lastError = ''
-    db.sends.push({ id: store.id(), campaignId: camp.id, contactId: item.contactId, state: 'aceito', at, detail: 'socket aceitou; sem confirmacao de entrega ou leitura' })
+    db.sends.push({ id: store.id(), campaignId: camp.id, contactId: item.contactId, state: 'aceito', at, detail: 'socket aceitou; sem confirmação de entrega ou leitura' })
   } else if (result.uncertain) {
     item.state = 'incerto'
     camp.lastError = String(result.detail || 'resultado incerto').slice(0, 180)
@@ -319,7 +319,7 @@ function relatorio(db, campaignId) {
       incertos: conta('incerto'),
       pulados: conta('pulado'),
       lastError: c.lastError || '',
-      entrega: 'nao confirmada',
+      entrega: 'não confirmada',
       leitura: 'indisponivel'
     }
   })
@@ -327,7 +327,7 @@ function relatorio(db, campaignId) {
 
 function reenviarIncertos(db, campaignId) {
   const camp = achar(db.campaigns, campaignId)
-  if (!camp) throw erro('Campanha nao encontrada', 404)
+  if (!camp) throw erro('Campanha não encontrada', 404)
   if (camp.status === 'cancelada' || camp.status === 'concluida') throw erro('Campanha encerrada')
   let n = 0
   for (const r of camp.recipients || []) {

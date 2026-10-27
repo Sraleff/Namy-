@@ -10,10 +10,10 @@ function mount(app, deps, opcoes = {}) {
   app.get('/diagnostico', auth, (req, res) => {
     try {
       const cfg = readJson(CONFIGS, {})[req.user.id]
-      if (!cfg) return res.status(404).json({ error: 'Conta nao encontrada' })
+      if (!cfg) return res.status(404).json({ error: 'Conta não encontrada' })
       if (!podeLer(req.user.id)) return res.status(429).json({ error: 'Muitas consultas seguidas. Espere um minuto.' })
       res.json(diagnostico.diagnosticar({ userId: req.user.id, cfg, dataDir: DATA, sessions }))
-    } catch (e) { res.status(e.status || 500).json({ error: e.message || 'Falha no diagnostico' }) }
+    } catch (e) { res.status(e.status || 500).json({ error: e.message || 'Falha no diagnóstico' }) }
   })
 }
 

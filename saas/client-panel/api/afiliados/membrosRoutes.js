@@ -16,7 +16,7 @@ function mount(app, deps, opcoes = {}) {
 
   function conta(req, res) {
     const cfg = readJson(CONFIGS, {})[req.user.id]
-    if (!cfg) { res.status(404).json({ error: 'Conta nao encontrada' }); return null }
+    if (!cfg) { res.status(404).json({ error: 'Conta não encontrada' }); return null }
     return cfg
   }
 
@@ -35,11 +35,11 @@ function mount(app, deps, opcoes = {}) {
     try {
       const cfg = conta(req, res)
       if (!cfg) return
-      if (!sessions || !sessions.publicState(req.user.id).connected) return res.status(400).json({ error: 'O WhatsApp nao esta conectado.' })
+      if (!sessions || !sessions.publicState(req.user.id).connected) return res.status(400).json({ error: 'O WhatsApp não está conectado.' })
       if (!podeAtualizar(req.user.id)) return res.status(429).json({ error: 'Espere um minuto antes de atualizar de novo.' })
       await membros.snapshot(base, req.user.id, cfg)
       res.json(Object.assign(await membros.resumo(base, req.user.id, cfg, 30), { whatsapp: true }))
-    } catch (e) { falha(res, Object.assign(e, { status: e.status || 502 }), 'Nao consegui atualizar o tamanho dos grupos') }
+    } catch (e) { falha(res, Object.assign(e, { status: e.status || 502 }), 'Não consegui atualizar o tamanho dos grupos') }
   })
 
   app.post('/membros/config', auth, (req, res) => {

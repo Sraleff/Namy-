@@ -38,7 +38,7 @@ async function classificarUrl(url) {
       const mk2 = links.marketplaceDe(out.url)
       if (mk2) return { url, resolvido: out.url, marketplace: mk2 }
     } catch {}
-    return { url, bloqueado: 'encurtador que nao leva a marketplace suportado' }
+    return { url, bloqueado: 'encurtador que não leva a marketplace suportado' }
   }
   return { url, desconhecido: true }
 }
@@ -77,7 +77,7 @@ async function converterTexto(textoOriginal, ctx) {
       const para = await con.converter(info.resolvido || a.url, ctx)
       const v = await con.validar(para, ctx)
       if (!v.ok) {
-        erros.push({ url: a.url, marketplace: info.marketplace, motivo: 'link gerado nao passou: ' + v.motivo })
+        erros.push({ url: a.url, marketplace: info.marketplace, motivo: 'link gerado não passou: ' + v.motivo })
         cache.set(a.url, null)
         continue
       }

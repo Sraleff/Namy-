@@ -18,16 +18,16 @@ function mount(app, deps, opcoes = {}) {
 
   app.get('/automacoes/perfis', auth, (req, res) => {
     const cfg = readJson(CONFIGS, {})[req.user.id]
-    if (!cfg) return res.status(404).json({ error: 'Conta nao encontrada' })
+    if (!cfg) return res.status(404).json({ error: 'Conta não encontrada' })
     res.json({ ok: true, perfis: perfis.lista(), atual: perfis.perfilAtual(cfg.ads), risco: perfis.risco(cfg.ads, destinos(cfg)) })
   })
 
   app.post('/automacoes/risco', auth, (req, res) => {
     const cfg = readJson(CONFIGS, {})[req.user.id]
-    if (!cfg) return res.status(404).json({ error: 'Conta nao encontrada' })
+    if (!cfg) return res.status(404).json({ error: 'Conta não encontrada' })
     if (!podeCalcular(req.user.id)) return res.status(429).json({ error: 'Muitas consultas seguidas. Espere um instante.' })
     const ads = (req.body || {}).ads
-    if (!ads || typeof ads !== 'object' || Array.isArray(ads)) return res.status(400).json({ error: 'Informe as configuracoes (ads).' })
+    if (!ads || typeof ads !== 'object' || Array.isArray(ads)) return res.status(400).json({ error: 'Informe as configurações (ads).' })
     res.json({ ok: true, atual: perfis.perfilAtual(ads), risco: perfis.risco(ads, destinos(cfg)) })
   })
 }

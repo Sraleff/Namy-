@@ -89,9 +89,9 @@ async function doBanco(ctx, grupos, pulados) {
     const cv = cupons.vencidoNoTexto(ctx.dataDir, ctx.userId, item.texto)
     if (cv) { pulados.push({ nome: item.nome, produtoKey: 'pool:' + item.id, motivo: cv.motivo }); continue }
     // Oferta da Vitrine: confere na Shopee antes de enviar (sumiu = pausa e pula; preco mudou = texto novo)
-    if (item.shopee && conferidas++ >= 8) { pulados.push({ nome: item.nome, produtoKey: 'pool:' + item.id, motivo: 'conferencia: limite de consultas nesta rodada' }); break }
+    if (item.shopee && conferidas++ >= 8) { pulados.push({ nome: item.nome, produtoKey: 'pool:' + item.id, motivo: 'conferência: limite de consultas nesta rodada' }); break }
     const rv = await revalidacao.revalidar(ctx, item)
-    if (!rv.ok) { pulados.push({ nome: item.nome, produtoKey: 'pool:' + item.id, motivo: (rv.pausada ? 'indisponivel: ' : 'conferencia: ') + rv.motivo }); continue }
+    if (!rv.ok) { pulados.push({ nome: item.nome, produtoKey: 'pool:' + item.id, motivo: (rv.pausada ? 'indisponível: ' : 'conferência: ') + rv.motivo }); continue }
     const conv = await conversor.converterTexto(rv.texto || item.texto, Object.assign({}, ctx, { atribuicao: { origem: 'banco', nicho: ref.niche } }))
     if (!conv.ok) {
       pulados.push({ nome: item.nome, produtoKey: 'pool:' + item.id, motivo: 'link: ' + conv.erros.map((e) => e.motivo).join('; ') })
@@ -206,14 +206,14 @@ function log(logs, ctx, entry) {
 async function publicar({ userId, cfg, groups, dataDir, logs, sessions, dormir, random }) {
   const destinos = destinosDe(cfg, groups)
   if (!destinos.length) {
-    const err = new Error('Salve pelo menos um grupo na aba Anuncios.')
+    const err = new Error('Salve pelo menos um grupo na aba Anúncios.')
     err.status = 400
     throw err
   }
   const ctx = { userId, cfg, dataDir }
   const fontes = fontesDe(cfg)
   if (fontes.includes('api') && !fontes.includes('pool') && !shopeePronta(cfg)) {
-    const err = new Error('Salve App ID e Secret da Shopee. O anuncio sai da API desta conta.')
+    const err = new Error('Salve App ID e Secret da Shopee. O anúncio sai da API desta conta.')
     err.code = 'SHOPEE'
     err.status = 400
     throw err
@@ -299,7 +299,7 @@ async function publicar({ userId, cfg, groups, dataDir, logs, sessions, dormir, 
   const enviados = results.filter((r) => r.ok).length
   let message
   if (enviados) message = 'Oferta publicada em ' + enviados + ' de ' + results.length + ' grupo(s)' + (amostra ? ': ' + amostra : '')
-  else if (results.length) message = 'A oferta foi encontrada, mas o WhatsApp nao enviou.'
+  else if (results.length) message = 'A oferta foi encontrada, mas o WhatsApp não enviou.'
   else message = 'Nenhuma oferta relevante para o nicho dos grupos. Nada foi enviado.'
   if (enviados && semOferta.length) message += '. ' + semOferta.length + ' grupo(s) sem oferta do nicho.'
   return {

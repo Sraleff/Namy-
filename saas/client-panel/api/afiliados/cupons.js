@@ -26,22 +26,22 @@ const fimDia = (ymd) => Date.parse(ymd + 'T23:59:59-03:00')
 function validar(e) {
   const x = e || {}
   const codigo = String(x.codigo == null ? '' : x.codigo).trim().toUpperCase()
-  if (!CODIGO_RE.test(codigo)) throw erro('Codigo invalido: use de 3 a 24 letras, numeros, - ou _ (sem espacos).')
+  if (!CODIGO_RE.test(codigo)) throw erro('Código inválido: use de 3 a 24 letras, números, - ou _ (sem espaços).')
   const loja = String(x.loja || 'shopee')
-  if (!LOJAS.includes(loja)) throw erro('Loja invalida (shopee, mercadolivre, amazon ou geral).')
+  if (!LOJAS.includes(loja)) throw erro('Loja inválida (shopee, mercadolivre, amazon ou geral).')
   const regra = String(x.regra == null ? '' : x.regra).replace(/[\r\n\t]+/g, ' ').trim()
-  if (regra.length > 120) throw erro('Regra grande demais (maximo 120 caracteres).')
-  if (/https?:\/\/|www\./i.test(regra)) throw erro('A regra nao pode ter link.')
-  if (/[{}]/.test(regra)) throw erro('A regra nao pode ter chaves { }.')
+  if (regra.length > 120) throw erro('Regra grande demais (máximo 120 caracteres).')
+  if (/https?:\/\/|www\./i.test(regra)) throw erro('A regra não pode ter link.')
+  if (/[{}]/.test(regra)) throw erro('A regra não pode ter chaves { }.')
   const validoAte = String(x.validoAte == null ? '' : x.validoAte)
-  if (!dataValida(validoAte)) throw erro('Informe ate quando o cupom vale (AAAA-MM-DD).')
+  if (!dataValida(validoAte)) throw erro('Informe até quando o cupom vale (AAAA-MM-DD).')
   const validoDe = x.validoDe == null || x.validoDe === '' ? '' : String(x.validoDe)
-  if (validoDe && !dataValida(validoDe)) throw erro('Data de inicio invalida (AAAA-MM-DD).')
-  if (validoDe && validoDe > validoAte) throw erro('O inicio nao pode ser depois do fim.')
+  if (validoDe && !dataValida(validoDe)) throw erro('Data de início inválida (AAAA-MM-DD).')
+  if (validoDe && validoDe > validoAte) throw erro('O início não pode ser depois do fim.')
   const lista = Array.isArray(x.nichos) ? x.nichos : []
   if (lista.length > 20) throw erro('Nichos demais.')
   const ns = [...new Set(lista.map((n) => String(n)))]
-  if (ns.some((n) => !nichos.existe(n))) throw erro('Nicho invalido.')
+  if (ns.some((n) => !nichos.existe(n))) throw erro('Nicho inválido.')
   return { codigo, loja, regra, validoDe, validoAte, nichos: ns.filter((n) => n !== 'geral' || ns.length === 1) }
 }
 
@@ -95,7 +95,7 @@ async function criar(dataDir, userId, entrada) {
   return jsonStore.update(dataDir, PASTA, userId, vazio, (db) => {
     db.itens = Array.isArray(db.itens) ? db.itens : []
     if (db.itens.length >= MAX_CUPONS) throw erro('Limite de ' + MAX_CUPONS + ' cupons. Apague os vencidos.')
-    if (db.itens.some((c) => c.codigo === v.codigo && c.loja === v.loja)) throw erro('Esse cupom ja esta cadastrado para essa loja.')
+    if (db.itens.some((c) => c.codigo === v.codigo && c.loja === v.loja)) throw erro('Esse cupom já está cadastrado para essa loja.')
     const agora = new Date().toISOString()
     const item = Object.assign({ id: jsonStore.id(), ativo: true, criadoEm: agora, atualizadoEm: agora }, v)
     db.itens.unshift(item)
@@ -107,8 +107,8 @@ async function editar(dataDir, userId, id, entrada) {
   const v = validar(entrada)
   return jsonStore.update(dataDir, PASTA, userId, vazio, (db) => {
     const it = (db.itens || []).find((c) => c.id === id)
-    if (!it) throw erro('Cupom nao encontrado.', 404)
-    if (db.itens.some((c) => c.id !== id && c.codigo === v.codigo && c.loja === v.loja)) throw erro('Esse cupom ja esta cadastrado para essa loja.')
+    if (!it) throw erro('Cupom não encontrado.', 404)
+    if (db.itens.some((c) => c.id !== id && c.codigo === v.codigo && c.loja === v.loja)) throw erro('Esse cupom já está cadastrado para essa loja.')
     Object.assign(it, v, { atualizadoEm: new Date().toISOString() })
     return it
   })
@@ -117,7 +117,7 @@ async function editar(dataDir, userId, id, entrada) {
 async function ativar(dataDir, userId, id, ativo) {
   return jsonStore.update(dataDir, PASTA, userId, vazio, (db) => {
     const it = (db.itens || []).find((c) => c.id === id)
-    if (!it) throw erro('Cupom nao encontrado.', 404)
+    if (!it) throw erro('Cupom não encontrado.', 404)
     it.ativo = !!ativo
     it.atualizadoEm = new Date().toISOString()
     return it
@@ -128,7 +128,7 @@ async function remover(dataDir, userId, id) {
   return jsonStore.update(dataDir, PASTA, userId, vazio, (db) => {
     const antes = (db.itens || []).length
     db.itens = (db.itens || []).filter((c) => c.id !== id)
-    if (db.itens.length === antes) throw erro('Cupom nao encontrado.', 404)
+    if (db.itens.length === antes) throw erro('Cupom não encontrado.', 404)
     return true
   })
 }

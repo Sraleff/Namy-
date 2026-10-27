@@ -116,23 +116,23 @@ async function editar(dataDir, userId, cfg, id, campos = {}) {
   const quer = (k) => Object.prototype.hasOwnProperty.call(c, k)
 
   if (quer('nome') && (typeof c.nome !== 'string' || !c.nome.trim() || c.nome.length > MAX_NOME)) {
-    throw erro('Nome invalido (1 a ' + MAX_NOME + ' caracteres).')
+    throw erro('Nome inválido (1 a ' + MAX_NOME + ' caracteres).')
   }
   if (quer('texto') && (typeof c.texto !== 'string' || !c.texto.trim() || c.texto.length > MAX_TEXTO)) {
-    throw erro('Texto invalido (1 a ' + MAX_TEXTO + ' caracteres).')
+    throw erro('Texto inválido (1 a ' + MAX_TEXTO + ' caracteres).')
   }
   if (quer('imagemUrl') && (typeof c.imagemUrl !== 'string' || (c.imagemUrl !== '' && !/^https:\/\/\S+$/.test(c.imagemUrl)) || c.imagemUrl.length > 500)) {
     throw erro('A foto precisa ser um link https (ou vazio para remover).')
   }
   if (quer('prioridade') && !(Number.isInteger(c.prioridade) && c.prioridade >= 0 && c.prioridade <= 2)) {
-    throw erro('Prioridade invalida (0 normal, 1 alta, 2 urgente).')
+    throw erro('Prioridade inválida (0 normal, 1 alta, 2 urgente).')
   }
   if (quer('renovarValidade') && typeof c.renovarValidade !== 'boolean') throw erro('renovarValidade deve ser verdadeiro ou falso.')
 
   return jsonStore.update(dataDir, PASTA, userId, vazio, (db) => {
     const itens = Array.isArray(db.itens) ? db.itens : []
     const item = itens.find((i) => i.id === id)
-    if (!item) throw erro('Oferta nao encontrada', 404)
+    if (!item) throw erro('Oferta não encontrada', 404)
     const agora = Date.now()
 
     if (quer('texto')) {
@@ -141,7 +141,7 @@ async function editar(dataDir, userId, cfg, id, campos = {}) {
       if (!mks.length) throw erro('A oferta precisa ter link da Shopee, Mercado Livre ou Amazon')
       const sig = pool.assinatura(texto)
       const igual = itens.find((i) => i.id !== item.id && i.sig === sig && new Date(i.expiresAt).getTime() > agora)
-      if (igual) throw erro('Ja existe outra oferta igual a esta no banco.', 409)
+      if (igual) throw erro('Já existe outra oferta igual a esta no banco.', 409)
       const tituloAutomatico = item.nome === pool.titulo(item.texto)
       item.texto = texto
       item.sig = sig
@@ -169,7 +169,7 @@ async function editar(dataDir, userId, cfg, id, campos = {}) {
 async function reenfileirar(dataDir, userId, cfg, id) {
   return jsonStore.update(dataDir, PASTA, userId, vazio, (db) => {
     const item = (db.itens || []).find((i) => i.id === id)
-    if (!item) throw erro('Oferta nao encontrada', 404)
+    if (!item) throw erro('Oferta não encontrada', 404)
     item.enviadoPara = {}
     delete item.ultimoErro
     delete item.ultimoPulo

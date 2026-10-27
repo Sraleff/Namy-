@@ -96,7 +96,7 @@ test('checarJwt: producao recusa ausente, padrao e curto; desenvolvimento so avi
   assert.deepEqual(sc.checarJwt({ NODE_ENV: 'production', JWT_SECRET: forte }), { ok: true })
   const dev = sc.checarJwt({})
   assert.equal(dev.ok, true)
-  assert.match(dev.aviso, /so em desenvolvimento/)
+  assert.match(dev.aviso, /só em desenvolvimento/)
   assert.deepEqual(sc.checarJwt({ JWT_SECRET: forte }), { ok: true })
 })
 

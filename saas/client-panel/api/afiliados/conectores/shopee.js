@@ -34,7 +34,7 @@ async function converter(url, ctx) {
   const hit = chave && cacheGrupo.get(chave)
   if (hit && hit.ate > Date.now()) return hit.link
   const curto = await ofertas.encurtar(s.appId, s.secret, origem, subIds)
-  if (!curto) throw links.erroLink('A API Shopee nao gerou o link de afiliado', true)
+  if (!curto) throw links.erroLink('A API Shopee não gerou o link de afiliado', true)
   if (chave) {
     if (cacheGrupo.size > 2000) cacheGrupo.delete(cacheGrupo.keys().next().value)
     cacheGrupo.set(chave, { ate: Date.now() + 6 * 3600 * 1000, link: curto })

@@ -16,7 +16,7 @@ function gruposDe(cfg, somente) {
 async function publicarOferta({ userId, cfg, groups, dataDir, logs, sessions, oferta }) {
   const destinos = gruposDe(cfg, groups)
   if (!destinos.length) {
-    const err = new Error('Salve pelo menos um grupo na aba Anuncios.')
+    const err = new Error('Salve pelo menos um grupo na aba Anúncios.')
     err.status = 400
     throw err
   }
@@ -57,7 +57,7 @@ async function publicarOferta({ userId, cfg, groups, dataDir, logs, sessions, of
     ok: enviados > 0,
     message: enviados
       ? 'Oferta publicada em ' + enviados + ' de ' + results.length + ' grupo(s): ' + item.nome
-      : 'A oferta foi encontrada, mas o WhatsApp nao enviou.',
+      : 'A oferta foi encontrada, mas o WhatsApp não enviou.',
     sample: item.nome,
     enviados,
     results

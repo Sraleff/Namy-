@@ -55,15 +55,15 @@ async function referencia(dataDir, userId, { produtoKey, imageUrl }) {
     }
     if (item && item.imagem && item.imagem.tipo === 'url') imageUrl = item.imagem.valor
   }
-  if (!/^https:\/\/\S+$/.test(String(imageUrl || ''))) throw erro('Este produto nao tem foto de referencia')
+  if (!/^https:\/\/\S+$/.test(String(imageUrl || ''))) throw erro('Este produto não tem foto de referência')
   let out
   try {
     out = await links.buscarSeguro(String(imageUrl), { method: 'GET', saltos: 3, timeoutMs: 15000 })
   } catch (e) {
-    throw erro('Nao consegui baixar a foto do produto: ' + e.message)
+    throw erro('Não consegui baixar a foto do produto: ' + e.message)
   }
   const mime = String(out.response.headers.get('content-type') || '').split(';')[0].trim()
-  if (!/^image\/(jpeg|png|webp)$/.test(mime)) throw erro('A foto do produto nao e JPG, PNG ou WEBP')
+  if (!/^image\/(jpeg|png|webp)$/.test(mime)) throw erro('A foto do produto não é JPG, PNG ou WEBP')
   const tamanho = Number(out.response.headers.get('content-length') || 0)
   if (tamanho > MAX_REF) throw erro('Foto do produto grande demais')
   const buffer = Buffer.from(await out.response.arrayBuffer())
@@ -76,11 +76,11 @@ async function referencia(dataDir, userId, { produtoKey, imageUrl }) {
  * e o limite diario por cliente (NAMY_IMAGE_DAILY, padrao 20).
  */
 async function gerar(dataDir, userId, { produtoKey, nome, imageUrl, cenario }) {
-  if (!KEY_RE.test(String(produtoKey || ''))) throw erro('Produto invalido')
-  if (!cenarios.existe(cenario)) throw erro('Cenario invalido')
+  if (!KEY_RE.test(String(produtoKey || ''))) throw erro('Produto inválido')
+  if (!cenarios.existe(cenario)) throw erro('Cenário inválido')
   if (!gerador.disponivel()) throw erro('Gerador de imagens desligado: defina GEMINI_API_KEY no .env do client-panel.', 503)
   const antes = ultimoPedido.get(userId) || 0
-  if (Date.now() - antes < 15000) throw erro('Espere 15 segundos entre geracoes.', 429)
+  if (Date.now() - antes < 15000) throw erro('Espere 15 segundos entre gerações.', 429)
   const db0 = jsonStore.load(dataDir, PASTA, userId, vazio)
   const feitas = db0.dia === hoje() ? Number(db0.geradasHoje) || 0 : 0
   if (feitas >= limiteDiario()) throw erro('Limite de ' + limiteDiario() + ' imagens por dia atingido.', 429)
@@ -130,7 +130,7 @@ function obter(dataDir, userId, id) {
 function preferir(dataDir, userId, id) {
   return jsonStore.update(dataDir, PASTA, userId, vazio, (db) => {
     const alvo = (db.itens || []).find((i) => i.id === id)
-    if (!alvo) throw erro('Imagem nao encontrada', 404)
+    if (!alvo) throw erro('Imagem não encontrada', 404)
     const marcar = !alvo.preferida
     for (const i of db.itens) if (i.produtoKey === alvo.produtoKey) i.preferida = false
     alvo.preferida = marcar
@@ -141,7 +141,7 @@ function preferir(dataDir, userId, id) {
 function remover(dataDir, userId, id) {
   return jsonStore.update(dataDir, PASTA, userId, vazio, (db) => {
     const alvo = (db.itens || []).find((i) => i.id === id)
-    if (!alvo) throw erro('Imagem nao encontrada', 404)
+    if (!alvo) throw erro('Imagem não encontrada', 404)
     try { fs.unlinkSync(caminho(dataDir, userId, alvo)) } catch {}
     db.itens = db.itens.filter((i) => i.id !== id)
     return { ok: true }

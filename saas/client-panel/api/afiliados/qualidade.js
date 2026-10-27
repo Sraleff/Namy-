@@ -30,7 +30,7 @@ function avaliarApi(oferta, cfg) {
     return { ok: false, motivo: 'nota ' + nota.toFixed(1) + ' abaixo de ' + r.minRating }
   }
   if (r.minSales && Number(oferta.sales) >= 0 && Number(oferta.sales) < r.minSales) {
-    return { ok: false, motivo: (oferta.sales || 0) + ' vendas, minimo ' + r.minSales }
+    return { ok: false, motivo: (oferta.sales || 0) + ' vendas, mínimo ' + r.minSales }
   }
   return { ok: true, motivo: '' }
 }
@@ -47,7 +47,7 @@ function avaliarTexto(texto, cfg) {
   const r = regras(cfg)
   const d = descontoDoTexto(texto)
   if (r.minDiscount && d !== null && d < r.minDiscount) {
-    return { ok: false, motivo: 'texto diz ' + d + '% de desconto, minimo ' + r.minDiscount + '%' }
+    return { ok: false, motivo: 'texto diz ' + d + '% de desconto, mínimo ' + r.minDiscount + '%' }
   }
   return { ok: true, motivo: '' }
 }

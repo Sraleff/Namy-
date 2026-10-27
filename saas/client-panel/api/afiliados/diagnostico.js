@@ -14,7 +14,7 @@ const JID_RE = /^[0-9A-Za-z._-]+@g\.us$/
 
 const hhmmBR = (ms) => new Intl.DateTimeFormat('en-GB', { timeZone: TZ, hour: '2-digit', minute: '2-digit', hourCycle: 'h23' }).format(new Date(ms))
 const diaBR = (ms) => new Intl.DateTimeFormat('en-CA', { timeZone: TZ }).format(new Date(ms))
-const quando = (ms, agora) => (diaBR(ms) === diaBR(agora) ? 'hoje' : diaBR(ms) === diaBR(agora + 86400000) ? 'amanha' : diaBR(ms).split('-').reverse().join('/')) + ' as ' + hhmmBR(ms)
+const quando = (ms, agora) => (diaBR(ms) === diaBR(agora) ? 'hoje' : diaBR(ms) === diaBR(agora + 86400000) ? 'amanhã' : diaBR(ms).split('-').reverse().join('/')) + ' às ' + hhmmBR(ms)
 const limites = require('./limites')
 const limiteDiario = (ads, cfg) => {
   const meu = Math.min(200, Math.max(1, Number(ads.dailyLimit) || 5))
@@ -37,17 +37,17 @@ function diagnosticar(ctx, agora = Date.now()) {
 
   // Licenca
   const lic = cfg.license && cfg.license.active && new Date(cfg.license.expiresAt) > new Date(agora)
-  if (lic) add('licenca', 'ok', 'Licenca ativa')
-  else add('licenca', 'bloqueio', 'Licenca expirada ou inativa', 'Nada e enviado enquanto a licenca nao for renovada.', 'configuracoes')
+  if (lic) add('licenca', 'ok', 'Licença ativa')
+  else add('licenca', 'bloqueio', 'Licença expirada ou inativa', 'Nada é enviado enquanto a licença não for renovada.', 'configuracoes')
 
   // WhatsApp
   const conectado = !!(ctx.sessions && ctx.sessions.publicState(ctx.userId).connected)
   if (conectado) add('whatsapp', 'ok', 'WhatsApp conectado')
-  else add('whatsapp', 'bloqueio', 'WhatsApp desconectado', 'Conecte o WhatsApp em Configuracoes. Os envios ficam adiados ate voltar.', 'configuracoes')
+  else add('whatsapp', 'bloqueio', 'WhatsApp desconectado', 'Conecte o WhatsApp em Configurações. Os envios ficam adiados até voltar.', 'configuracoes')
 
   // Automacao ligada
-  if (ads.enabled) add('automacao', 'ok', 'Automacao ligada')
-  else add('automacao', 'bloqueio', 'Automacao desligada', 'Ligue em Automacoes. "Executar agora" funciona mesmo desligada.', 'automacoes')
+  if (ads.enabled) add('automacao', 'ok', 'Automação ligada')
+  else add('automacao', 'bloqueio', 'Automação desligada', 'Ligue em Automações. "Executar agora" funciona mesmo desligada.', 'automacoes')
 
   // Destinos e conflito fonte x destino (B4)
   const fontes = new Set((cfg.sources || []).map((g) => g && g.jid))
@@ -55,41 +55,41 @@ function diagnosticar(ctx, agora = Date.now()) {
   const conflito = salvos.filter((g) => fontes.has(g.jid))
   const validos = salvos.filter((g) => !fontes.has(g.jid))
   if (!salvos.length) add('destinos', 'bloqueio', 'Nenhum grupo de destino', 'Escolha em Grupos onde as ofertas devem sair.', 'grupos')
-  else if (!validos.length) add('destinos', 'bloqueio', 'Todos os grupos de destino tambem sao grupos fonte', 'Grupo fonte (captura) nunca recebe ofertas: ' + conflito.map((g) => g.name).join(', ') + '. Tire-os de uma das listas.', 'grupos')
+  else if (!validos.length) add('destinos', 'bloqueio', 'Todos os grupos de destino também são grupos fonte', 'Grupo fonte (captura) nunca recebe ofertas: ' + conflito.map((g) => g.name).join(', ') + '. Tire-os de uma das listas.', 'grupos')
   else add('destinos', 'ok', validos.length + ' grupo(s) de destino')
-  if (conflito.length && validos.length) add('conflito', 'aviso', conflito.length + ' grupo(s) sao fonte e destino ao mesmo tempo', 'Eles NAO recebem ofertas: ' + conflito.map((g) => g.name).join(', ') + '. Tire-os da lista de destinos ou da de fontes.', 'grupos')
+  if (conflito.length && validos.length) add('conflito', 'aviso', conflito.length + ' grupo(s) são fonte e destino ao mesmo tempo', 'Eles NÃO recebem ofertas: ' + conflito.map((g) => g.name).join(', ') + '. Tire-os da lista de destinos ou da de fontes.', 'grupos')
 
   // Origem das ofertas
   const origens = publicador.fontesDe(cfg)
   const shopeeOk = !!(cfg.shopee && cfg.shopee.appId && cfg.shopee.secret)
   let candidatas = 0
   if (origens.includes('pool')) for (const g of validos) candidatas += pool.candidatas(ctx.dataDir, ctx.userId, g.jid).length
-  if (origens.includes('api') && !shopeeOk && !origens.includes('pool')) add('origem', 'bloqueio', 'Faltam as chaves da Shopee', 'A origem e a API da Shopee. Salve App ID e Secret em Configuracoes.', 'configuracoes')
-  else if (origens.includes('pool') && !origens.includes('api') && !candidatas) add('origem', 'bloqueio', 'Banco de ofertas sem ofertas para enviar', 'Nada elegivel na fila (vazio, expirado, pausado ou ja enviado a todos os grupos). Capture, cole ou salve ofertas da Vitrine.', 'fila')
+  if (origens.includes('api') && !shopeeOk && !origens.includes('pool')) add('origem', 'bloqueio', 'Faltam as chaves da Shopee', 'A origem é a API da Shopee. Salve App ID e Secret em Configurações.', 'configuracoes')
+  else if (origens.includes('pool') && !origens.includes('api') && !candidatas) add('origem', 'bloqueio', 'Banco de ofertas sem ofertas para enviar', 'Nada elegível na fila (vazio, expirado, pausado ou já enviado a todos os grupos). Capture, cole ou salve ofertas da Vitrine.', 'fila')
   else if (origens.includes('pool') && !candidatas && !shopeeOk) add('origem', 'aviso', 'Banco de ofertas vazio e sem chaves da Shopee', 'Sem ofertas no banco e sem API para buscar.', 'fila')
-  else add('origem', 'ok', 'Origem das ofertas pronta', (origens.includes('pool') ? candidatas + ' oferta(s) elegivel(is) no banco' : '') + (origens.includes('api') && shopeeOk ? (origens.includes('pool') ? ' e ' : '') + 'busca na API da Shopee' : ''))
+  else add('origem', 'ok', 'Origem das ofertas pronta', (origens.includes('pool') ? candidatas + ' oferta(s) elegível(is) no banco' : '') + (origens.includes('api') && shopeeOk ? (origens.includes('pool') ? ' e ' : '') + 'busca na API da Shopee' : ''))
 
   // Janela e dias
   const w = ads.window || {}
   const diaOk = scheduler.diaPermitido(ads.days, new Date(agora))
   const janelaOk = scheduler.naJanela(w.from, w.to, hhmmBR(agora))
-  if (!diaOk) add('janela', 'aviso', 'Hoje nao e um dia de envio', 'Proximo dia permitido: ' + proximoDiaPermitido(ads.days, agora) + '.', 'automacoes')
-  else if (!janelaOk) add('janela', 'aviso', 'Fora da janela de horario', 'Os envios acontecem das ' + w.from + ' as ' + w.to + ' (Brasilia). Agora sao ' + hhmmBR(agora) + '.', 'automacoes')
-  else add('janela', 'ok', 'Dentro do horario de envio', w.from && w.to ? w.from + ' as ' + w.to : 'sem restricao de horario')
+  if (!diaOk) add('janela', 'aviso', 'Hoje não é um dia de envio', 'Próximo dia permitido: ' + proximoDiaPermitido(ads.days, agora) + '.', 'automacoes')
+  else if (!janelaOk) add('janela', 'aviso', 'Fora da janela de horário', 'Os envios acontecem das ' + w.from + ' as ' + w.to + ' (Brasília). Agora são ' + hhmmBR(agora) + '.', 'automacoes')
+  else add('janela', 'ok', 'Dentro do horário de envio', w.from && w.to ? w.from + ' as ' + w.to : 'sem restrição de horário')
 
   // Limite do dia
   const hoje = enviadosHoje(ads, agora)
   const lim = limiteDiario(ads, cfg)
-  if (hoje >= lim) add('limite', 'bloqueio', 'Limite diario atingido (' + hoje + ' de ' + lim + ')', (limites.limiteEnviosDoPlano(cfg) ? 'Volta a enviar amanha. O teste gratis envia ate ' + limites.limiteEnviosDoPlano(cfg) + ' por dia; assinando, o limite e o que voce configurar.' : 'Volta a enviar amanha, ou aumente o limite em Automacoes.'), 'automacoes')
-  else add('limite', 'ok', 'Limite diario: ' + hoje + ' de ' + lim + ' produtos hoje')
+  if (hoje >= lim) add('limite', 'bloqueio', 'Limite diário atingido (' + hoje + ' de ' + lim + ')', (limites.limiteEnviosDoPlano(cfg) ? 'Volta a enviar amanhã. O teste grátis envia até ' + limites.limiteEnviosDoPlano(cfg) + ' por dia; assinando, o limite e o que você configurar.' : 'Volta a enviar amanhã, ou aumente o limite em Automações.'), 'automacoes')
+  else add('limite', 'ok', 'Limite diário: ' + hoje + ' de ' + lim + ' produtos hoje')
 
   // Proxima execucao
   const next = ads.nextTryAt ? new Date(ads.nextTryAt).getTime() : 0
   const espera = scheduler.INTERVAL_MS[ads.interval] || scheduler.INTERVAL_MS['2h']
   const ultimo = ads.lastSentAt ? new Date(ads.lastSentAt).getTime() : 0
-  if (next && next > agora) add('proxima', 'info', 'Proximo envio previsto para ' + quando(next, agora), 'Foi adiado por um erro anterior ou por falta de oferta (veja os motivos abaixo).')
-  else if (ads.intervalMode !== 'aleatorio' && ultimo && ultimo + espera > agora) add('proxima', 'info', 'Proximo envio previsto para ' + quando(ultimo + espera, agora), 'Intervalo entre envios: ' + (ads.interval || '2h') + '.')
-  else add('proxima', 'info', 'Pronto para enviar no proximo ciclo (a cada 20 segundos)')
+  if (next && next > agora) add('proxima', 'info', 'Próximo envio previsto para ' + quando(next, agora), 'Foi adiado por um erro anterior ou por falta de oferta (veja os motivos abaixo).')
+  else if (ads.intervalMode !== 'aleatorio' && ultimo && ultimo + espera > agora) add('proxima', 'info', 'Próximo envio previsto para ' + quando(ultimo + espera, agora), 'Intervalo entre envios: ' + (ads.interval || '2h') + '.')
+  else add('proxima', 'info', 'Pronto para enviar no próximo ciclo (a cada 20 segundos)')
 
   // Motivos reais dos ultimos pulos/falhas (24 h)
   const corte = agora - 86400000
@@ -99,16 +99,16 @@ function diagnosticar(ctx, agora = Date.now()) {
   const motivosPulo = [...contagem.entries()].sort((a, b) => b[1] - a[1]).slice(0, 6).map(([motivo, qtd]) => ({ motivo, qtd }))
   const ultimoEnvio = auditoria.listar(ctx.dataDir, ctx.userId, { tipo: 'enviado', limite: 1 })[0] || null
   const enviou24 = recentes.filter((r) => r.tipo === 'enviado').length
-  if (motivosPulo.length && !enviou24) add('motivos', 'aviso', 'Nas ultimas 24 h nada saiu e houve ' + recentes.filter((r) => r.tipo !== 'enviado').length + ' pulo(s)/falha(s)', 'O motivo mais comum: ' + motivosPulo[0].motivo, 'logs')
-  else if (motivosPulo.length) add('motivos', 'info', 'Ofertas puladas nas ultimas 24 h: ' + recentes.filter((r) => r.tipo === 'pulado').length, 'Isso e normal: o sistema descarta o que nao serve para o nicho ou a qualidade.', 'logs')
+  if (motivosPulo.length && !enviou24) add('motivos', 'aviso', 'Nas últimas 24 h nada saiu e houve ' + recentes.filter((r) => r.tipo !== 'enviado').length + ' pulo(s)/falha(s)', 'O motivo mais comum: ' + motivosPulo[0].motivo, 'logs')
+  else if (motivosPulo.length) add('motivos', 'info', 'Ofertas puladas nas últimas 24 h: ' + recentes.filter((r) => r.tipo === 'pulado').length, 'Isso é normal: o sistema descarta o que não serve para o nicho ou a qualidade.', 'logs')
 
   const bloq = checks.filter((c) => c.nivel === 'bloqueio')
   const avis = checks.filter((c) => c.nivel === 'aviso')
   const pode = bloq.length === 0
   const prox = checks.find((c) => c.id === 'proxima')
-  const frase = !pode ? 'Nao vai enviar agora: ' + bloq[0].titulo.toLowerCase() + '.'
-    : avis.length ? 'Pode enviar, mas ha um aviso: ' + avis[0].titulo.toLowerCase() + '.'
-      : prox.nivel === 'info' && /previsto/.test(prox.titulo) ? prox.titulo + '.' : 'Tudo certo: vai enviar no proximo ciclo.'
+  const frase = !pode ? 'Não vai enviar agora: ' + bloq[0].titulo.toLowerCase() + '.'
+    : avis.length ? 'Pode enviar, mas há um aviso: ' + avis[0].titulo.toLowerCase() + '.'
+      : prox.nivel === 'info' && /previsto/.test(prox.titulo) ? prox.titulo + '.' : 'Tudo certo: vai enviar no próximo ciclo.'
   return {
     ok: true,
     pode,

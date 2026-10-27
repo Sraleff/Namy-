@@ -39,8 +39,8 @@ function criarLimitador(max, janelaMs) {
   }
 }
 
-const FORA_ML_AMAZON = 'Mercado Livre e Amazon sao convertidos em Ofertas > Colar oferta.'
-const FORA_OUTRO = 'Nao e link da Shopee. Esta tela converte so links da Shopee.'
+const FORA_ML_AMAZON = 'Mercado Livre e Amazon são convertidos em Ofertas > Colar oferta.'
+const FORA_OUTRO = 'Não é link da Shopee. Esta tela converte só links da Shopee.'
 
 function semEsquema(url) {
   return String(url || '').replace(/^https?:\/\//i, '')
@@ -61,20 +61,20 @@ function mount(app, deps, opcoes = {}) {
     try {
       const userId = req.user.id
       const cfg = readJson(CONFIGS, {})[userId]
-      if (!cfg) return res.status(404).json({ error: 'Conta nao encontrada' })
-      if (!licencaAtiva(cfg)) return res.status(403).json({ error: 'Licenca expirada ou inativa.' })
+      if (!cfg) return res.status(404).json({ error: 'Conta não encontrada' })
+      if (!licencaAtiva(cfg)) return res.status(403).json({ error: 'Licença expirada ou inativa.' })
 
       const bruto = (req.body || {}).texto
       if (typeof bruto !== 'string' || !bruto.trim()) return res.status(400).json({ error: 'Cole o link da Shopee.' })
-      if (bruto.length > MAX_TEXTO) return res.status(400).json({ error: 'Texto grande demais (maximo ' + MAX_TEXTO + ' caracteres).' })
+      if (bruto.length > MAX_TEXTO) return res.status(400).json({ error: 'Texto grande demais (máximo ' + MAX_TEXTO + ' caracteres).' })
 
       const pronto = shopee.configurado({ cfg })
       if (!pronto.ok) return res.status(400).json({ error: pronto.motivo, codigo: 'SEM_CHAVE' })
 
       const achados = links.extrairUrls(bruto)
-      if (!achados.length) return res.status(400).json({ error: 'Nao achei nenhum link no texto.' })
+      if (!achados.length) return res.status(400).json({ error: 'Não achei nenhum link no texto.' })
       const unicos = [...new Set(achados.map((a) => a.url))]
-      if (unicos.length > MAX_LINKS) return res.status(400).json({ error: 'No maximo ' + MAX_LINKS + ' links por vez.' })
+      if (unicos.length > MAX_LINKS) return res.status(400).json({ error: 'No máximo ' + MAX_LINKS + ' links por vez.' })
 
       const daShopee = []
       const fora = []
@@ -86,7 +86,7 @@ function mount(app, deps, opcoes = {}) {
       if (!daShopee.length) return res.status(400).json({ error: fora[0].motivo, fora })
 
       if (!permitir(userId, daShopee.length)) {
-        return res.status(429).json({ error: 'Muitas conversoes seguidas. Espere um minuto e tente de novo.' })
+        return res.status(429).json({ error: 'Muitas conversões seguidas. Espere um minuto e tente de novo.' })
       }
 
       const ctx = { userId, cfg, dataDir: DATA }
@@ -99,7 +99,7 @@ function mount(app, deps, opcoes = {}) {
           resultados.push({ de: url, para: t.para, aviso: t.aviso || '' })
           log(userId, true, 'Link Shopee convertido: ' + semEsquema(t.para))
         } else {
-          const e = conv.erros[0] || { motivo: 'Nao consegui converter este link.' }
+          const e = conv.erros[0] || { motivo: 'Não consegui converter este link.' }
           erros.push({ url, motivo: e.motivo, temporario: !!e.temporario })
           log(userId, false, 'Falha ao converter link Shopee: ' + String(e.motivo).slice(0, 200))
         }

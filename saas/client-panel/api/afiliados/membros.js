@@ -123,7 +123,7 @@ async function snapshot(deps, userId, cfg, agora = Date.now()) {
 // ---------- leitura ----------
 
 async function resumo(deps, userId, cfg, dias = 30, agora = Date.now()) {
-  if (![7, 30, 90].includes(dias)) throw erro('Periodo invalido (7, 30 ou 90 dias).')
+  if (![7, 30, 90].includes(dias)) throw erro('Período inválido (7, 30 ou 90 dias).')
   await gravar(deps, userId, cfg, agora) // o que ainda esta no buffer entra na conta
   const db = jsonStore.load(deps.DATA, PASTA, userId, vazio)
   const dd = db.dias || {}

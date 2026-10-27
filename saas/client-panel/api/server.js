@@ -127,17 +127,17 @@ app.use('/app', express.static(path.join(__dirname, '..', 'dashboard', 'dist')))
 function auth(req, res, next) {
   const h = req.headers.authorization || ''
   const token = h.startsWith('Bearer ') ? h.slice(7) : null
-  if (!token) return res.status(401).json({ error: 'Faca login de novo' })
+  if (!token) return res.status(401).json({ error: 'Faça login de novo' })
   let payload
   try {
     payload = jwt.verify(token, JWT_SECRET)
   } catch {
-    return res.status(401).json({ error: 'Sessao expirada' })
+    return res.status(401).json({ error: 'Sessão expirada' })
   }
   // Token valido de uma conta que nao existe neste servidor (ex.: clone novo,
   // api/data apagado). Sem isso o painel ficava preso em "Config nao encontrada".
   if (!readJson(USERS, []).some((u) => u.id === payload.id)) {
-    return res.status(401).json({ error: 'Conta nao encontrada neste servidor. Entre ou crie a conta de novo.' })
+    return res.status(401).json({ error: 'Conta não encontrada neste servidor. Entre ou crie a conta de novo.' })
   }
   req.user = payload
   next()
@@ -148,11 +148,11 @@ app.post('/auth/register', async (req, res) => {
   const mail = String(email || '').trim().toLowerCase().slice(0, 120)
   const pass = String(password || '')
   if (!mail.includes('@') || pass.length < 4 || pass.length > 72) {
-    return res.status(400).json({ error: 'Email e senha (4 a 72) obrigatorios' })
+    return res.status(400).json({ error: 'Email e senha (4 a 72) obrigatórios' })
   }
   const users = readJson(USERS, [])
   if (users.find((u) => u.email === mail)) {
-    return res.status(409).json({ error: 'Email ja cadastrado' })
+    return res.status(409).json({ error: 'Email já cadastrado' })
   }
   const id = uuidv4()
   users.push({
@@ -174,7 +174,7 @@ app.post('/auth/login', async (req, res) => {
   const users = readJson(USERS, [])
   const user = users.find((u) => u.email === String(email || '').trim().toLowerCase())
   if (!user || !(await bcrypt.compare(password || '', user.passwordHash))) {
-    return res.status(401).json({ error: 'Email ou senha invalidos' })
+    return res.status(401).json({ error: 'Email ou senha inválidos' })
   }
   const configs = readJson(CONFIGS, {})
   if (!configs[user.id]) {
@@ -188,21 +188,21 @@ app.post('/auth/login', async (req, res) => {
 app.get('/me', auth, (req, res) => {
   const configs = readJson(CONFIGS, {})
   const cfg = configs[req.user.id]
-  if (!cfg) return res.status(404).json({ error: 'Conta nao encontrada' })
+  if (!cfg) return res.status(404).json({ error: 'Conta não encontrada' })
   res.json({ user: req.user, config: publicConfig(cfg) })
 })
 
 app.get('/config', auth, (req, res) => {
   const configs = readJson(CONFIGS, {})
   const cfg = configs[req.user.id]
-  if (!cfg) return res.status(404).json({ error: 'Config nao encontrada' })
+  if (!cfg) return res.status(404).json({ error: 'Config não encontrada' })
   res.json(publicConfig(cfg))
 })
 
 app.put('/config', auth, (req, res) => {
   const configs = readJson(CONFIGS, {})
   const cur = configs[req.user.id]
-  if (!cur) return res.status(404).json({ error: 'Config nao encontrada' })
+  if (!cur) return res.status(404).json({ error: 'Config não encontrada' })
   const body = req.body || {}
 
   if (body.botName != null) cur.botName = String(body.botName).slice(0, 40)
@@ -254,7 +254,7 @@ app.put('/config', auth, (req, res) => {
 app.get('/subscription', auth, (req, res) => {
   const configs = readJson(CONFIGS, {})
   const cfg = configs[req.user.id]
-  if (!cfg) return res.status(404).json({ error: 'Nao encontrado' })
+  if (!cfg) return res.status(404).json({ error: 'Não encontrado' })
   const exp = new Date(cfg.license.expiresAt)
   const active = cfg.license.active && exp > new Date()
   res.json({
@@ -296,7 +296,7 @@ function ativarLicenca(userId, info) {
     source: 'pagamento',
     level: 'info',
     ok: true,
-    message: 'Pagamento aprovado. Plano ' + info.planId + ' ate ' + exp.toLocaleDateString('pt-BR') + '.'
+    message: 'Pagamento aprovado. Plano ' + info.planId + ' até ' + exp.toLocaleDateString('pt-BR') + '.'
   })
   return cur
 }
@@ -346,10 +346,10 @@ app.post('/billing/checkout', auth, async (req, res) => {
 app.post('/billing/sync', auth, async (req, res) => {
   try {
     const paymentId = String((req.body && req.body.paymentId) || '').replace(/\D/g, '')
-    if (!paymentId) return res.status(400).json({ error: 'paymentId obrigatorio' })
+    if (!paymentId) return res.status(400).json({ error: 'paymentId obrigatório' })
     const info = await billing.inspectPayment({}, { type: 'payment', data: { id: paymentId } })
     if (info.ignored || info.userId !== req.user.id) {
-      return res.status(400).json({ error: 'Pagamento nao encontrado para esta conta.' })
+      return res.status(400).json({ error: 'Pagamento não encontrado para esta conta.' })
     }
     if (!info.approved) return res.json({ ok: true, status: info.status, license: null })
     const cur = ativarLicenca(req.user.id, info)
@@ -416,7 +416,7 @@ for (const [prefixo, recurso] of [['/agendadas', 'agendadas'], ['/cupons', 'cupo
 }
 app.get('/plano/uso', auth, (req, res) => {
   const cfg = readJson(CONFIGS, {})[req.user.id]
-  if (!cfg) return res.status(404).json({ error: 'Conta nao encontrada' })
+  if (!cfg) return res.status(404).json({ error: 'Conta não encontrada' })
   res.json(limites.uso(cfg))
 })
 // O teste comeca quando o WhatsApp conecta pela primeira vez
@@ -444,13 +444,13 @@ afiliados.mount(app, {
 
 app.get('/bot/config', (req, res) => {
   const token = req.headers['x-bot-token'] || req.query.token
-  if (!token) return res.status(401).json({ error: 'x-bot-token obrigatorio' })
+  if (!token) return res.status(401).json({ error: 'x-bot-token obrigatório' })
   const configs = readJson(CONFIGS, {})
   const cfg = Object.values(configs).find((c) => c.botToken === token)
-  if (!cfg) return res.status(404).json({ error: 'Bot nao encontrado' })
+  if (!cfg) return res.status(404).json({ error: 'Bot não encontrado' })
   const exp = new Date(cfg.license.expiresAt)
   if (!cfg.license.active || exp < new Date()) {
-    return res.status(403).json({ error: 'Licenca expirada', license: cfg.license })
+    return res.status(403).json({ error: 'Licença expirada', license: cfg.license })
   }
   // O segredo da Shopee nunca vai para o bot (B6): ver botConfig.js
   res.json(require('./botConfig').paraBot(cfg))
@@ -458,10 +458,10 @@ app.get('/bot/config', (req, res) => {
 
 app.post('/bot/status', (req, res) => {
   const token = req.headers['x-bot-token']
-  if (!token) return res.status(401).json({ error: 'x-bot-token obrigatorio' })
+  if (!token) return res.status(401).json({ error: 'x-bot-token obrigatório' })
   const configs = readJson(CONFIGS, {})
   const id = Object.keys(configs).find((k) => configs[k].botToken === token)
-  if (!id) return res.status(404).json({ error: 'Bot nao encontrado' })
+  if (!id) return res.status(404).json({ error: 'Bot não encontrado' })
   configs[id].status = (req.body && req.body.status) || 'offline'
   configs[id].updatedAt = new Date().toISOString()
   writeJson(CONFIGS, configs)
@@ -474,7 +474,7 @@ app.listen(PORT, () => {
   console.log('')
   console.log('Namy Client Panel')
   console.log('  Cliente abre: http://localhost:' + PORT)
-  console.log('  WhatsApp: sessao real no servidor')
+  console.log('  WhatsApp: sessão real no servidor')
   console.log('')
   if (process.env.RESTORE_SESSIONS !== '0') {
     require('./sessions').restoreRegistered(wa.gravarStatus, (id) => !!readJson(CONFIGS, {})[id])

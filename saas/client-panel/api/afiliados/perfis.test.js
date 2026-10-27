@@ -132,11 +132,11 @@ test('PUT /config valida a pausa entre grupos (0 a 60, minimo <= maximo, os dois
   const ok = (ads, cur) => { const c = cur || { ads: {} }; afiliadosRoutes.aplicarConfig(c, { ads }); return c.ads }
   assert.deepEqual([ok({ groupPauseMin: 4, groupPauseMax: 8 }).groupPauseMin, ok({ groupPauseMin: 4, groupPauseMax: 8 }).groupPauseMax], [4, 8])
   assert.equal(ok({ groupPauseMin: 0, groupPauseMax: 0 }).groupPauseMax, 0)
-  assert.throws(() => ok({ groupPauseMin: 9, groupPauseMax: 3 }), /minimo nao pode ser maior/)
+  assert.throws(() => ok({ groupPauseMin: 9, groupPauseMax: 3 }), /mínimo não pode ser maior/)
   assert.throws(() => ok({ groupPauseMin: 0, groupPauseMax: 61 }), /0 a 60/)
   assert.throws(() => ok({ groupPauseMin: -1, groupPauseMax: 5 }), /0 a 60/)
   assert.throws(() => ok({ groupPauseMin: 1.5, groupPauseMax: 5 }), /inteiros/)
-  assert.throws(() => ok({ groupPauseMin: 3 }), /minimo e o maximo/)
+  assert.throws(() => ok({ groupPauseMin: 3 }), /mínimo e o máximo/)
   assert.equal(ok({ groupPauseMax: 20 }, { ads: { groupPauseMin: 5 } }).groupPauseMin, 5, 'completa com o valor salvo')
   assert.equal(ok({ dailyLimit: 5 }).groupPauseMin, undefined, 'sem o campo, nada muda')
 })

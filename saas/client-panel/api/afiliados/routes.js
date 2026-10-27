@@ -72,40 +72,40 @@ function aplicarConfig(cur, body) {
     }
     // Disparo v2 (fase 1.4): modo do intervalo e faixas (minimo <= maximo, inteiros)
     if (body.ads.intervalMode != null) {
-      if (!['fixo', 'aleatorio'].includes(body.ads.intervalMode)) throw Object.assign(new Error('Modo de intervalo invalido (fixo ou aleatorio).'), { status: 400 })
+      if (!['fixo', 'aleatorio'].includes(body.ads.intervalMode)) throw Object.assign(new Error('Modo de intervalo inválido (fixo ou aleatorio).'), { status: 400 })
       cur.ads.intervalMode = body.ads.intervalMode
     }
     const faixa = (nomeMin, nomeMax, min, max, rotulo) => {
       if (body.ads[nomeMin] == null && body.ads[nomeMax] == null) return
       const a0 = body.ads[nomeMin] != null ? body.ads[nomeMin] : cur.ads[nomeMin]
       const b0 = body.ads[nomeMax] != null ? body.ads[nomeMax] : cur.ads[nomeMax]
-      if (a0 == null || a0 === '' || b0 == null || b0 === '') throw Object.assign(new Error(rotulo + ': informe o minimo e o maximo.'), { status: 400 })
+      if (a0 == null || a0 === '' || b0 == null || b0 === '') throw Object.assign(new Error(rotulo + ': informe o mínimo e o máximo.'), { status: 400 })
       const a = Number(a0)
       const b = Number(b0)
       if (!Number.isInteger(a) || !Number.isInteger(b) || a < min || b < min || a > max || b > max) {
-        throw Object.assign(new Error(rotulo + ': use numeros inteiros de ' + min + ' a ' + max + '.'), { status: 400 })
+        throw Object.assign(new Error(rotulo + ': use números inteiros de ' + min + ' a ' + max + '.'), { status: 400 })
       }
-      if (a > b) throw Object.assign(new Error(rotulo + ': o minimo nao pode ser maior que o maximo.'), { status: 400 })
+      if (a > b) throw Object.assign(new Error(rotulo + ': o mínimo não pode ser maior que o máximo.'), { status: 400 })
       cur.ads[nomeMin] = a
       cur.ads[nomeMax] = b
     }
     faixa('intervalMin', 'intervalMax', 1, 720, 'Intervalo aleatorio (minutos)')
-    faixa('perRunMin', 'perRunMax', 1, 10, 'Produtos por execucao')
+    faixa('perRunMin', 'perRunMax', 1, 10, 'Produtos por execução')
     // Pausa entre grupos no envio automatico (C1): 0 = sem pausa, como era antes
     faixa('groupPauseMin', 'groupPauseMax', 0, 60, 'Pausa entre grupos (segundos)')
     if (cur.ads.intervalMode === 'aleatorio' && !(Number.isInteger(cur.ads.intervalMin) && Number.isInteger(cur.ads.intervalMax))) {
-      throw Object.assign(new Error('Informe o intervalo minimo e maximo (em minutos) para o modo aleatorio.'), { status: 400 })
+      throw Object.assign(new Error('Informe o intervalo mínimo e máximo (em minutos) para o modo aleatorio.'), { status: 400 })
     }
   }
   if (body.amazon) {
     const tag = String(body.amazon.tag || '').trim()
-    if (tag && !amazon.TAG_RE.test(tag)) throw Object.assign(new Error('Tag Amazon invalida (ex.: seunome-20)'), { status: 400 })
+    if (tag && !amazon.TAG_RE.test(tag)) throw Object.assign(new Error('Tag Amazon inválida (ex.: seunome-20)'), { status: 400 })
     cur.amazon = { tag }
   }
   if (body.mercadolivre) {
     const etiqueta = String(body.mercadolivre.etiqueta || '').trim()
     const toolId = String(body.mercadolivre.toolId || '').replace(/\D/g, '')
-    if (etiqueta && !mercadolivre.ETIQUETA_RE.test(etiqueta)) throw Object.assign(new Error('Etiqueta do Mercado Livre invalida'), { status: 400 })
+    if (etiqueta && !mercadolivre.ETIQUETA_RE.test(etiqueta)) throw Object.assign(new Error('Etiqueta do Mercado Livre inválida'), { status: 400 })
     cur.mercadolivre = { etiqueta, toolId }
   }
 }
@@ -138,7 +138,7 @@ function mount(app, deps) {
   function salvarCfg(userId, fn) {
     const configs = readJson(CONFIGS, {})
     const cur = configs[userId]
-    if (!cur) throw Object.assign(new Error('Conta nao encontrada'), { status: 404 })
+    if (!cur) throw Object.assign(new Error('Conta não encontrada'), { status: 404 })
     const out = fn(cur)
     cur.updatedAt = new Date().toISOString()
     configs[userId] = cur
@@ -171,12 +171,12 @@ function mount(app, deps) {
     try {
       const body = req.body || {}
       const jid = String(body.jid || '')
-      if (!JID_RE.test(jid)) return res.status(400).json({ error: 'Grupo invalido' })
+      if (!JID_RE.test(jid)) return res.status(400).json({ error: 'Grupo inválido' })
       const pedido = body.niche != null ? nichos.semAcento(body.niche).replace(/[^a-z]/g, '') : null
-      if (pedido != null && !nichos.existe(pedido)) return res.status(400).json({ error: 'Nicho invalido' })
+      if (pedido != null && !nichos.existe(pedido)) return res.status(400).json({ error: 'Nicho inválido' })
       const grupo = salvarCfg(req.user.id, (cur) => {
         const g = (cur.groups || []).find((x) => x.jid === jid)
-        if (!g) throw Object.assign(new Error('Marque o grupo na divulgacao antes de escolher o nicho'), { status: 400 })
+        if (!g) throw Object.assign(new Error('Marque o grupo na divulgação antes de escolher o nicho'), { status: 400 })
         if (pedido != null) g.niche = pedido
         if (body.keywords != null) g.keywords = nichos.palavrasExtras(body.keywords)
         return g
@@ -195,7 +195,7 @@ function mount(app, deps) {
           .filter((g) => JID_RE.test(g.jid)).slice(0, 20)
         limites.checarQuantidade(cur, 'fontes', limpa.length)
         const conflito = limpa.find((g) => destinos.has(g.jid))
-        if (conflito) throw Object.assign(new Error('"' + conflito.name + '" ja recebe anuncios. Um grupo nao pode ser fonte e destino.'), { status: 400 })
+        if (conflito) throw Object.assign(new Error('"' + conflito.name + '" já recebe anúncios. Um grupo não pode ser fonte e destino.'), { status: 400 })
         cur.sources = limpa
         return limpa
       })
@@ -249,7 +249,7 @@ function mount(app, deps) {
       let texto = String(body.texto || '')
       if (body.id) {
         const item = pool.listar(DATA, req.user.id).find((i) => i.id === body.id)
-        if (!item) return res.status(404).json({ error: 'Oferta nao encontrada' })
+        if (!item) return res.status(404).json({ error: 'Oferta não encontrada' })
         texto = item.texto
       }
       if (!texto.trim()) return res.status(400).json({ error: 'Cole o texto da oferta' })
@@ -286,9 +286,9 @@ function mount(app, deps) {
   app.post('/mercadolivre/conectar', auth, (req, res) => {
     try {
       const cfg = cfgDe(req.user.id)
-      if (!licencaAtiva(cfg)) return res.status(403).json({ error: 'Licenca expirada ou inativa.' })
+      if (!licencaAtiva(cfg)) return res.status(403).json({ error: 'Licença expirada ou inativa.' })
       res.json({ ok: true, url: oauth.urlDeConexao(req.user.id) })
-    } catch (e) { falha(res, e, 'Falha ao iniciar conexao') }
+    } catch (e) { falha(res, e, 'Falha ao iniciar conexão') }
   })
 
   app.get('/mercadolivre/callback', async (req, res) => {
@@ -338,14 +338,14 @@ function mount(app, deps) {
   app.post('/imagens/gerar', auth, async (req, res) => {
     try {
       const cfg = cfgDe(req.user.id)
-      if (!licencaAtiva(cfg)) return res.status(403).json({ error: 'Licenca expirada ou inativa.' })
+      if (!licencaAtiva(cfg)) return res.status(403).json({ error: 'Licença expirada ou inativa.' })
       const body = req.body || {}
       const produtoKey = String(body.produtoKey || '')
       // URL da foto: so a que o proprio servidor conhece para esse produto
       let imageUrl = ''
       if (produtoKey.startsWith('shopee:')) {
         const p = auditoria.produtosRecentes(DATA, req.user.id, 200).find((x) => x.produtoKey === produtoKey)
-        if (!p) return res.status(404).json({ error: 'Produto nao encontrado nos envios recentes' })
+        if (!p) return res.status(404).json({ error: 'Produto não encontrado nos envios recentes' })
         imageUrl = p.imageUrl
       }
       const item = await imagens.gerar(DATA, req.user.id, { produtoKey, nome: String(body.nome || '').slice(0, 180), imageUrl, cenario: String(body.cenario || '') })
@@ -391,7 +391,7 @@ function mount(app, deps) {
     const grupo = (cfg.groups || []).find((g) => g.jid === jid)
     const resto = texto.trim().replace(/^!nicho\s*/i, '')
     const lista = nichos.catalogo().map((n) => n.id).join(', ')
-    if (!grupo) return responder(sock, jid, 'Este grupo nao esta na divulgacao. Marque ele no painel (Grupos) primeiro.')
+    if (!grupo) return responder(sock, jid, 'Este grupo não está na divulgação. Marque ele no painel (Grupos) primeiro.')
     if (!resto) {
       const extras = (grupo.keywords || []).length ? '\nPalavras extras: ' + grupo.keywords.join(', ') : ''
       return responder(sock, jid, 'Nicho deste grupo: *' + nichos.normalizar(grupo.niche) + '*' + extras + '\n\nTrocar: !nicho <nome>\nOpcoes: ' + lista + '\nPalavras extras: !nicho palavras a, b, c')
@@ -402,10 +402,10 @@ function mount(app, deps) {
       return responder(sock, jid, kws.length ? 'Palavras extras salvas: ' + kws.join(', ') : 'Palavras extras removidas.')
     }
     const pedido = nichos.semAcento(resto.split(/\s+/)[0]).replace(/[^a-z]/g, '')
-    if (!nichos.existe(pedido)) return responder(sock, jid, 'Nicho "' + resto.split(/\s+/)[0] + '" nao existe.\nOpcoes: ' + lista)
+    if (!nichos.existe(pedido)) return responder(sock, jid, 'Nicho "' + resto.split(/\s+/)[0] + '" não existe.\nOpcoes: ' + lista)
     salvarCfg(userId, (cur) => { const g = (cur.groups || []).find((x) => x.jid === jid); if (g) g.niche = pedido })
     if (logs) logs.append(DATA, userId, { source: 'anuncio', level: 'info', ok: true, group: grupo.name, jid, message: 'Nicho trocado pelo WhatsApp para ' + pedido + '.' })
-    return responder(sock, jid, 'Pronto. Este grupo agora so recebe ofertas de *' + nichos.NICHOS[pedido].label + '*.')
+    return responder(sock, jid, 'Pronto. Este grupo agora só recebe ofertas de *' + nichos.NICHOS[pedido].label + '*.')
   }
 
   // Diagnostico da captura nos Logs: no maximo 1 linha por grupo+motivo a cada 10 min
@@ -422,7 +422,7 @@ function mount(app, deps) {
     const jid = m.key.remoteJid
     const fonte = (cfg.sources || []).find((g) => g.jid === jid)
     if (!fonte) return
-    if (!licencaAtiva(cfg)) return avisarCaptura(userId, fonte, 'licenca', 'Captura parada: licenca inativa.', { level: 'warn', ok: false })
+    if (!licencaAtiva(cfg)) return avisarCaptura(userId, fonte, 'licenca', 'Captura parada: licença inativa.', { level: 'warn', ok: false })
     if (!links.extrairUrls(texto).some((u) => links.marketplaceDe(u.url))) {
       return avisarCaptura(userId, fonte, 'semlink', 'Mensagem ignorada: sem link da Shopee, Mercado Livre ou Amazon.')
     }
@@ -437,8 +437,8 @@ function mount(app, deps) {
     }
     try {
       const out = await pool.adicionar(DATA, userId, cfg, { texto, imagemBuffer, imagemExt: 'jpg', origem: 'grupo', origemGrupo: fonte.name })
-      if (out && out.duplicado) avisarCaptura(userId, fonte, 'repetida', 'Oferta repetida: ja estava no banco.')
-      else avisarCaptura(userId, fonte, 'ok', 'Oferta capturada: ' + ((out && out.item && out.item.nome) || 'sem titulo'), { ok: true })
+      if (out && out.duplicado) avisarCaptura(userId, fonte, 'repetida', 'Oferta repetida: já estáva no banco.')
+      else avisarCaptura(userId, fonte, 'ok', 'Oferta capturada: ' + ((out && out.item && out.item.nome) || 'sem título'), { ok: true })
     } catch (e) {
       if (e.status !== 400) console.error('[CAPTURA]', e.message)
       avisarCaptura(userId, fonte, 'erro', 'Falha ao guardar oferta: ' + (e.message || 'erro'), { level: 'warn', ok: false })
@@ -472,7 +472,7 @@ function mount(app, deps) {
       // Chegou sem conteudo legivel: o Baileys pede reenvio ao remetente sozinho
       // (precisa da memoria em api/memoria.js); se recuperar, chega de novo aqui
       if (!m.message) {
-        if (fonte && !m.key.fromMe) avisarCaptura(userId, fonte, 'ilegivel', 'Mensagem chegou ilegivel; pedindo reenvio ao remetente. Se recuperar, entra no banco sozinha.', { level: 'warn', ok: false })
+        if (fonte && !m.key.fromMe) avisarCaptura(userId, fonte, 'ilegivel', 'Mensagem chegou ilegível; pedindo reenvio ao remetente. Se recuperar, entra no banco sozinha.', { level: 'warn', ok: false })
         return
       }
       if (jaVista(userId, m)) return
@@ -482,7 +482,7 @@ function mount(app, deps) {
       // Comando so do dono da conta (mensagem enviada pelo proprio numero), e recente
       if (m.key.fromMe) {
         if (/^!nicho\b/i.test(texto.trim()) && (!ts || Date.now() - ts < 120000)) await comandoNicho(userId, jid, texto, sock)
-        else if (fonte) avisarCaptura(userId, fonte, 'fromme', 'Mensagem ignorada: foi enviada pelo seu proprio numero (o bot so copia ofertas de outras pessoas).')
+        else if (fonte) avisarCaptura(userId, fonte, 'fromme', 'Mensagem ignorada: foi enviada pelo seu próprio número (o bot só copia ofertas de outras pessoas).')
         return
       }
       if (fonte) await capturar(userId, m, cfg, msg, texto)

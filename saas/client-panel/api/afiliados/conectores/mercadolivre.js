@@ -21,7 +21,7 @@ function ml(ctx) {
 function configurado(ctx) {
   const m = ml(ctx)
   if (!m.etiqueta) return { ok: false, motivo: 'salve sua etiqueta de afiliado do Mercado Livre' }
-  if (!ETIQUETA_RE.test(m.etiqueta)) return { ok: false, motivo: 'etiqueta do Mercado Livre invalida' }
+  if (!ETIQUETA_RE.test(m.etiqueta)) return { ok: false, motivo: 'etiqueta do Mercado Livre inválida' }
   if (!TOOL_RE.test(m.toolId)) return { ok: false, motivo: 'salve o ID da ferramenta (matt_tool) do Mercado Livre' }
   return { ok: true, motivo: '' }
 }
@@ -106,15 +106,15 @@ async function produtoDaPaginaSocial(urlSocial) {
   })
   if (out.status !== 200) {
     try { if (out.response.body) await out.response.body.cancel() } catch { /* ok */ }
-    throw links.erroLink('Pagina do Mercado Livre respondeu ' + out.status, out.status >= 500 || out.status === 429)
+    throw links.erroLink('Página do Mercado Livre respondeu ' + out.status, out.status >= 500 || out.status === 429)
   }
   let timer
   const html = await Promise.race([
     lerTexto(out.response, PAGINA_MAX_BYTES),
-    new Promise((_, rej) => { timer = setTimeout(() => rej(links.erroLink('Tempo esgotado ao ler a pagina do Mercado Livre', true)), 12000) })
+    new Promise((_, rej) => { timer = setTimeout(() => rej(links.erroLink('Tempo esgotado ao ler a página do Mercado Livre', true)), 12000) })
   ]).finally(() => clearTimeout(timer))
   const alvo = produtoDoHtml(html)
-  if (!alvo) throw links.erroLink('Link Mercado Livre abre uma pagina de perfil e nao deu para identificar o produto')
+  if (!alvo) throw links.erroLink('Link Mercado Livre abre uma página de perfil e não deu para identificar o produto')
   if (cachePagina.size > 500) cachePagina.delete(cachePagina.keys().next().value)
   cachePagina.set(urlSocial, { alvo, ate: Date.now() + CACHE_TTL })
   return alvo
@@ -122,10 +122,10 @@ async function produtoDaPaginaSocial(urlSocial) {
 
 async function converter(url, ctx) {
   let final = await links.resolver(url)
-  if (links.marketplaceDe(final) !== 'mercadolivre') throw links.erroLink('Link curto nao levou para o Mercado Livre')
+  if (links.marketplaceDe(final) !== 'mercadolivre') throw links.erroLink('Link curto não levou para o Mercado Livre')
   if (!idDe(final) && ehPaginaSocial(final)) final = await produtoDaPaginaSocial(final)
   let u
-  try { u = new URL(final) } catch { throw links.erroLink('Link Mercado Livre invalido') }
+  try { u = new URL(final) } catch { throw links.erroLink('Link Mercado Livre inválido') }
   if (!idDe(final)) throw links.erroLink('Link Mercado Livre sem produto (MLB)')
   const m = ml(ctx)
   const limpo = new URL(u.origin + u.pathname)
@@ -142,24 +142,24 @@ async function validar(url, ctx) {
   const f = links.validarFormato(url, 'mercadolivre')
   if (!f.ok) return f
   let u
-  try { u = new URL(url) } catch { return { ok: false, motivo: 'link invalido' } }
+  try { u = new URL(url) } catch { return { ok: false, motivo: 'link inválido' } }
   const m = ml(ctx)
-  if (u.searchParams.get('matt_word') !== m.etiqueta) return { ok: false, motivo: 'etiqueta do link nao e a sua' }
-  if (u.searchParams.get('matt_tool') !== m.toolId) return { ok: false, motivo: 'matt_tool do link nao e o seu' }
+  if (u.searchParams.get('matt_word') !== m.etiqueta) return { ok: false, motivo: 'etiqueta do link não é a sua' }
+  if (u.searchParams.get('matt_tool') !== m.toolId) return { ok: false, motivo: 'matt_tool do link não é o seu' }
   const alvo = idDe(url)
   if (!alvo) return { ok: false, motivo: 'link sem produto MLB' }
   if (!ctx.dataDir || !ctx.userId || !oauth.status(ctx.dataDir, ctx.userId).conectado) {
-    return { ok: true, motivo: '', aviso: 'sem OAuth: so conferi o formato' }
+    return { ok: true, motivo: '', aviso: 'sem OAuth: só conferi o formato' }
   }
   try {
     const caminho = alvo.tipo === 'produto' ? '/products/' + alvo.id : '/items/' + alvo.id
     const dados = await oauth.get(ctx.dataDir, ctx.userId, caminho)
     if (alvo.tipo === 'item' && dados.status && dados.status !== 'active') {
-      return { ok: false, motivo: 'anuncio nao esta ativo (' + dados.status + ')' }
+      return { ok: false, motivo: 'anúncio não está ativo (' + dados.status + ')' }
     }
     return { ok: true, motivo: '' }
   } catch (e) {
-    if (e.code === 'ML_404') return { ok: false, motivo: 'produto nao existe mais no Mercado Livre' }
+    if (e.code === 'ML_404') return { ok: false, motivo: 'produto não existe mais no Mercado Livre' }
     // 429, rede, 403 ou token: o formato ja passou; nao trava o envio, so avisa
     return { ok: true, motivo: '', aviso: 'API do Mercado Livre: ' + e.message }
   }

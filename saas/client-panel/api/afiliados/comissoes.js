@@ -33,9 +33,9 @@ function statusDe(s) {
 function periodo(de, ate, agora = Date.now()) {
   const fim = ate ? Date.parse(ate + 'T23:59:59-03:00') : agora
   const ini = de ? Date.parse(de + 'T00:00:00-03:00') : fim - 30 * DIA * 1000
-  if (!Number.isFinite(fim) || !Number.isFinite(ini) || ini >= fim) throw Object.assign(new Error('Periodo invalido'), { status: 400 })
-  if (fim - ini > MAX_DIAS * DIA * 1000) throw Object.assign(new Error('O periodo maximo e de ' + MAX_DIAS + ' dias.'), { status: 400 })
-  if (fim > agora + DIA * 1000) throw Object.assign(new Error('Periodo no futuro.'), { status: 400 })
+  if (!Number.isFinite(fim) || !Number.isFinite(ini) || ini >= fim) throw Object.assign(new Error('Período inválido'), { status: 400 })
+  if (fim - ini > MAX_DIAS * DIA * 1000) throw Object.assign(new Error('O período máximo é de ' + MAX_DIAS + ' dias.'), { status: 400 })
+  if (fim > agora + DIA * 1000) throw Object.assign(new Error('Período no futuro.'), { status: 400 })
   return { inicio: Math.floor(ini / 1000), fim: Math.min(Math.floor(fim / 1000), Math.floor(agora / 1000)) }
 }
 
@@ -119,7 +119,7 @@ async function resumo(ctx, opts = {}) {
     const velho = jsonStore.load(ctx.dataDir, PASTA, ctx.userId, () => ({})).ultimo
     let det = String(e.message || 'erro')
     for (const seg of [chaves.secret, chaves.appId]) if (seg) det = det.split(String(seg)).join('***')
-    const err = new Error('Nao consegui ler o relatorio da Shopee agora (' + det.slice(0, 100) + ').')
+    const err = new Error('Não consegui ler o relatório da Shopee agora (' + det.slice(0, 100) + ').')
     err.status = e.status && e.status < 500 && e.status !== 400 ? e.status : 502
     if (velho) err.ultimo = velho
     throw err

@@ -23,11 +23,11 @@ function etapas(ctx) {
   const perfilOk = perfil !== 'personalizado' || Number(ads.groupPauseMax) > 0
 
   const lista = [
-    { id: 'whatsapp', titulo: 'Conectar o WhatsApp', feito: conectado, detalhe: conectado ? 'Conectado.' : 'Pareie o numero em Configuracoes.', pagina: 'configuracoes' },
-    { id: 'ofertas', titulo: origens.includes('api') ? 'Salvar as chaves da Shopee' : 'Ter ofertas no banco', feito: ofertasOk, detalhe: ofertasOk ? (origens.includes('api') ? 'Chaves salvas.' : noBanco + ' oferta(s) prontas.') : (origens.includes('api') ? 'Salve App ID e Secret em Configuracoes.' : 'Capture, cole ou salve ofertas da Vitrine.'), pagina: origens.includes('api') ? 'configuracoes' : 'fila' },
+    { id: 'whatsapp', titulo: 'Conectar o WhatsApp', feito: conectado, detalhe: conectado ? 'Conectado.' : 'Pareie o número em Configurações.', pagina: 'configuracoes' },
+    { id: 'ofertas', titulo: origens.includes('api') ? 'Salvar as chaves da Shopee' : 'Ter ofertas no banco', feito: ofertasOk, detalhe: ofertasOk ? (origens.includes('api') ? 'Chaves salvas.' : noBanco + ' oferta(s) prontas.') : (origens.includes('api') ? 'Salve App ID e Secret em Configurações.' : 'Capture, cole ou salve ofertas da Vitrine.'), pagina: origens.includes('api') ? 'configuracoes' : 'fila' },
     { id: 'grupos', titulo: 'Escolher os grupos de destino', feito: destinos.length > 0, detalhe: destinos.length ? destinos.length + ' grupo(s).' : 'Marque em Grupos onde as ofertas devem sair.', pagina: 'grupos' },
-    { id: 'perfil', titulo: 'Escolher o perfil de envio', feito: perfilOk, detalhe: perfilOk ? (perfil === 'personalizado' ? 'Configuracao propria, com pausa entre grupos.' : 'Perfil ' + perfil + '.') : 'O perfil Seguro e o recomendado para comecar.', pagina: 'automacoes' },
-    { id: 'automacao', titulo: 'Ligar a automacao', feito: !!ads.enabled, detalhe: ads.enabled ? 'Ligada.' : 'Ligue em Automacoes quando estiver pronto.', pagina: 'automacoes' }
+    { id: 'perfil', titulo: 'Escolher o perfil de envio', feito: perfilOk, detalhe: perfilOk ? (perfil === 'personalizado' ? 'Configuração própria, com pausa entre grupos.' : 'Perfil ' + perfil + '.') : 'O perfil Seguro e o recomendado para comecar.', pagina: 'automacoes' },
+    { id: 'automacao', titulo: 'Ligar a automação', feito: !!ads.enabled, detalhe: ads.enabled ? 'Ligada.' : 'Ligue em Automações quando estiver pronto.', pagina: 'automacoes' }
   ]
   const feitas = lista.filter((e) => e.feito).length
   return { ok: true, etapas: lista, feitas, total: lista.length, completo: feitas === lista.length }
@@ -38,7 +38,7 @@ function mount(app, deps) {
   app.get('/onboarding', auth, (req, res) => {
     try {
       const cfg = readJson(CONFIGS, {})[req.user.id]
-      if (!cfg) return res.status(404).json({ error: 'Conta nao encontrada' })
+      if (!cfg) return res.status(404).json({ error: 'Conta não encontrada' })
       res.json(etapas({ userId: req.user.id, cfg, dataDir: DATA, sessions }))
     } catch (e) { res.status(e.status || 500).json({ error: e.message || 'Falha ao ler os primeiros passos' }) }
   })

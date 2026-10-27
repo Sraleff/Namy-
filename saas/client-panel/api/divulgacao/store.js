@@ -15,7 +15,7 @@ function safeId(userId) {
 function fileOf(dataDir, userId) {
   const id = safeId(userId)
   if (!id) {
-    const err = new Error('Conta invalida')
+    const err = new Error('Conta inválida')
     err.status = 400
     throw err
   }

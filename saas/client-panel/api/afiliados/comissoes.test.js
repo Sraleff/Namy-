@@ -119,9 +119,9 @@ test('statusDe e periodo', () => {
   assert.equal(comissoes.statusDe('CANCELLED'), 'cancelado')
   assert.equal(comissoes.statusDe('???'), 'outro')
   const agora = Date.parse('2026-10-25T15:00:00-03:00')
-  assert.throws(() => comissoes.periodo('2026-01-01', '2026-10-25', agora), /maximo/)
-  assert.throws(() => comissoes.periodo('2026-10-25', '2026-10-01', agora), /invalido/)
-  assert.throws(() => comissoes.periodo('2027-01-01', '2027-01-05', agora), /futuro|invalido/)
+  assert.throws(() => comissoes.periodo('2026-01-01', '2026-10-25', agora), /máximo/)
+  assert.throws(() => comissoes.periodo('2026-10-25', '2026-10-01', agora), /inválido/)
+  assert.throws(() => comissoes.periodo('2027-01-01', '2027-01-05', agora), /futuro|inválido/)
   assert.ok(comissoes.periodo('2026-10-01', '2026-10-25', agora).fim > comissoes.periodo('2026-10-01', '2026-10-25', agora).inicio)
 })
 
@@ -177,8 +177,8 @@ test('ofertas.conversoes: monta a consulta so com numeros e recusa periodo inval
     assert.equal(r.nodes.length, 1)
     assert.equal(r.hasNextPage, true)
     assert.match(q[0], /purchaseTimeStart: 1000, purchaseTimeEnd: 2000, limit: 100, scrollId: "a\\"b"/)
-    await assert.rejects(() => ofertas.conversoes({ appId: 'A', secret: 'S' }, { inicio: 'x', fim: 2 }), /Periodo/)
-    await assert.rejects(() => ofertas.conversoes({ appId: 'A', secret: 'S' }, { inicio: 5, fim: 2 }), /Periodo/)
+    await assert.rejects(() => ofertas.conversoes({ appId: 'A', secret: 'S' }, { inicio: 'x', fim: 2 }), /Período/)
+    await assert.rejects(() => ofertas.conversoes({ appId: 'A', secret: 'S' }, { inicio: 5, fim: 2 }), /Período/)
     await assert.rejects(() => ofertas.conversoes({}, { inicio: 1, fim: 2 }), /App ID/)
     assert.equal(q.length, 1)
   } finally { global.fetch = real }
