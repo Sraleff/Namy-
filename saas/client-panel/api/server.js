@@ -67,8 +67,10 @@ try {
 } catch (e) { console.error('[SEGURANCA] migracao do segredo falhou (nada foi alterado):', e.message) }
 
 function defaultConfig(userId, email) {
+  // Teste de 3 dias que so comeca quando o WhatsApp conecta (limites.iniciarTrial).
+  // Ate la a conta vale 7 dias, para nao ficar aberta para sempre se o cliente sumir.
   const exp = new Date()
-  exp.setDate(exp.getDate() + 30)
+  exp.setDate(exp.getDate() + 7)
   return {
     tenantId: userId,
     email,
@@ -95,7 +97,7 @@ function defaultConfig(userId, email) {
     mercadolivre: { etiqueta: '', toolId: '' },
     sources: [],
     ai: { mode: 'auto', usePlatformKeys: true },
-    license: { plan: 'trial', active: true, expiresAt: exp.toISOString() },
+    license: { plan: 'trial', active: true, trialPendente: true, expiresAt: exp.toISOString() },
     botToken: uuidv4().replace(/-/g, ''),
     updatedAt: new Date().toISOString()
   }
@@ -279,6 +281,10 @@ function ativarLicenca(userId, info) {
   const base = cur.license.active && atual > now ? atual : now
   const exp = new Date(base + info.days * 86400000)
   cur.license.plan = info.planId
+  cur.license.tier = info.tier || 'pro'
+  cur.license.period = info.period || 'mensal'
+  if (info.fundador) cur.license.fundador = true
+  cur.license.trialPendente = false
   cur.license.active = true
   cur.license.expiresAt = exp.toISOString()
   cur.license.lastPaymentId = info.paymentId
@@ -295,12 +301,19 @@ function ativarLicenca(userId, info) {
   return cur
 }
 
+// Fundador: vale para quem ja e fundador (renovar) ou enquanto houver vaga
+function fundadorDisponivel(cfg) {
+  if (cfg && cfg.license && cfg.license.fundador) return true
+  const usadas = Object.values(readJson(CONFIGS, {})).filter((c) => c && c.license && c.license.fundador).length
+  return usadas < billing.fundadorVagas()
+}
+
 app.get('/billing/plans', auth, (req, res) => {
   const configs = readJson(CONFIGS, {})
   const cfg = configs[req.user.id]
   res.json({
     configured: !!process.env.MP_ACCESS_TOKEN,
-    plans: billing.catalog(),
+    plans: billing.catalog({ fundadorDisponivel: fundadorDisponivel(cfg) }),
     license: cfg ? publicConfig(cfg).license : null
   })
 })
@@ -308,6 +321,9 @@ app.get('/billing/plans', auth, (req, res) => {
 app.post('/billing/checkout', auth, async (req, res) => {
   try {
     const planId = String((req.body && req.body.plan) || '')
+    if (planId === 'pro_fundador' && !fundadorDisponivel(readJson(CONFIGS, {})[req.user.id])) {
+      return res.status(409).json({ error: 'As vagas de fundador acabaram.' })
+    }
     const out = await billing.createCheckout({
       userId: req.user.id,
       email: req.user.email,
@@ -393,6 +409,28 @@ divulgacao.startFila({
 })
 
 require('./dashboard')(app, { auth, readJson, CONFIGS, DATA })
+// Planos (C3): recursos do Pro barrados no servidor, antes das rotas
+const limites = require('./afiliados/limites')
+for (const [prefixo, recurso] of [['/agendadas', 'agendadas'], ['/cupons', 'cupons'], ['/comissoes', 'comissoes'], ['/membros', 'membros']]) {
+  app.use(prefixo, auth, limites.exigir(recurso, { readJson, CONFIGS }))
+}
+app.get('/plano/uso', auth, (req, res) => {
+  const cfg = readJson(CONFIGS, {})[req.user.id]
+  if (!cfg) return res.status(404).json({ error: 'Conta nao encontrada' })
+  res.json(limites.uso(cfg))
+})
+// O teste comeca quando o WhatsApp conecta pela primeira vez
+require('./sessions').onConectado((userId) => {
+  try {
+    const configs = readJson(CONFIGS, {})
+    const cfg = configs[userId]
+    const dias = Number(process.env.NAMY_TRIAL_DIAS)
+    if (cfg && limites.iniciarTrial(cfg, Date.now(), Number.isFinite(dias) && dias > 0 ? dias : 3)) {
+      cfg.updatedAt = new Date().toISOString()
+      writeJson(CONFIGS, configs)
+    }
+  } catch (e) { console.error('[TRIAL] falha ao iniciar o teste:', e.message) }
+})
 afiliados.mount(app, {
   auth,
   readJson,

@@ -15,7 +15,12 @@ const JID_RE = /^[0-9A-Za-z._-]+@g\.us$/
 const hhmmBR = (ms) => new Intl.DateTimeFormat('en-GB', { timeZone: TZ, hour: '2-digit', minute: '2-digit', hourCycle: 'h23' }).format(new Date(ms))
 const diaBR = (ms) => new Intl.DateTimeFormat('en-CA', { timeZone: TZ }).format(new Date(ms))
 const quando = (ms, agora) => (diaBR(ms) === diaBR(agora) ? 'hoje' : diaBR(ms) === diaBR(agora + 86400000) ? 'amanha' : diaBR(ms).split('-').reverse().join('/')) + ' as ' + hhmmBR(ms)
-const limiteDiario = (ads) => Math.min(200, Math.max(1, Number(ads.dailyLimit) || 5))
+const limites = require('./limites')
+const limiteDiario = (ads, cfg) => {
+  const meu = Math.min(200, Math.max(1, Number(ads.dailyLimit) || 5))
+  const doPlano = limites.limiteEnviosDoPlano(cfg)
+  return doPlano ? Math.min(meu, doPlano) : meu
+}
 const enviadosHoje = (ads, agora) => (ads.sentDay === diaBR(agora) ? Number(ads.sentToday) || 0 : 0)
 
 function proximoDiaPermitido(days, agora) {
@@ -74,8 +79,8 @@ function diagnosticar(ctx, agora = Date.now()) {
 
   // Limite do dia
   const hoje = enviadosHoje(ads, agora)
-  const lim = limiteDiario(ads)
-  if (hoje >= lim) add('limite', 'bloqueio', 'Limite diario atingido (' + hoje + ' de ' + lim + ')', 'Volta a enviar amanha, ou aumente o limite em Automacoes.', 'automacoes')
+  const lim = limiteDiario(ads, cfg)
+  if (hoje >= lim) add('limite', 'bloqueio', 'Limite diario atingido (' + hoje + ' de ' + lim + ')', (limites.limiteEnviosDoPlano(cfg) ? 'Volta a enviar amanha. O teste gratis envia ate ' + limites.limiteEnviosDoPlano(cfg) + ' por dia; assinando, o limite e o que voce configurar.' : 'Volta a enviar amanha, ou aumente o limite em Automacoes.'), 'automacoes')
   else add('limite', 'ok', 'Limite diario: ' + hoje + ' de ' + lim + ' produtos hoje')
 
   // Proxima execucao

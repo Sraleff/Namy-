@@ -7,6 +7,7 @@ const ofertas = require('./ofertas')
 const { publicarOferta } = require('./divulgar')
 const publicador = require('./afiliados/publicador')
 const nichos = require('./afiliados/nichos')
+const limites = require('./afiliados/limites')
 const { registrarEnvio } = require('./scheduler')
 
 function jidGrupo(jid) {
@@ -123,6 +124,7 @@ module.exports = function mount(app, { auth, readJson, writeJson, CONFIGS, DATA,
         keywords: nichos.palavrasExtras(g.keywords != null ? g.keywords : velho.keywords)
       }
     }).filter((g) => jidGrupo(g.jid))
+    try { limites.checarQuantidade(cur, 'destinos', cur.groups.length) } catch (e) { return res.status(e.status || 400).json({ error: e.message, upgrade: !!e.upgrade }) }
     // Grupo fonte (captura) nunca e destino: antes isso era ignorado em silencio
     const fontes = new Set((cur.sources || []).map((g) => g.jid))
     const conflito = cur.groups.filter((g) => fontes.has(g.jid))

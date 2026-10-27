@@ -35,6 +35,12 @@ function onMensagem(fn) {
   if (typeof fn === 'function') ouvintes.add(fn)
   return () => ouvintes.delete(fn)
 }
+// Conexao aberta do WhatsApp (inicio do teste gratis): fn(userId)
+const ouvintesConectado = new Set()
+function onConectado(fn) {
+  if (typeof fn === 'function') ouvintesConectado.add(fn)
+  return () => ouvintesConectado.delete(fn)
+}
 // Entradas e saidas de membros (monitor de membros, fase 2.4): fn(userId, evento do Baileys)
 const ouvintesMembros = new Set()
 function onMembros(fn) {
@@ -278,6 +284,7 @@ async function start(userId, phone, onStatus) {
       cur.dropCount = 0
       limparTimer(cur)
       setStatus(userId, 'connected')
+      for (const fn of ouvintesConectado) { try { fn(userId) } catch (e) { /* ouvinte nunca derruba a conexao */ } }
     }
 
     if (connection === 'close') {
@@ -575,4 +582,4 @@ async function sendOffer(userId, jid, { text, imageUrl, imagePath }) {
   }
 }
 
-module.exports = { pareada, start, stop, publicState, restoreRegistered, listGroups, groupInfo, inviteLink, sendText, sendOffer, get, onMensagem, onMembros }
+module.exports = { pareada, start, stop, publicState, restoreRegistered, listGroups, groupInfo, inviteLink, sendText, sendOffer, get, onMensagem, onMembros, onConectado }

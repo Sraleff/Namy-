@@ -117,5 +117,6 @@ export const removeImage = (id) => post('/imagens/remover', { id });
 // Logs / plano
 export const getLogs = () => api('/logs');
 export const getPlans = () => api('/billing/plans');
+export const getUso = () => api('/plano/uso');
 export const checkout = (plan) => post('/billing/checkout', { plan, returnTo: 'app' });
 export const syncPayment = (paymentId) => post('/billing/sync', { paymentId });

@@ -17,6 +17,7 @@
  */
 const sessions = require('./sessions')
 const publicador = require('./afiliados/publicador')
+const limites = require('./afiliados/limites')
 
 const INTERVAL_MS = {
   '5m': 5 * 60 * 1000,
@@ -96,7 +97,12 @@ const produtosPorExecucao = (ads) => faixa(ads || {}, 'perRunMin', 'perRunMax', 
 const intervaloAleatorio = (ads) => faixa(ads || {}, 'intervalMin', 'intervalMax', 1, INTERVALO_ALEATORIO_MAX, 30, 90)
 const modoAleatorio = (ads) => !!ads && ads.intervalMode === 'aleatorio'
 
-const limiteDiario = (ads) => Math.min(200, Math.max(1, Number(ads.dailyLimit) || 5))
+// O plano de teste limita os envios por dia; Start e Pro seguem o que o cliente configurou
+const limiteDiario = (ads, cfg) => {
+  const meu = Math.min(200, Math.max(1, Number(ads.dailyLimit) || 5))
+  const doPlano = cfg ? limites.limiteEnviosDoPlano(cfg) : null
+  return doPlano ? Math.min(meu, doPlano) : meu
+}
 const enviadosHoje = (ads) => (ads.sentDay === diaBrasilia() ? Number(ads.sentToday) || 0 : 0)
 // Mesma regra do publicador: grupo FONTE (captura) nunca e destino. Sem isso o agendador
 // tentava, o publicador recusava e o log enchia de erro a cada 2 minutos.
@@ -163,7 +169,7 @@ async function rodar(deps, userId) {
     cfg = lerCfg()
     if (!cfg) { parou = 'sem-conta'; break }
     const ads = cfg.ads || {}
-    if (enviadosHoje(ads) >= limiteDiario(ads)) { parou = 'limite'; break }
+    if (enviadosHoje(ads) >= limiteDiario(ads, cfg)) { parou = 'limite'; break }
     if (!sessions.publicState(userId).connected) { parou = 'whatsapp'; break }
     try {
       const out = await publicador.publicar({
@@ -203,8 +209,9 @@ async function rodar(deps, userId) {
     }
     if (i < alvo - 1) {
       // Se o proximo produto ja nao cabe no limite do dia, nem espera a pausa
-      const depois = (lerCfg() || {}).ads || {}
-      if (enviadosHoje(depois) >= limiteDiario(depois)) { parou = 'limite'; break }
+      const cfgDepois = lerCfg() || {}
+      const depois = cfgDepois.ads || {}
+      if (enviadosHoje(depois) >= limiteDiario(depois, cfgDepois)) { parou = 'limite'; break }
       await dormir(sortear(PAUSA_ENTRE_PRODUTOS_MS[0], PAUSA_ENTRE_PRODUTOS_MS[1], random))
     }
   }
@@ -235,7 +242,7 @@ async function um(deps, userId, cfg) {
   }
   if (!diaPermitido(ads.days)) return null
   if (!naJanela(ads.window && ads.window.from, ads.window && ads.window.to, minutosBrasilia())) return null
-  if (enviadosHoje(ads) >= limiteDiario(ads)) return null
+  if (enviadosHoje(ads) >= limiteDiario(ads, cfg)) return null
   if (!sessions.publicState(userId).connected) return null
   return rodar(deps, userId)
 }
@@ -264,7 +271,7 @@ async function executarAgora(deps, userId, opcoes = {}) {
   if (!destinosDe(cfg).length) return recusa(400, 'sem-grupos', 'Escolha pelo menos um grupo de destino em Grupos.')
   if (!sessions.publicState(userId).connected) return recusa(400, 'whatsapp', 'O WhatsApp nao esta conectado.')
   const ads = cfg.ads || {}
-  if (enviadosHoje(ads) >= limiteDiario(ads)) {
+  if (enviadosHoje(ads) >= limiteDiario(ads, cfg)) {
     return { ok: false, status: 200, codigo: 'limite', enviados: 0, parou: 'limite', mensagem: MENSAGENS.limite(0) }
   }
   if (emExecucao.has(userId)) return recusa(409, 'ocupado', 'Ja existe uma execucao em andamento. Aguarde terminar.')

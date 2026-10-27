@@ -2,19 +2,38 @@
  * Mercado Pago — so ativa licenca depois de consultar o pagamento na API oficial.
  * O painel nunca manda "paguei" e o servidor acredita. Sem MP_ACCESS_TOKEN, o checkout responde 503.
  */
+// Planos a venda: tier (start/pro) x periodo (mensal/anual) + o Pro de fundador (preco vitalicio).
+// `mensal` e `trimestral` ficam so como legado: nao aparecem no catalogo, mas um pagamento
+// antigo ainda em andamento continua sendo reconhecido (e conta como Pro).
 const PLANS = {
-  mensal: { days: 30, label: 'Namy mensal', env: 'NAMY_PRICE_MENSAL', fallback: 49 },
-  trimestral: { days: 90, label: 'Namy trimestral', env: 'NAMY_PRICE_TRIMESTRAL', fallback: 129 }
+  start_mensal: { tier: 'start', period: 'mensal', days: 30, label: 'Namy Start mensal', env: 'NAMY_PRICE_START_MENSAL', fallback: 19.9 },
+  start_anual: { tier: 'start', period: 'anual', days: 365, label: 'Namy Start anual', env: 'NAMY_PRICE_START_ANUAL', fallback: 199 },
+  pro_mensal: { tier: 'pro', period: 'mensal', days: 30, label: 'Namy Pro mensal', env: 'NAMY_PRICE_PRO_MENSAL', fallback: 59.9 },
+  pro_anual: { tier: 'pro', period: 'anual', days: 365, label: 'Namy Pro anual', env: 'NAMY_PRICE_PRO_ANUAL', fallback: 599 },
+  pro_fundador: { tier: 'pro', period: 'mensal', days: 30, label: 'Namy Pro fundador', env: 'NAMY_PRICE_FUNDADOR', fallback: 39.9, fundador: true },
+  mensal: { tier: 'pro', period: 'mensal', days: 30, label: 'Namy mensal', env: 'NAMY_PRICE_MENSAL', fallback: 49, legado: true },
+  trimestral: { tier: 'pro', period: 'trimestral', days: 90, label: 'Namy trimestral', env: 'NAMY_PRICE_TRIMESTRAL', fallback: 129, legado: true }
 }
 
-function catalog() {
-  return Object.keys(PLANS).map((id) => ({
-    id,
-    label: PLANS[id].label,
-    days: PLANS[id].days,
-    price: priceOf(id),
-    currency: 'BRL'
-  }))
+const fundadorVagas = () => {
+  const n = Number(process.env.NAMY_FUNDADORES_VAGAS)
+  return Number.isFinite(n) && n >= 0 ? Math.floor(n) : 20
+}
+
+// fundadorDisponivel: o servidor diz se ainda ha vaga (ou se o cliente ja e fundador e renova)
+function catalog({ fundadorDisponivel = false } = {}) {
+  return Object.keys(PLANS)
+    .filter((id) => !PLANS[id].legado && (!PLANS[id].fundador || fundadorDisponivel))
+    .map((id) => ({
+      id,
+      label: PLANS[id].label,
+      tier: PLANS[id].tier,
+      period: PLANS[id].period,
+      days: PLANS[id].days,
+      price: priceOf(id),
+      fundador: !!PLANS[id].fundador,
+      currency: 'BRL'
+    }))
 }
 
 function priceOf(id) {
@@ -62,8 +81,8 @@ async function mp(pathname, opts) {
 
 async function createCheckout({ userId, email, planId, baseUrl, returnPath = '/' }) {
   const plan = PLANS[planId]
-  if (!plan) {
-    const err = new Error('Plano invalido. Use mensal ou trimestral.')
+  if (!plan || plan.legado) {
+    const err = new Error('Plano invalido. Use start_mensal, start_anual, pro_mensal ou pro_anual.')
     err.status = 400
     throw err
   }
@@ -139,8 +158,11 @@ async function inspectPayment(query, body) {
     userId,
     planId,
     days: PLANS[planId].days,
+    tier: PLANS[planId].tier,
+    period: PLANS[planId].period,
+    fundador: !!PLANS[planId].fundador,
     approved: pay.status === 'approved'
   }
 }
 
-module.exports = { catalog, createCheckout, inspectPayment, PLANS }
+module.exports = { catalog, createCheckout, inspectPayment, priceOf, fundadorVagas, PLANS }

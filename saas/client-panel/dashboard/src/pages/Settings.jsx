@@ -244,23 +244,54 @@ function PlanCard({ cfg, onSynced }) {
     window.location.href = url;
   });
 
+  const uso = useAsync(ep.getUso, []).data;
+  const reais = (n) => `R$ ${Number(n).toFixed(2).replace('.', ',')}`;
+  const lista = plans.data?.plans || [];
+  const fundador = lista.find((p) => p.fundador);
+  const grupo = (tier) => lista.filter((p) => p.tier === tier && !p.fundador);
+  const nomeTier = uso?.rotulo || lic.plan || '—';
+
   return (
     <Card aria-labelledby="plan-title" id="plano">
       <CardHeader id="plan-title" title="Conta e plano" action={<Badge variant={active ? 'success' : 'danger'}>{active ? 'Ativa' : 'Inativa'}</Badge>} />
       <dl className="grid grid-cols-2 gap-3 text-sm">
         <div><dt className="text-xs text-subtle">E-mail</dt><dd className="truncate text-cream">{cfg.email}</dd></div>
-        <div><dt className="text-xs text-subtle">Plano</dt><dd className="capitalize text-cream">{lic.plan || '—'}</dd></div>
-        <div><dt className="text-xs text-subtle">Vence em</dt><dd className="text-cream">{exp ? formatDate(exp.toISOString().slice(0, 10)) : '—'}</dd></div>
+        <div><dt className="text-xs text-subtle">Plano</dt><dd className="text-cream">{nomeTier}{uso?.fundador ? ' · Fundador' : ''}</dd></div>
+        <div><dt className="text-xs text-subtle">Vence em</dt><dd className="text-cream">{uso?.trialPendente ? 'Começa ao conectar o WhatsApp' : exp ? formatDate(exp.toISOString().slice(0, 10)) : '—'}</dd></div>
+        {uso && (
+          <div>
+            <dt className="text-xs text-subtle">Uso</dt>
+            <dd className="text-cream">{uso.destinos.usado}/{uso.destinos.max} destinos · {uso.fontes.usado}/{uso.fontes.max} fontes</dd>
+          </div>
+        )}
       </dl>
-      <div className="mt-5 flex flex-wrap gap-2">
-        {(plans.data?.plans || []).map((p) => (
-          <Button key={p.id} icon={CreditCard} busy={busy === p.id} disabled={!plans.data?.configured} onClick={() => pay(p.id)} variant={p.id === 'mensal' ? 'primary' : 'secondary'}>
-            {p.label} — R$ {p.price}
-          </Button>
-        ))}
-      </div>
+      {uso?.tier === 'trial' && (
+        <p className="mt-3 text-xs text-subtle">Teste grátis com tudo liberado, até {uso.enviosPorDia} envios por dia. Assinando, o limite diário é o que você configurar.</p>
+      )}
+      {uso?.tier === 'start' && (
+        <p className="mt-3 text-xs text-subtle">O plano Start não inclui mensagens agendadas, cupons, comissões e monitor de membros. Eles fazem parte do Pro.</p>
+      )}
+      {fundador && (
+        <div className="mt-4 rounded-xl border border-line p-3">
+          <p className="text-sm font-medium text-cream">Oferta de fundador: Pro por {reais(fundador.price)}/mês, para sempre</p>
+          <p className="mb-2 text-xs text-subtle">Vagas limitadas. O preço fica travado enquanto você renovar.</p>
+          <Button icon={CreditCard} busy={busy === fundador.id} disabled={!plans.data?.configured} onClick={() => pay(fundador.id)}>Quero ser fundador</Button>
+        </div>
+      )}
+      {['start', 'pro'].map((tier) => grupo(tier).length > 0 && (
+        <div key={tier} className="mt-4">
+          <p className="mb-2 text-xs font-medium uppercase tracking-wide text-subtle">{tier === 'pro' ? 'Pro — tudo liberado' : 'Start — essencial'}</p>
+          <div className="flex flex-wrap gap-2">
+            {grupo(tier).map((p) => (
+              <Button key={p.id} icon={CreditCard} busy={busy === p.id} disabled={!plans.data?.configured} onClick={() => pay(p.id)} variant={tier === 'pro' ? 'primary' : 'secondary'}>
+                {p.period === 'anual' ? 'Anual' : 'Mensal'} — {reais(p.price)}{p.period === 'anual' ? ' (2 meses grátis)' : ''}
+              </Button>
+            ))}
+          </div>
+        </div>
+      ))}
       {plans.data && !plans.data.configured && (
-        <p className="mt-3 text-xs text-subtle">Checkout do Mercado Pago ainda não configurado neste servidor (MP_ACCESS_TOKEN). O teste de 30 dias segue valendo.</p>
+        <p className="mt-3 text-xs text-subtle">Checkout do Mercado Pago ainda não configurado neste servidor (MP_ACCESS_TOKEN). O teste grátis segue valendo.</p>
       )}
       <Notice className="mt-3" msg={msg} />
     </Card>
