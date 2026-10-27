@@ -22,6 +22,9 @@ const revalidacao = require('./revalidacao')
 const atribuicao = require('./atribuicao')
 const cupons = require('./cupons')
 const auditoria = require('./auditoria')
+const captacao = require('./captacao')
+const telegram = require('./telegram')
+const travaPreco = require('./travaPreco')
 const imagens = require('./imagens/store')
 
 const JID_RE = /^[0-9A-Za-z._-]+@g\.us$/
@@ -97,6 +100,9 @@ async function doBanco(ctx, grupos, pulados) {
       pulados.push({ nome: item.nome, produtoKey: 'pool:' + item.id, motivo: 'link: ' + conv.erros.map((e) => e.motivo).join('; ') })
       continue
     }
+    // Loja conferida pela API (Mercado Livre/Amazon) mais cara do que o texto promete: não sai (D2/D3)
+    const subiu = travaPreco.precoSubiu(rv.texto || item.texto, conv.trocas)
+    if (subiu) { pulados.push({ nome: item.nome, produtoKey: 'pool:' + item.id, motivo: subiu }); continue }
     let imageUrl = ''
     let imagePath = ''
     if (item.imagem && item.imagem.tipo === 'url') imageUrl = item.imagem.valor
@@ -223,6 +229,7 @@ async function publicar({ userId, cfg, groups, dataDir, logs, sessions, dormir, 
   const semOferta = []
   let erroApi = null
   let amostra = ''
+  let primeiraTelegram = true
 
   for (const grupos of agrupar(destinos)) {
     const pulados = []
@@ -291,6 +298,12 @@ async function publicar({ userId, cfg, groups, dataDir, logs, sessions, dormir, 
     }
     if (ok.length && oferta.fonte === 'pool') await pool.marcarEnviado(dataDir, userId, oferta.poolId, ok)
     if (ok.length && oferta.fonte === 'api') ofertasApi.lembrar(dataDir, userId, oferta.productId)
+    // Telegram (D4): a mesma oferta vai aos canais do Telegram do mesmo nicho. Nunca atrapalha o WhatsApp.
+    await telegram.espelhar(ctx, Object.assign({}, oferta, { imageUrl: img.imageUrl, imagePath: img.imagePath }), grupos[0].niche, { primeira: primeiraTelegram, logs })
+      .catch((e) => console.error('[TELEGRAM] espelho', e.message))
+    primeiraTelegram = false
+    // Vitrine pública (D5): guarda a oferta com um link próprio da página. Nunca atrapalha o envio.
+    if (ok.length) await captacao.registrarOferta(ctx, oferta, grupos[0].niche).catch((e) => console.error('[CAPTACAO] vitrine', e.message))
   }
 
   // Erro de API e nada mais aconteceu: devolve o erro (agendador loga e espera 2 min)

@@ -203,13 +203,14 @@ function ollamaPermitido(cfg) {
 
 /**
  * Chama o provedor e devolve o texto bruto. A chave NUNCA entra em mensagem de erro.
+ * opcoes.prompt ({ sistema, usuario }) troca o prompt das ofertas (assistente do grupo, D1).
  * opcoes.fetch existe so para teste.
  */
 async function chamarProvedor(provedor, chave, oferta, opcoes = {}) {
   const p = PROVEDORES[provedor]
   if (!p) throw erro('Provedor desconhecido.')
   const doFetch = opcoes.fetch || fetch
-  const { sistema, usuario } = promptDe(oferta)
+  const { sistema, usuario } = opcoes.prompt || promptDe(oferta)
   const ctrl = new AbortController()
   const timer = setTimeout(() => ctrl.abort(), p.local ? OLLAMA_TIMEOUT_MS : IA_TIMEOUT_MS)
   try {

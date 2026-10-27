@@ -16,6 +16,9 @@ import Comissoes from './pages/Comissoes';
 import Agendadas from './pages/Agendadas';
 import Cupons from './pages/Cupons';
 import Membros from './pages/Membros';
+import Captacao from './pages/Captacao';
+import Telegram from './pages/Telegram';
+import Cerebro from './pages/Cerebro';
 import Images from './pages/Images';
 import Contacts from './pages/Contacts';
 import Logs from './pages/Logs';
@@ -39,6 +42,9 @@ const pages = {
   agendadas: Agendadas,
   cupons: Cupons,
   membros: Membros,
+  captacao: Captacao,
+  telegram: Telegram,
+  assistente: Cerebro,
   imagens: Images,
   contatos: Contacts,
   logs: Logs,

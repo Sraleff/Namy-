@@ -82,6 +82,7 @@ async function converterTexto(textoOriginal, ctx) {
         continue
       }
       const troca = { de: a.url, para, marketplace: info.marketplace, aviso: v.aviso || '' }
+      if (Number(v.preco) > 0) troca.preco = Number(v.preco)
       trocas.push(troca)
       cache.set(a.url, troca)
     } catch (e) {

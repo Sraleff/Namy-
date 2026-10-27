@@ -4,12 +4,12 @@
  * numeros (hifen e underscore dao "invalid sub id") e 100 caracteres e recusado.
  *
  *   subIds = [origem, nicho, g<hash do grupo>]   (grupo so no modo "atribuir por grupo")
- *   origem: api | banco | vitrine | agendada | conversor ; nicho: ver nichos.js
+ *   origem: api | banco | vitrine | agendada | conversor | pagina (vitrine pública) | telegram ; nicho: ver nichos.js
  * O jid do grupo nunca vai no link: vai um hash curto que so o painel sabe desfazer.
  */
 const crypto = require('crypto')
 
-const ORIGENS = ['api', 'banco', 'vitrine', 'agendada', 'conversor']
+const ORIGENS = ['api', 'banco', 'vitrine', 'agendada', 'conversor', 'pagina', 'telegram']
 const PADRAO = ['namy']
 
 const limpo = (s, max) => String(s == null ? '' : s).toLowerCase().replace(/[^a-z0-9]/g, '').slice(0, max)

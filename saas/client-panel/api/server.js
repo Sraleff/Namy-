@@ -411,7 +411,7 @@ divulgacao.startFila({
 require('./dashboard')(app, { auth, readJson, CONFIGS, DATA })
 // Planos (C3): recursos do Pro barrados no servidor, antes das rotas
 const limites = require('./afiliados/limites')
-for (const [prefixo, recurso] of [['/agendadas', 'agendadas'], ['/cupons', 'cupons'], ['/comissoes', 'comissoes'], ['/membros', 'membros']]) {
+for (const [prefixo, recurso] of [['/agendadas', 'agendadas'], ['/cupons', 'cupons'], ['/comissoes', 'comissoes'], ['/membros', 'membros'], ['/captacao', 'captacao'], ['/telegram', 'telegram']]) {
   app.use(prefixo, auth, limites.exigir(recurso, { readJson, CONFIGS }))
 }
 app.get('/plano/uso', auth, (req, res) => {

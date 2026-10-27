@@ -25,6 +25,13 @@ const comissoesRoutes = require('./comissoesRoutes')
 const agendadasRoutes = require('./agendadasRoutes')
 const cuponsRoutes = require('./cuponsRoutes')
 const limites = require('./limites')
+const captacaoRoutes = require('./captacaoRoutes')
+const telegramRoutes = require('./telegramRoutes')
+const amazonRoutes = require('./amazonRoutes')
+const cerebroRoutes = require('./cerebroRoutes')
+const comandos = require('./comandos')
+const moderacao = require('./moderacao')
+const assistente = require('./assistente')
 const membrosRoutes = require('./membrosRoutes')
 const diagnosticoRoutes = require('./diagnosticoRoutes')
 const perfisRoutes = require('./perfisRoutes')
@@ -110,23 +117,7 @@ function aplicarConfig(cur, body) {
   }
 }
 
-function desembrulhar(message) {
-  let msg = message || {}
-  for (let i = 0; i < 3; i++) {
-    const dentro = (msg.ephemeralMessage && msg.ephemeralMessage.message) ||
-      (msg.viewOnceMessage && msg.viewOnceMessage.message) ||
-      (msg.viewOnceMessageV2 && msg.viewOnceMessageV2.message) ||
-      (msg.documentWithCaptionMessage && msg.documentWithCaptionMessage.message)
-    if (!dentro) break
-    msg = dentro
-  }
-  return msg
-}
-
-function textoDe(msg) {
-  return msg.conversation || (msg.extendedTextMessage && msg.extendedTextMessage.text) ||
-    (msg.imageMessage && msg.imageMessage.caption) || (msg.videoMessage && msg.videoMessage.caption) || ''
-}
+const { desembrulhar, textoDe } = require('./whatsMsg')
 
 function mount(app, deps) {
   const { auth, readJson, writeJson, CONFIGS, DATA, logs, sessions, segredo } = deps
@@ -437,7 +428,7 @@ function mount(app, deps) {
     }
     try {
       const out = await pool.adicionar(DATA, userId, cfg, { texto, imagemBuffer, imagemExt: 'jpg', origem: 'grupo', origemGrupo: fonte.name })
-      if (out && out.duplicado) avisarCaptura(userId, fonte, 'repetida', 'Oferta repetida: já estáva no banco.')
+      if (out && out.duplicado) avisarCaptura(userId, fonte, 'repetida', 'Oferta repetida: já estava no banco.')
       else avisarCaptura(userId, fonte, 'ok', 'Oferta capturada: ' + ((out && out.item && out.item.nome) || 'sem título'), { ok: true })
     } catch (e) {
       if (e.status !== 400) console.error('[CAPTURA]', e.message)
@@ -460,10 +451,25 @@ function mount(app, deps) {
     return false
   }
 
+  // D1: comandos do dono (chat com ele mesmo), moderação e assistente nos grupos de destino
+  const cerebroDeps = {
+    readJson, CONFIGS, DATA, logs, sessions,
+    salvarCfg,
+    // require tardio: o scheduler carrega o publicador, que nao pode depender destas rotas
+    executarAgora: (userId, opcoes) => require('../scheduler').executarAgora({ readJson, writeJson, CONFIGS, DATA, logs }, userId, opcoes)
+  }
+
   if (sessions && typeof sessions.onMensagem === 'function') {
     sessions.onMensagem(async (userId, m, sock, type) => {
       const jid = String((m.key && m.key.remoteJid) || '')
-      if (!jid.endsWith('@g.us')) return
+      if (!jid.endsWith('@g.us')) {
+        if (!m.message || !m.key.fromMe) return
+        const texto = String(textoDe(desembrulhar(m.message)) || '')
+        if (!comandos.ehComando(sock, m, texto) || jaVista(userId, m)) return
+        const resposta = await comandos.responder(cerebroDeps, userId, m, texto)
+        if (resposta) await responder(sock, jid, resposta)
+        return
+      }
       const ts = Number(m.messageTimestamp) * 1000
       const recente = !ts || Date.now() - ts < RECENTE_MS
       if (type !== 'notify' && !m.key.fromMe && !recente) return
@@ -485,7 +491,11 @@ function mount(app, deps) {
         else if (fonte) avisarCaptura(userId, fonte, 'fromme', 'Mensagem ignorada: foi enviada pelo seu próprio número (o bot só copia ofertas de outras pessoas).')
         return
       }
-      if (fonte) await capturar(userId, m, cfg, msg, texto)
+      if (fonte) return capturar(userId, m, cfg, msg, texto)
+      // Grupo de destino, mensagem nova de outra pessoa: moderação e, se não apagou, assistente
+      if (!cfg || type !== 'notify') return
+      const mod = await moderacao.avaliar(cerebroDeps, userId, cfg, m, sock, texto)
+      if (mod.acao !== 'apagada') await assistente.talvezResponder(cerebroDeps, userId, cfg, m, sock, texto)
     })
   }
 
@@ -505,6 +515,10 @@ function mount(app, deps) {
   membrosRoutes.mount(app, { auth, readJson, writeJson, CONFIGS, DATA, sessions })
   diagnosticoRoutes.mount(app, { auth, readJson, CONFIGS, DATA, sessions })
   perfisRoutes.mount(app, { auth, readJson, CONFIGS })
+  captacaoRoutes.mount(app, { auth, readJson, CONFIGS, DATA, sessions, logs })
+  telegramRoutes.mount(app, { auth, readJson, CONFIGS, DATA, logs })
+  amazonRoutes.mount(app, { auth, readJson, CONFIGS, DATA, logs })
+  cerebroRoutes.mount(app, { auth, readJson, CONFIGS, DATA, sessions })
   onboarding.mount(app, { auth, readJson, CONFIGS, DATA, sessions })
 
   return { aplicarConfig }

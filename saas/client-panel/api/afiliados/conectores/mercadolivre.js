@@ -157,7 +157,9 @@ async function validar(url, ctx) {
     if (alvo.tipo === 'item' && dados.status && dados.status !== 'active') {
       return { ok: false, motivo: 'anúncio não está ativo (' + dados.status + ')' }
     }
-    return { ok: true, motivo: '' }
+    // Preco de agora (anuncio: price; catalogo: vencedor da buy box) para a trava de preco
+    const preco = Number(alvo.tipo === 'item' ? dados.price : dados.buy_box_winner && dados.buy_box_winner.price)
+    return Number.isFinite(preco) && preco > 0 ? { ok: true, motivo: '', preco } : { ok: true, motivo: '' }
   } catch (e) {
     if (e.code === 'ML_404') return { ok: false, motivo: 'produto não existe mais no Mercado Livre' }
     // 429, rede, 403 ou token: o formato ja passou; nao trava o envio, so avisa

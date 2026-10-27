@@ -1,9 +1,10 @@
 /**
- * Conversor de link (Fase 1.1): o cliente cola link(s) da Shopee e recebe o link
- * curto de afiliado DELE (generateShortLink da API oficial, com as chaves da conta).
+ * Conversor de link (Fase 1.1; D2 abriu para Mercado Livre e Amazon): o cliente cola link(s)
+ * e recebe o link de afiliado DELE. Shopee: link curto do generateShortLink com as chaves da
+ * conta. Mercado Livre: etiqueta + matt_tool (e, com OAuth, confere se o anuncio esta ativo).
+ * Amazon: /dp/<ASIN>?tag=<tag do cliente>.
  *
  * - userId sai so do JWT (req.user.id); o body so traz o texto.
- * - Nesta fase so Shopee. Mercado Livre e Amazon sao trocados em Ofertas > Colar oferta.
  * - Reaproveita conversor.converterTexto: mesmas protecoes (https, host publico,
  *   tira o rastreio de quem postou o link).
  * - Nao envia nada para ninguem. Cada link vira 1 chamada a API do cliente, entao
@@ -11,7 +12,6 @@
  */
 const links = require('./links')
 const conversor = require('./conversor')
-const shopee = require('./conectores/shopee')
 
 const MAX_TEXTO = 2000
 const MAX_LINKS = 5
@@ -39,8 +39,8 @@ function criarLimitador(max, janelaMs) {
   }
 }
 
-const FORA_ML_AMAZON = 'Mercado Livre e Amazon são convertidos em Ofertas > Colar oferta.'
-const FORA_OUTRO = 'Não é link da Shopee. Esta tela converte só links da Shopee.'
+const ACEITOS = { shopee: 'Shopee', mercadolivre: 'Mercado Livre', amazon: 'Amazon' }
+const FORA_OUTRO = 'Não é link da Shopee, do Mercado Livre nem da Amazon.'
 
 function semEsquema(url) {
   return String(url || '').replace(/^https?:\/\//i, '')
@@ -65,43 +65,50 @@ function mount(app, deps, opcoes = {}) {
       if (!licencaAtiva(cfg)) return res.status(403).json({ error: 'Licença expirada ou inativa.' })
 
       const bruto = (req.body || {}).texto
-      if (typeof bruto !== 'string' || !bruto.trim()) return res.status(400).json({ error: 'Cole o link da Shopee.' })
+      if (typeof bruto !== 'string' || !bruto.trim()) return res.status(400).json({ error: 'Cole o link do produto (Shopee, Mercado Livre ou Amazon).' })
       if (bruto.length > MAX_TEXTO) return res.status(400).json({ error: 'Texto grande demais (máximo ' + MAX_TEXTO + ' caracteres).' })
-
-      const pronto = shopee.configurado({ cfg })
-      if (!pronto.ok) return res.status(400).json({ error: pronto.motivo, codigo: 'SEM_CHAVE' })
 
       const achados = links.extrairUrls(bruto)
       if (!achados.length) return res.status(400).json({ error: 'Não achei nenhum link no texto.' })
       const unicos = [...new Set(achados.map((a) => a.url))]
       if (unicos.length > MAX_LINKS) return res.status(400).json({ error: 'No máximo ' + MAX_LINKS + ' links por vez.' })
 
-      const daShopee = []
+      const aceitos = []
       const fora = []
       for (const url of unicos) {
         const mk = links.marketplaceDe(url)
-        if (mk === 'shopee') daShopee.push(url)
-        else fora.push({ url, motivo: mk ? FORA_ML_AMAZON : FORA_OUTRO })
+        if (ACEITOS[mk]) aceitos.push({ url, mk })
+        else fora.push({ url, motivo: FORA_OUTRO })
       }
-      if (!daShopee.length) return res.status(400).json({ error: fora[0].motivo, fora })
+      if (!aceitos.length) return res.status(400).json({ error: fora[0].motivo, fora })
 
-      if (!permitir(userId, daShopee.length)) {
+      const ctx = { userId, cfg, dataDir: DATA }
+      const prontos = conversor.prontos(ctx)
+      // So Shopee e sem App ID/Secret: erro claro, sem gastar nada (como antes)
+      if (aceitos.every((a) => a.mk === 'shopee') && !prontos.shopee.ok) {
+        return res.status(400).json({ error: prontos.shopee.motivo, codigo: 'SEM_CHAVE' })
+      }
+
+      if (!permitir(userId, aceitos.length)) {
         return res.status(429).json({ error: 'Muitas conversões seguidas. Espere um minuto e tente de novo.' })
       }
 
-      const ctx = { userId, cfg, dataDir: DATA }
       const resultados = []
       const erros = []
-      for (const url of daShopee) {
+      for (const { url, mk } of aceitos) {
+        if (!prontos[mk].ok) {
+          erros.push({ url, marketplace: mk, motivo: ACEITOS[mk] + ': ' + prontos[mk].motivo, codigo: 'SEM_CONFIG' })
+          continue
+        }
         const conv = await conversor.converterTexto(url, ctx)
         if (conv.trocas.length) {
           const t = conv.trocas[0]
-          resultados.push({ de: url, para: t.para, aviso: t.aviso || '' })
-          log(userId, true, 'Link Shopee convertido: ' + semEsquema(t.para))
+          resultados.push({ de: url, para: t.para, marketplace: mk, aviso: t.aviso || '' })
+          log(userId, true, 'Link ' + ACEITOS[mk] + ' convertido: ' + semEsquema(t.para))
         } else {
           const e = conv.erros[0] || { motivo: 'Não consegui converter este link.' }
-          erros.push({ url, motivo: e.motivo, temporario: !!e.temporario })
-          log(userId, false, 'Falha ao converter link Shopee: ' + String(e.motivo).slice(0, 200))
+          erros.push({ url, marketplace: mk, motivo: e.motivo, temporario: !!e.temporario })
+          log(userId, false, 'Falha ao converter link ' + ACEITOS[mk] + ': ' + String(e.motivo).slice(0, 200))
         }
       }
       res.json({ ok: resultados.length > 0, resultados, erros, fora })

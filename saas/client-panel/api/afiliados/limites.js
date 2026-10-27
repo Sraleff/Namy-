@@ -5,7 +5,7 @@
  *   trial  3 dias, tudo do Pro, com limite de envios por dia (so os testadores tem)
  * Licencas antigas (mensal/trimestral) contam como Pro. O servidor decide; o painel so mostra.
  */
-const RECURSOS_PRO = ['agendadas', 'cupons', 'comissoes', 'membros']
+const RECURSOS_PRO = ['agendadas', 'cupons', 'comissoes', 'membros', 'captacao', 'telegram', 'moderacao', 'assistente']
 
 const TIERS = {
   start: { rotulo: 'Start', destinos: 2, fontes: 3, recursos: [] },
@@ -41,7 +41,7 @@ function checarQuantidade(cfg, tipo, quantidade) {
   }
 }
 
-const NOMES = { agendadas: 'Mensagens agendadas', cupons: 'Cupons', comissoes: 'Comissões', membros: 'Monitor de membros' }
+const NOMES = { agendadas: 'Mensagens agendadas', cupons: 'Cupons', comissoes: 'Comissões', membros: 'Monitor de membros', captacao: 'Captação (link de grupos e vitrine pública)', telegram: 'Telegram', moderacao: 'Moderação dos grupos', assistente: 'Assistente com IA' }
 
 // Middleware (depois de `auth`): barra o recurso se o plano não tem
 function exigir(recurso, { readJson, CONFIGS }) {

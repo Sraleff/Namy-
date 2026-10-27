@@ -9,6 +9,7 @@ import { useAction } from '../hooks/useAction';
 import * as ep from '../services/endpoints';
 
 const MAX_TEXTO = 2000;
+const LOJAS = { shopee: 'Shopee', mercadolivre: 'Mercado Livre', amazon: 'Amazon' };
 
 async function copiar(texto) {
   try {
@@ -42,7 +43,7 @@ function LinhaResultado({ r }) {
   };
   return (
     <li className="rounded-xl border border-line bg-ink-850 p-3">
-      <p className="truncate text-[11px] text-subtle" title={r.de}>{r.de}</p>
+      <p className="truncate text-[11px] text-subtle" title={r.de}>{r.marketplace && <Badge variant="neutral" className="mr-1.5">{LOJAS[r.marketplace] || r.marketplace}</Badge>}{r.de}</p>
       <div className="mt-1.5 flex items-center gap-2">
         <a href={r.para} target="_blank" rel="noopener noreferrer" className="min-w-0 flex-1 truncate text-sm font-medium text-brand-300 hover:underline">
           {r.para}
@@ -62,8 +63,8 @@ export default function Converter() {
   const [saida, setSaida] = useState(null);
   const { busy, msg, setMsg, run } = useAction();
 
-  const shopee = resumo.data?.marketplaces?.shopee;
-  const semChave = !!shopee && !shopee.ok;
+  // Loja sem configuração não bloqueia as outras: só avisa
+  const pendentes = Object.entries(resumo.data?.marketplaces || {}).filter(([id, m]) => LOJAS[id] && m && !m.ok);
   const vazio = !texto.trim();
 
   const converter = () => {
@@ -71,7 +72,7 @@ export default function Converter() {
     return run('conv', () => ep.convertLink(texto)).then((o) => {
       if (!o) return;
       setSaida(o);
-      if (o.ok) setMsg({ tone: 'ok', text: `${o.resultados.length} link(s) convertido(s) com a sua conta Shopee.` });
+      if (o.ok) setMsg({ tone: 'ok', text: `${o.resultados.length} link(s) convertido(s) com a sua conta.` });
       else setMsg({ tone: 'error', text: 'Nenhum link foi convertido. Veja os motivos abaixo.' });
     });
   };
@@ -85,38 +86,38 @@ export default function Converter() {
     <>
       <PageHeader
         title="Conversor de link"
-        subtitle="Cole um link da Shopee e receba o seu link curto de afiliado, gerado pela API oficial com as suas chaves."
+        subtitle="Cole um link da Shopee, do Mercado Livre ou da Amazon e receba o seu link de afiliado: Shopee pela API oficial com as suas chaves, Mercado Livre com a sua etiqueta, Amazon com a sua tag."
       />
 
-      {resumo.error && <Notice className="mb-4" msg={{ tone: 'error', text: `Não consegui verificar a sua conta Shopee: ${resumo.error.message}` }} />}
-      {semChave && (
+      {resumo.error && <Notice className="mb-4" msg={{ tone: 'error', text: `Não consegui verificar as suas lojas: ${resumo.error.message}` }} />}
+      {pendentes.length > 0 && (
         <Notice
           className="mb-4"
-          msg={{ tone: 'warn', text: `${shopee.motivo}. ` }}
+          msg={{ tone: 'warn', text: pendentes.map(([id, m]) => `${LOJAS[id]}: ${m.motivo}`).join(' · ') }}
         />
       )}
-      {semChave && <p className="-mt-2 mb-4 text-xs text-muted"><a href="#configuracoes" className="link-subtle">Abrir Configurações → Marketplaces</a></p>}
+      {pendentes.length > 0 && <p className="-mt-2 mb-4 text-xs text-muted"><a href="#configuracoes" className="link-subtle">Abrir Configurações → Marketplaces</a></p>}
 
       <div className="grid gap-4 xl:grid-cols-[minmax(0,1fr)_minmax(0,1fr)]">
         <Card aria-labelledby="conv-title">
           <CardHeader id="conv-title" title="Colar link" subtitle="Até 5 links por vez. O restante do texto é ignorado." />
           <div className="space-y-3">
-            <Field label="Link da Shopee" htmlFor="conv-txt" hint={`${texto.length}/${MAX_TEXTO} caracteres`}>
+            <Field label="Link do produto" htmlFor="conv-txt" hint={`${texto.length}/${MAX_TEXTO} caracteres`}>
               <Textarea
                 id="conv-txt"
                 rows={5}
                 maxLength={MAX_TEXTO}
                 value={texto}
                 onChange={(e) => { setTexto(e.target.value); setSaida(null); setMsg(null); }}
-                placeholder="https://shopee.com.br/produto-i.123.456"
+                placeholder="https://shopee.com.br/produto-i.123.456 ou link do Mercado Livre / Amazon"
               />
             </Field>
-            <Button icon={Wand2} busy={busy === 'conv'} disabled={vazio || semChave || resumo.loading} onClick={converter}>
+            <Button icon={Wand2} busy={busy === 'conv'} disabled={vazio || resumo.loading} onClick={converter}>
               Converter
             </Button>
             <Notice msg={msg} />
             <p className="text-[11px] text-subtle">
-              Nada é enviado para ninguém. Cada conversão usa a API da sua conta, por isso há um limite de 12 por minuto.
+              Nada é enviado para ninguém. Cada link da Shopee usa a API da sua conta, por isso há um limite de 12 conversões por minuto.
             </p>
           </div>
         </Card>

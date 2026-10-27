@@ -14,6 +14,7 @@ const links = require('./links')
 const nichos = require('./nichos')
 const conversor = require('./conversor')
 const auditoria = require('./auditoria')
+const captacao = require('./captacao')
 const copy = require('./copy')
 const cupons = require('./cupons')
 
@@ -228,6 +229,11 @@ async function enviar(ctx, entrada = {}, deps = {}) {
     if (pausaMs > 0 && i < jids.length - 1) await new Promise((r) => setTimeout(r, pausaMs))
   }
   if (enviados) ofertasApi.lembrar(dataDir, userId, o.productId)
+  // Vitrine pública (D5): a oferta enviada aparece na página do cliente, com link próprio da página
+  if (enviados) {
+    await captacao.registrarOferta(ctx, { produtoKey: 'shopee:' + o.productId, nome: o.nome, preco: o.preco, imageUrl: o.imageUrl, texto: c.texto }, nichosDest.length === 1 ? nichosDest[0] : 'misto')
+      .catch((e) => console.error('[CAPTACAO] vitrine', e.message))
+  }
   return { ok: enviados > 0, enviados, results }
 }
 

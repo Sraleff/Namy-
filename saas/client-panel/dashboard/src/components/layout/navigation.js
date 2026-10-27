@@ -1,5 +1,5 @@
 import {
-  Home, Users, Megaphone, Sparkles, Workflow, Contact, ScrollText, Settings, Tag, Image, Link2, ListOrdered, Store, Wallet, CalendarClock, Ticket, UsersRound,
+  Home, Users, Megaphone, Sparkles, Workflow, Contact, ScrollText, Settings, Tag, Image, Link2, ListOrdered, Store, Wallet, CalendarClock, Ticket, UsersRound, Share2, Send, Bot,
 } from 'lucide-react';
 
 export const navItems = [
@@ -7,6 +7,7 @@ export const navItems = [
   { id: 'grupos', label: 'Grupos', icon: Users },
   { id: 'campanhas', label: 'Campanhas', icon: Megaphone },
   { id: 'ia', label: 'Inteligência Artificial', icon: Sparkles },
+  { id: 'assistente', label: 'Assistente', icon: Bot },
   { id: 'automacoes', label: 'Automações', icon: Workflow },
   { id: 'ofertas', label: 'Ofertas', icon: Tag },
   { id: 'vitrine', label: 'Vitrine', icon: Store },
@@ -15,6 +16,8 @@ export const navItems = [
   { id: 'agendadas', label: 'Agendadas', icon: CalendarClock },
   { id: 'cupons', label: 'Cupons', icon: Ticket },
   { id: 'membros', label: 'Membros', icon: UsersRound },
+  { id: 'captacao', label: 'Captação', icon: Share2 },
+  { id: 'telegram', label: 'Telegram', icon: Send },
   { id: 'comissoes', label: 'Comissões', icon: Wallet },
   { id: 'imagens', label: 'Imagens', icon: Image },
   { id: 'contatos', label: 'Contatos', icon: Contact },

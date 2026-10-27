@@ -73,17 +73,30 @@ test('licenca expirada: 403', async () => {
   assert.equal(r.code, 403)
 })
 
-test('so Shopee: Mercado Livre e Amazon ficam em "fora" e a Shopee converte', async () => {
-  const a = ambiente()
-  const so = await a.chamar('u1', { texto: 'https://www.amazon.com.br/dp/B0ABCDEFGH https://produto.mercadolivre.com.br/MLB-1234567-x' })
+test('Shopee, Mercado Livre e Amazon: cada um com a config da conta; outro site fica em "fora"', async () => {
+  const a = ambiente({ cfg: { amazon: { tag: 'minhaloja-20' } } })
+  const r = await a.chamar('u1', { texto: PROD1 + ' https://www.amazon.com.br/dp/B0ABCDEFGH https://produto.mercadolivre.com.br/MLB-1234567-x https://www.magazineluiza.com.br/p/1' })
+  assert.equal(r.code, 200)
+  assert.deepEqual(r.body.resultados.map((x) => x.marketplace).sort(), ['amazon', 'shopee'])
+  assert.match(r.body.resultados.find((x) => x.marketplace === 'amazon').para, /^https:\/\/www\.amazon\.com\.br\/dp\/B0ABCDEFGH\?tag=minhaloja-20$/)
+  assert.equal(r.body.erros.length, 1, 'Mercado Livre sem etiqueta vira erro claro, sem quebrar os outros')
+  assert.equal(r.body.erros[0].codigo, 'SEM_CONFIG')
+  assert.match(r.body.erros[0].motivo, /^Mercado Livre: .*etiqueta/)
+  assert.equal(r.body.fora.length, 1)
+  assert.match(r.body.fora[0].motivo, /Shopee, do Mercado Livre nem da Amazon/)
+  const so = await a.chamar('u1', { texto: 'https://www.magazineluiza.com.br/p/1' })
   assert.equal(so.code, 400)
-  assert.equal(so.body.fora.length, 2)
-  const misto = await a.chamar('u1', { texto: PROD1 + ' https://www.amazon.com.br/dp/B0ABCDEFGH' })
-  assert.equal(misto.code, 200)
-  assert.equal(misto.body.ok, true)
-  assert.equal(misto.body.resultados.length, 1)
-  assert.equal(misto.body.fora.length, 1)
-  assert.match(misto.body.fora[0].motivo, /Ofertas/)
+})
+
+test('Mercado Livre com etiqueta: link com matt_word e matt_tool; sem chave da Shopee nao bloqueia o ML', async () => {
+  const a = ambiente({ cfg: { shopee: { appId: '', secret: '' }, mercadolivre: { etiqueta: 'minhaetiqueta', toolId: '12345678' } } })
+  const r = await a.chamar('u1', { texto: 'https://produto.mercadolivre.com.br/MLB-1234567-fone-_JM?matt_word=outro&utm_source=x' })
+  assert.equal(r.code, 200)
+  const u = new URL(r.body.resultados[0].para)
+  assert.equal(u.searchParams.get('matt_word'), 'minhaetiqueta', 'tira a etiqueta de quem postou')
+  assert.equal(u.searchParams.get('matt_tool'), '12345678')
+  assert.equal(u.searchParams.get('utm_source'), null)
+  assert.match(r.body.resultados[0].aviso, /sem OAuth/)
 })
 
 test('sucesso: devolve o link curto, usa as chaves da conta do JWT e loga sem segredo', async () => {

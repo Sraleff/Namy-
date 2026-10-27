@@ -130,7 +130,7 @@ async function resumo(ctx, opts = {}) {
     periodo: { de: opts.de || diaBR(inicio), ate: opts.ate || diaBR(fim) },
     truncado: baixado.truncado,
     porGrupoAtivo: !!(ctx.cfg.comissoes && ctx.cfg.comissoes.porGrupo)
-  }, agregar(baixado.todos, ctx.cfg.groups))
+  }, agregar(baixado.todos, (ctx.cfg.groups || []).concat(require('./telegram').comoGrupos(ctx.dataDir, ctx.userId))))
   if (cache.size > 500) cache.delete(cache.keys().next().value)
   cache.set(ck, { ate: Date.now() + CACHE_MS, resumo: r })
   await jsonStore.update(ctx.dataDir, PASTA, ctx.userId, () => ({}), (db) => { db.ultimo = r })

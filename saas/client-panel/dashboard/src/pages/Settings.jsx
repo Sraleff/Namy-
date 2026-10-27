@@ -9,6 +9,7 @@ import { useAction } from '../hooks/useAction';
 import * as ep from '../services/endpoints';
 import { formatDate } from '../lib/format';
 import AjudaWhatsApp from '../components/dashboard/AjudaWhatsApp';
+import AmazonCreators from '../components/dashboard/AmazonCreators';
 
 const STATUS = {
   connected: ['success', 'Conectado'],
@@ -269,7 +270,7 @@ function PlanCard({ cfg, onSynced }) {
         <p className="mt-3 text-xs text-subtle">Teste grátis com tudo liberado, até {uso.enviosPorDia} envios por dia. Assinando, o limite diário é o que você configurar.</p>
       )}
       {uso?.tier === 'start' && (
-        <p className="mt-3 text-xs text-subtle">O plano Start não inclui mensagens agendadas, cupons, comissões e monitor de membros. Eles fazem parte do Pro.</p>
+        <p className="mt-3 text-xs text-subtle">O plano Start não inclui mensagens agendadas, cupons, comissões, monitor de membros, captação (link de grupos e vitrine pública), Telegram, moderação e assistente com IA. Eles fazem parte do Pro.</p>
       )}
       {fundador && (
         <div className="mt-4 rounded-xl border border-line p-3">
@@ -311,6 +312,7 @@ export default function Settings({ onDataChanged, param }) {
         <div className="space-y-4">
           <WhatsAppCard initialPhone={cfg.phone} onChanged={onDataChanged} />
           <MarketplacesCard cfg={cfg} onSaved={setData} retorno={param} />
+          <AmazonCreators />
         </div>
         <div className="space-y-4">
           <BotCard cfg={cfg} onSaved={setData} />

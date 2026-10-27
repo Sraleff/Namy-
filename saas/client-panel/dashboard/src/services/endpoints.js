@@ -85,6 +85,36 @@ export const getMembers = (dias = 30) => api(`/membros?dias=${dias}`);
 export const refreshMembers = () => post('/membros/atualizar');
 export const saveMembersConfig = (body) => post('/membros/config', body);
 
+// Captação: link de grupos (rotação de convites) e vitrine pública
+export const getCaptacao = () => api('/captacao');
+export const saveCaptacaoGrupos = (body) => post('/captacao/grupos', body);
+export const saveCaptacaoVitrine = (body) => post('/captacao/vitrine', body);
+export const testCaptacao = () => post('/captacao/testar');
+export const newCaptacaoAddress = () => post('/captacao/endereco', { confirmo: true });
+export const removeCaptacaoItem = (id) => post('/captacao/vitrine/remover', { id });
+
+// Telegram: bot do cliente, canais/grupos e espelho das ofertas
+export const telegramStatus = () => api('/telegram');
+export const telegramConnect = (token) => post('/telegram/conectar', { token });
+export const telegramDisconnect = () => post('/telegram/desconectar');
+export const telegramAddDestination = (body) => post('/telegram/destinos', body);
+export const telegramRemoveDestination = (id) => post('/telegram/destinos/remover', { id });
+export const telegramDestinationNiche = (id, nicho) => post('/telegram/destinos/nicho', { id, nicho });
+export const telegramToggle = (ativo) => post('/telegram/ativo', { ativo });
+export const telegramTest = (id) => post('/telegram/testar', { id });
+
+// Amazon Creators API (opcional: estoque e preço antes do envio)
+export const amazonCreatorsStatus = () => api('/amazon/creators');
+export const amazonCreatorsSave = (body) => post('/amazon/creators', body);
+export const amazonCreatorsRemove = () => post('/amazon/creators/remover');
+export const amazonCreatorsTest = (url) => post('/amazon/creators/testar', { url });
+
+// Assistente (cérebro da Namy): comandos pelo celular, moderação e IA nos grupos
+export const getBrain = () => api('/cerebro');
+export const brainCommands = (ativo) => post('/cerebro/comandos', { ativo });
+export const brainModeration = (body) => post('/cerebro/moderacao', body);
+export const brainAssistant = (body) => post('/cerebro/ia', body);
+
 // Cupons cadastrados pelo cliente
 export const listCoupons = () => api('/cupons');
 export const createCoupon = (body) => post('/cupons/criar', body);
