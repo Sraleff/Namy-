@@ -1,4 +1,4 @@
-import { CheckCircle2, Circle } from 'lucide-react';
+import { CheckCircle2, Circle, Wand2 } from 'lucide-react';
 import { Card, CardHeader } from '../ui/Card';
 import { useAsync } from '../../hooks/useAsync';
 import * as ep from '../../services/endpoints';
@@ -27,6 +27,11 @@ export default function Onboarding() {
           </li>
         ))}
       </ol>
+      {d.etapas.find((e) => e.id === 'whatsapp')?.feito && (
+        <a href="#configurar" className="mt-4 flex h-12 items-center justify-center gap-2 rounded-2xl bg-brand-gradient text-[15px] font-semibold text-white shadow-glow transition hover:brightness-110 active:scale-[0.98]">
+          <Wand2 className="h-4 w-4" aria-hidden="true" /> Configurar em 4 passos
+        </a>
+      )}
     </Card>
   );
 }

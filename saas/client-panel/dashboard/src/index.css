@@ -70,6 +70,7 @@
   .scrollbar-none { scrollbar-width: none; }
   .scrollbar-none::-webkit-scrollbar { display: none; }
   .pt-safe { padding-top: env(safe-area-inset-top, 0px); }
+  .pb-safe { padding-bottom: env(safe-area-inset-bottom, 0px); }
   .bottom-safe { bottom: calc(env(safe-area-inset-bottom, 0px) + 10px); }
   /* Espaço para o conteúdo nunca ficar atrás da barra inferior */
   .pb-nav { padding-bottom: calc(env(safe-area-inset-bottom, 0px) + 100px); }

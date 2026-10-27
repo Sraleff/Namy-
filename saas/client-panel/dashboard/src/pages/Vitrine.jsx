@@ -6,6 +6,7 @@ import Badge from '../components/ui/Badge';
 import EmptyState from '../components/ui/EmptyState';
 import Skeleton from '../components/ui/Skeleton';
 import Sheet from '../components/ui/Sheet';
+import OfertasTabs from '../components/layout/OfertasTabs';
 import { Button, Notice } from '../components/ui/Form';
 import { useAsync } from '../hooks/useAsync';
 import { useAction } from '../hooks/useAction';
@@ -221,6 +222,7 @@ export default function Vitrine() {
 
   return (
     <>
+      <OfertasTabs active="vitrine" />
       <PageHeader title="Vitrine" subtitle="Produtos da Shopee, buscados com as suas chaves, para pôr na fila ou enviar na hora aos grupos que você escolher." />
 
       {resumo.error && <Notice className="mb-4" msg={{ tone: 'error', text: `Não consegui verificar a sua conta Shopee: ${resumo.error.message}` }} />}

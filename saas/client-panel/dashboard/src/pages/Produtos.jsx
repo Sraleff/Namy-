@@ -4,6 +4,7 @@ import { Card } from '../components/ui/Card';
 import PageHeader from '../components/ui/PageHeader';
 import Badge from '../components/ui/Badge';
 import EmptyState from '../components/ui/EmptyState';
+import OfertasTabs from '../components/layout/OfertasTabs';
 import { Button, Field, Input, Notice, Select, Textarea } from '../components/ui/Form';
 import { useAsync } from '../hooks/useAsync';
 import { useAction } from '../hooks/useAction';
@@ -183,6 +184,7 @@ export default function Produtos() {
 
   return (
     <>
+      <OfertasTabs active="fila" />
       <PageHeader
         title="Fila de produtos"
         subtitle="As ofertas que o bot envia aos seus grupos, na ordem de saída: prioridade primeiro, depois as mais novas."

@@ -38,7 +38,13 @@ export default function StatusHero({ resumo, connection, onChanged }) {
     setMsg(null);
     try { await fn(); onChanged?.(); } catch (e) { setMsg({ tone: 'error', text: e.message }); } finally { setBusy(''); }
   };
-  const enviar = () => agir('enviar', async () => {
+  const enviar = () => {
+    // Mesma confirmação de Automações: publica de verdade nos grupos
+    const n = resumo?.grupos?.divulgacao ?? 0;
+    if (!window.confirm(`Enviar agora? A Namy manda a próxima oferta para ${n} grupo(s) de divulgação, sem esperar o intervalo nem o horário. O limite do dia continua valendo.`)) return;
+    agirEnvio();
+  };
+  const agirEnvio = () => agir('enviar', async () => {
     const o = await ep.runNow();
     setMsg({ tone: o.ok ? 'ok' : 'warn', text: o.message || (o.ok ? 'Envio feito.' : 'Nada foi enviado agora.') });
   });

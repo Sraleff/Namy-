@@ -4,13 +4,13 @@ import IconTile from '../components/ui/IconTile';
 import Badge from '../components/ui/Badge';
 import Skeleton from '../components/ui/Skeleton';
 import { Notice } from '../components/ui/Form';
-import { navItems, menuGroups, menuLabels } from '../components/layout/navigation';
+import { navItems, extraRoutes, menuGroups, menuLabels } from '../components/layout/navigation';
 import { useAsync } from '../hooks/useAsync';
 import * as ep from '../services/endpoints';
 import * as pwa from '../lib/pwa';
 import { cx } from '../lib/format';
 
-const porId = Object.fromEntries(navItems.map((n) => [n.id, n]));
+const porId = Object.fromEntries([...navItems, ...extraRoutes].map((n) => [n.id, n]));
 const norm = (s) => s.normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase();
 
 function Barra({ rotulo, usado, max }) {

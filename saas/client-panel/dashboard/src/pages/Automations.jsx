@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { Play, Save, Send } from 'lucide-react';
+import { Play, Save, Send, Wand2 } from 'lucide-react';
 import { Card, CardHeader } from '../components/ui/Card';
 import PageHeader from '../components/ui/PageHeader';
 import { Button, Field, Input, Notice, Select, Switch, Textarea } from '../components/ui/Form';
@@ -77,7 +77,14 @@ export default function Automations({ onDataChanged }) {
       <PageHeader
         title="Automações"
         subtitle="Anúncios automáticos nos grupos escolhidos, respeitando nicho, dias e horário."
-        actions={<Button icon={Save} busy={busy === 'save'} onClick={save}>Salvar</Button>}
+        actions={(
+          <>
+            <a href="#configurar" className="inline-flex h-11 items-center justify-center gap-2 rounded-xl border border-line-strong bg-ink-800 px-4 text-sm font-semibold text-cream transition hover:bg-ink-750 active:scale-[0.97] sm:h-10">
+              <Wand2 className="h-4 w-4" aria-hidden="true" /> Configurar em 4 passos
+            </a>
+            <Button icon={Save} busy={busy === 'save'} onClick={save}>Salvar</Button>
+          </>
+        )}
       />
       <Notice className="mb-4" msg={msg} />
       <Diagnostico />

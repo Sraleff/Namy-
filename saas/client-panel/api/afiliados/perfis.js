@@ -11,7 +11,7 @@ const PERFIS = {
   },
   equilibrado: {
     id: 'equilibrado', rotulo: 'Equilibrado',
-    descricao: 'Mais ofertas por dia, ainda com intervalo aleatorio e pausa entre grupos.',
+    descricao: 'Mais ofertas por dia, ainda com intervalo aleatório e pausa entre grupos.',
     ads: { intervalMode: 'aleatorio', intervalMin: 45, intervalMax: 120, perRunMin: 1, perRunMax: 2, dailyLimit: 8, window: { from: '08:00', to: '22:00' }, groupPauseMin: 4, groupPauseMax: 8 }
   },
   intenso: {

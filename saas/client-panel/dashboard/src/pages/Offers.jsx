@@ -4,6 +4,7 @@ import { Card, CardHeader } from '../components/ui/Card';
 import PageHeader from '../components/ui/PageHeader';
 import Badge from '../components/ui/Badge';
 import EmptyState from '../components/ui/EmptyState';
+import OfertasTabs from '../components/layout/OfertasTabs';
 import { Button, Field, Input, Notice, Select, Textarea } from '../components/ui/Form';
 import { useAsync } from '../hooks/useAsync';
 import { useAction } from '../hooks/useAction';
@@ -225,7 +226,8 @@ export default function Offers() {
 
   return (
     <>
-      <PageHeader title="Ofertas" subtitle="Banco de ofertas, troca automática de links de afiliado e histórico de disparos." />
+      <OfertasTabs active="ofertas" />
+      <PageHeader title="Banco de ofertas" subtitle="O que você colou, salvou da Vitrine ou a Namy capturou, com a troca automática de links de afiliado e o histórico de disparos." />
       {faltando.length > 0 && (
         <Notice
           className="mb-4"

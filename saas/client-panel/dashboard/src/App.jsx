@@ -3,8 +3,9 @@ import Sidebar from './components/layout/Sidebar';
 import Topbar from './components/layout/Topbar';
 import Footer from './components/layout/Footer';
 import BottomNav from './components/layout/BottomNav';
-import { navItems, extraRoutes } from './components/layout/navigation';
+import { navItems, extraRoutes, focusRoutes } from './components/layout/navigation';
 import Perfil from './pages/Perfil';
+import Configurar from './pages/Configurar';
 import Dashboard from './pages/Dashboard';
 import Groups from './pages/Groups';
 import Campaigns from './pages/Campaigns';
@@ -52,6 +53,7 @@ const pages = {
   logs: Logs,
   configuracoes: Settings,
   perfil: Perfil,
+  configurar: Configurar,
 };
 const rotas = new Set([...navItems, ...extraRoutes].map((n) => n.id));
 
@@ -72,6 +74,7 @@ export default function App() {
 
   const route = rotas.has(page) ? page : 'inicio';
   const Page = pages[route];
+  const foco = focusRoutes.has(route);
 
   return (
     <div className="min-h-screen">
@@ -82,11 +85,14 @@ export default function App() {
       <Sidebar user={data?.user} active={route} onLogout={handleLogout} />
 
       <div className="pb-nav flex min-h-screen flex-col lg:pb-0 lg:pl-[272px]">
-        <Topbar user={data?.user} connection={data?.connection} notifications={data?.notifications} />
+        {/* "contents": o invólucro some do layout e a barra continua grudando no topo */}
+        <div className={foco ? 'hidden lg:contents' : 'contents'}>
+          <Topbar user={data?.user} connection={data?.connection} notifications={data?.notifications} />
+        </div>
 
         <main id="main" className="mx-auto w-full max-w-[1600px] flex-1 px-4 py-5 sm:px-6 sm:py-6 lg:px-8 lg:py-8">
           {Page ? (
-            <Page key={route} param={param} query={param} onDataChanged={refreshSummary} user={data?.user} connection={data?.connection} onLogout={handleLogout} />
+            <Page key={route} param={param} query={param} onDataChanged={refreshSummary} user={data?.user} connection={data?.connection} resumo={data?.resumo} onLogout={handleLogout} />
           ) : (
             <Dashboard data={data} loading={loading} error={error} onRetry={reload} onChange={setData} />
           )}
@@ -95,7 +101,7 @@ export default function App() {
         <Footer />
       </div>
 
-      <BottomNav active={route} />
+      {!foco && <BottomNav active={route} />}
     </div>
   );
 }

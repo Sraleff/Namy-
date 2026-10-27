@@ -1,5 +1,5 @@
 import {
-  Home, Users, Megaphone, Sparkles, Workflow, Contact, ScrollText, Settings, Tag, Image, Link2, ListOrdered, Store, Wallet, CalendarClock, Ticket, UsersRound, Share2, Send, Bot, CircleUser,
+  Home, Users, Megaphone, Sparkles, Workflow, Contact, ScrollText, Settings, Tag, Image, Link2, ListOrdered, Store, Wallet, CalendarClock, Ticket, UsersRound, Share2, Send, Bot, CircleUser, Wand2,
 } from 'lucide-react';
 
 // Barra lateral (desktop): todas as páginas, como sempre
@@ -27,7 +27,20 @@ export const navItems = [
 ];
 
 // Páginas que existem só como rota (não aparecem na barra lateral)
-export const extraRoutes = [{ id: 'perfil', label: 'Perfil', icon: CircleUser }];
+export const extraRoutes = [
+  { id: 'perfil', label: 'Perfil', icon: CircleUser },
+  { id: 'configurar', label: 'Configurar a automação', icon: Wand2 },
+];
+
+// Telas de foco (passo a passo): sem barra do topo nem barra inferior no celular
+export const focusRoutes = new Set(['configurar']);
+
+// Banco, Fila e Vitrine: uma área só, com abas no topo das três páginas
+export const ofertasTabs = [
+  { id: 'ofertas', label: 'Banco' },
+  { id: 'fila', label: 'Fila' },
+  { id: 'vitrine', label: 'Vitrine' },
+];
 
 // Barra inferior (celular e tablet). O Converter fica no meio, em destaque.
 export const bottomNav = [
@@ -40,7 +53,7 @@ export const bottomNav = [
 
 // Cada página fora da barra inferior abre por aqui, no Perfil: nada some no celular
 export const menuGroups = [
-  { title: 'Divulgação', tone: 'indigo', ids: ['ofertas', 'fila', 'agendadas', 'campanhas', 'automacoes', 'cupons'] },
+  { title: 'Divulgação', tone: 'indigo', ids: ['configurar', 'ofertas', 'fila', 'agendadas', 'campanhas', 'automacoes', 'cupons'] },
   { title: 'Crescimento', tone: 'green', ids: ['captacao', 'membros', 'telegram'] },
   { title: 'Inteligência', tone: 'violet', ids: ['ia', 'assistente', 'imagens'] },
   { title: 'Resultados', tone: 'amber', ids: ['comissoes', 'contatos', 'logs'] },
@@ -48,4 +61,4 @@ export const menuGroups = [
 ];
 
 // Rótulos mais curtos no menu do Perfil
-export const menuLabels = { fila: 'Fila de envio', logs: 'Logs e atividades' };
+export const menuLabels = { fila: 'Fila de envio', logs: 'Logs e atividades', ofertas: 'Banco de ofertas' };
