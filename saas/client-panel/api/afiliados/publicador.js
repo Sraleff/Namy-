@@ -26,6 +26,7 @@ const captacao = require('./captacao')
 const telegram = require('./telegram')
 const travaPreco = require('./travaPreco')
 const imagens = require('./imagens/store')
+const biblioteca = require('./videosBiblioteca')
 
 const JID_RE = /^[0-9A-Za-z._-]+@g\.us$/
 const MAX_PULADOS_LOG = 3
@@ -107,6 +108,8 @@ async function doBanco(ctx, grupos, pulados) {
     let imagePath = ''
     if (item.imagem && item.imagem.tipo === 'url') imageUrl = item.imagem.valor
     if (item.imagem && item.imagem.tipo === 'arquivo') imagePath = pool.caminhoMidia(ctx.dataDir, ctx.userId, item.imagem.valor)
+    // Vídeo anexado na biblioteca: sai no lugar da imagem (se sumiu, a oferta segue com a imagem)
+    const videoPath = item.video ? biblioteca.caminho(ctx.dataDir, ctx.userId, item.video.id) : ''
     return {
       fonte: 'pool',
       textoOriginal: rv.texto || item.texto,
@@ -116,6 +119,7 @@ async function doBanco(ctx, grupos, pulados) {
       texto: conv.texto,
       imageUrl,
       imagePath,
+      videoPath,
       marketplaces: conv.marketplaces,
       links: conv.trocas.length,
       cupons: item.cupons || qualidade.cupons(item.texto),
@@ -280,13 +284,13 @@ async function publicar({ userId, cfg, groups, dataDir, logs, sessions, dormir, 
           if (!cv.ok) throw new Error('link: ' + cv.erros.map((e) => e.motivo).join('; '))
           texto = cv.texto
         }
-        await sessions.sendOffer(userId, g.jid, { text: texto, imageUrl: img.imageUrl, imagePath: img.imagePath })
+        await sessions.sendOffer(userId, g.jid, { text: texto, imageUrl: img.imageUrl, imagePath: img.imagePath, videoPath: oferta.videoPath || '' })
         ok.push(g.jid)
         results.push({ jid: g.jid, name: g.name, ok: true, niche: g.niche })
         await auditoria.registrar(dataDir, userId, {
           tipo: 'enviado', grupo: g.name, jid: g.jid, nicho: g.niche, fonte: oferta.fonte, produtoKey: oferta.produtoKey,
           nome: oferta.nome, imageUrl: oferta.imageUrl, marketplaces: oferta.marketplaces, links: oferta.links,
-          cupons: oferta.cupons, imagem: img.imagem, avisos: oferta.avisos
+          cupons: oferta.cupons, imagem: oferta.videoPath ? 'video' : img.imagem, avisos: oferta.avisos
         })
         log(logs, ctx, { source: 'anuncio', level: 'info', ok: true, group: g.name, jid: g.jid, message: 'Oferta (' + g.niche + '): ' + oferta.nome })
       } catch (e) {

@@ -1,4 +1,4 @@
-import { api } from './api';
+import { api, ApiError, getToken } from './api';
 
 const post = (path, body) => api(path, { method: 'POST', body: body || {} });
 
@@ -150,3 +150,45 @@ export const getPlans = () => api('/billing/plans');
 export const getUso = () => api('/plano/uso');
 export const checkout = (plan) => post('/billing/checkout', { plan, returnTo: 'app' });
 export const syncPayment = (paymentId) => post('/billing/sync', { paymentId });
+
+// Baixar vídeo (Shopee/Pinterest): info devolve um id de uso único; baixar devolve o arquivo
+export const videoInfo = (url) => post('/videos/info', { url });
+export async function videoBaixar(id) {
+  const res = await fetch('/videos/baixar', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${getToken()}` },
+    body: JSON.stringify({ id }),
+  });
+  if (!res.ok) {
+    const d = await res.json().catch(() => ({}));
+    throw new ApiError(d.error || `Erro ${res.status}`, res.status);
+  }
+  return res.blob();
+}
+export const videoSalvar = (id, nome) => post('/videos/salvar', { id, nome });
+
+// Biblioteca de vídeos (anexar às ofertas do banco)
+export const videoBiblioteca = () => api('/videos/biblioteca');
+export const videoRemover = (id) => post('/videos/biblioteca/remover', { id });
+export const ofertaVideo = (itemId, videoId) => post('/ofertas/banco/video', { itemId, videoId });
+// Envia o arquivo como corpo da requisição. XHR (e não fetch) para mostrar o progresso.
+export function videoEnviar(arquivo, { onProgresso, sinal } = {}) {
+  return new Promise((ok, falhou) => {
+    const xhr = new XMLHttpRequest();
+    xhr.open('POST', '/videos/biblioteca');
+    xhr.setRequestHeader('Authorization', `Bearer ${getToken()}`);
+    xhr.setRequestHeader('Content-Type', arquivo.type || 'application/octet-stream');
+    xhr.setRequestHeader('X-Nome-Arquivo', encodeURIComponent(arquivo.name || 'video.mp4'));
+    xhr.upload.onprogress = (e) => e.lengthComputable && onProgresso?.(e.loaded / e.total);
+    xhr.onload = () => {
+      let d = {};
+      try { d = JSON.parse(xhr.responseText); } catch { /* sem corpo */ }
+      if (xhr.status >= 200 && xhr.status < 300) ok(d);
+      else falhou(new ApiError(d.error || `Erro ${xhr.status}`, xhr.status));
+    };
+    xhr.onerror = () => falhou(new ApiError('A conexão caiu durante o envio. Tente de novo.', 0));
+    xhr.onabort = () => falhou(new ApiError('Envio cancelado.', 0));
+    sinal?.addEventListener('abort', () => xhr.abort());
+    xhr.send(arquivo);
+  });
+}

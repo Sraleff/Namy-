@@ -1,5 +1,5 @@
 import {
-  Home, Users, Megaphone, Sparkles, Workflow, Contact, ScrollText, Settings, Tag, Image, Link2, ListOrdered, Store, Wallet, CalendarClock, Ticket, UsersRound, Share2, Send, Bot, CircleUser, Wand2,
+  Home, Users, Megaphone, Sparkles, Workflow, Contact, ScrollText, Settings, Tag, Image, Link2, ListOrdered, Store, Wallet, CalendarClock, Ticket, UsersRound, Share2, Send, Bot, CircleUser, Wand2, Film,
 } from 'lucide-react';
 
 // Barra lateral (desktop): todas as páginas, como sempre
@@ -13,6 +13,7 @@ export const navItems = [
   { id: 'ofertas', label: 'Ofertas', icon: Tag },
   { id: 'vitrine', label: 'Vitrine', icon: Store },
   { id: 'conversor', label: 'Conversor', icon: Link2 },
+  { id: 'videos', label: 'Vídeos', icon: Film },
   { id: 'fila', label: 'Fila', icon: ListOrdered },
   { id: 'agendadas', label: 'Agendadas', icon: CalendarClock },
   { id: 'cupons', label: 'Cupons', icon: Ticket },
@@ -53,7 +54,7 @@ export const bottomNav = [
 
 // Cada página fora da barra inferior abre por aqui, no Perfil: nada some no celular
 export const menuGroups = [
-  { title: 'Divulgação', tone: 'indigo', ids: ['configurar', 'ofertas', 'fila', 'agendadas', 'campanhas', 'automacoes', 'cupons'] },
+  { title: 'Divulgação', tone: 'indigo', ids: ['configurar', 'ofertas', 'fila', 'videos', 'agendadas', 'campanhas', 'automacoes', 'cupons'] },
   { title: 'Crescimento', tone: 'green', ids: ['captacao', 'membros', 'telegram'] },
   { title: 'Inteligência', tone: 'violet', ids: ['ia', 'assistente', 'imagens'] },
   { title: 'Resultados', tone: 'amber', ids: ['comissoes', 'contatos', 'logs'] },

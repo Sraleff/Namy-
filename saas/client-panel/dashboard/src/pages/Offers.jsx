@@ -145,6 +145,7 @@ function PoolList({ data, loading, reload }) {
                 <Badge>{i.nicho}</Badge>
                 {i.marketplaces.map((m) => <Badge key={m} variant="info">{MK[m] || m}</Badge>)}
                 {i.cupons?.map((c) => <Badge key={c} variant="success">Cupom {c}</Badge>)}
+                {i.video && <a href="#videos" className="rounded-md focus-visible:ring-2"><Badge variant="info">Com vídeo</Badge></a>}
                 {i.expirado ? <Badge variant="danger">Vencida</Badge> : !i.ativo && <Badge variant="warning">Pausada</Badge>}
                 <span className="text-[11px] text-subtle">{i.origem === 'grupo' ? `de ${i.origemGrupo}` : 'colada'} · {i.envios} grupo(s)</span>
               </div>

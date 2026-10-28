@@ -539,7 +539,9 @@ async function sendText(userId, jid, text) {
 }
 
 // imagePath: arquivo local (imagem gerada ou capturada), validado por quem chama
-async function sendOffer(userId, jid, { text, imageUrl, imagePath }) {
+// videoPath: vídeo da biblioteca do cliente (data/videos-arquivos); sai no lugar da imagem.
+// Se o vídeo falhar, cai para a imagem/texto como antes, para a oferta não se perder.
+async function sendOffer(userId, jid, { text, imageUrl, imagePath, videoPath }) {
   const s = get(userId)
   if (!s || !s.sock || s.status !== 'connected' || !(s.sock.user)) {
     const err = new Error('WhatsApp nao esta conectado')
@@ -554,6 +556,17 @@ async function sendOffer(userId, jid, { text, imageUrl, imagePath }) {
   const caption = String(text).slice(0, 4000)
   const local = imagePath && path.resolve(String(imagePath)).startsWith(DATA + path.sep) && fs.existsSync(imagePath) ? path.resolve(String(imagePath)) : ''
   const imagem = local || (imageUrl && String(imageUrl).startsWith('https://') ? imageUrl : '')
+  const pastaVideos = path.join(DATA, 'videos-arquivos') + path.sep
+  const video = videoPath && path.resolve(String(videoPath)).startsWith(pastaVideos) && fs.existsSync(videoPath) ? path.resolve(String(videoPath)) : ''
+  if (video) {
+    try {
+      // url com caminho local: o Baileys lê o arquivo em stream (não carrega tudo na memória)
+      await s.sock.sendMessage(jid, { video: { url: video }, caption, mimetype: 'video/mp4' })
+      return true
+    } catch (e) {
+      console.error('[SESSAO] vídeo falhou, enviando sem vídeo:', e.message)
+    }
+  }
   try {
     if (local) {
       await s.sock.sendMessage(jid, { image: fs.readFileSync(local), caption })

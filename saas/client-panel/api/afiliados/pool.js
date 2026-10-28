@@ -153,6 +153,26 @@ function candidatas(dataDir, userId, jid) {
     .sort((a, b) => (Number(b.prioridade) || 0) - (Number(a.prioridade) || 0))
 }
 
+// Vídeo da biblioteca (videosBiblioteca) que sai junto com a oferta; null tira. Quem chama confere o videoId.
+function definirVideo(dataDir, userId, id, videoId) {
+  return jsonStore.update(dataDir, PASTA, userId, vazio, (db) => {
+    const item = (db.itens || []).find((i) => i.id === id)
+    if (!item) throw Object.assign(new Error('Oferta não encontrada'), { status: 404 })
+    if (videoId) item.video = { id: String(videoId) }
+    else delete item.video
+    return item
+  })
+}
+
+// Vídeo apagado da biblioteca: as ofertas que usavam voltam para a imagem
+function soltarVideo(dataDir, userId, videoId) {
+  return jsonStore.update(dataDir, PASTA, userId, vazio, (db) => {
+    let n = 0
+    for (const i of db.itens || []) if (i.video && i.video.id === videoId) { delete i.video; n++ }
+    return n
+  })
+}
+
 function marcarEnviado(dataDir, userId, id, jids) {
   return jsonStore.update(dataDir, PASTA, userId, vazio, (db) => {
     const item = (db.itens || []).find((i) => i.id === id)
@@ -162,4 +182,4 @@ function marcarEnviado(dataDir, userId, id, jids) {
   })
 }
 
-module.exports = { adicionar, listar, remover, alternar, candidatas, marcarEnviado, caminhoMidia, titulo, assinatura, ttlHoras }
+module.exports = { adicionar, listar, remover, alternar, candidatas, marcarEnviado, definirVideo, soltarVideo, caminhoMidia, titulo, assinatura, ttlHoras }

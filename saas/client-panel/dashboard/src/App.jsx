@@ -6,6 +6,7 @@ import BottomNav from './components/layout/BottomNav';
 import { navItems, extraRoutes, focusRoutes } from './components/layout/navigation';
 import Perfil from './pages/Perfil';
 import Configurar from './pages/Configurar';
+import BaixarVideo from './pages/BaixarVideo';
 import Dashboard from './pages/Dashboard';
 import Groups from './pages/Groups';
 import Campaigns from './pages/Campaigns';
@@ -54,6 +55,7 @@ const pages = {
   configuracoes: Settings,
   perfil: Perfil,
   configurar: Configurar,
+  videos: BaixarVideo,
 };
 const rotas = new Set([...navItems, ...extraRoutes].map((n) => n.id));
 
