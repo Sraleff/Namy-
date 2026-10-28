@@ -151,7 +151,7 @@ export const getUso = () => api('/plano/uso');
 export const checkout = (plan) => post('/billing/checkout', { plan, returnTo: 'app' });
 export const syncPayment = (paymentId) => post('/billing/sync', { paymentId });
 
-// Baixar vídeo (Shopee/Pinterest): info devolve um id de uso único; baixar devolve o arquivo
+// Baixar vídeo (Shopee/Pinterest ou YouTube): info devolve um id de uso único; baixar devolve o arquivo
 export const videoInfo = (url) => post('/videos/info', { url });
 export async function videoBaixar(id) {
   const res = await fetch('/videos/baixar', {

@@ -1,7 +1,7 @@
 /**
  * Rotas de vídeo. userId só do JWT; vale para todos os planos com licença ativa.
  *
- * Baixador (Shopee/Pinterest, página pública):
+ * Baixador (Shopee/Pinterest pela página pública; YouTube pelo yt-dlp, se estiver instalado):
  *   POST /videos/info                 { url } -> { id, plataforma, rotulo, titulo, capa, nome }
  *   POST /videos/baixar               { id }  -> o MP4 para o aparelho (uso único)
  *   POST /videos/salvar               { id }  -> guarda o MP4 na biblioteca (uso único)
@@ -14,6 +14,7 @@
  *   POST /ofertas/banco/video         { itemId, videoId|null }
  */
 const videos = require('./videos')
+const ytdlp = require('./ytdlp')
 const biblioteca = require('./videosBiblioteca')
 const pool = require('./pool')
 const imagens = require('./imagens/store')
@@ -28,6 +29,7 @@ function mount(app, deps, opcoes = {}) {
   const podeBaixar = criarLimitador(opcoes.downloadsPorHora || 40, 60 * 60 * 1000)
   const podeEnviar = criarLimitador(opcoes.uploadsPorHora || 30, 60 * 60 * 1000)
   const podeAlterar = criarLimitador(opcoes.alteracoesPorMin || 30, 60 * 1000)
+  const podeYt = criarLimitador(opcoes.youtubePorHora || 12, 60 * 60 * 1000)
   const falha = (res, e, padrao) => {
     if (res.headersSent) return res.destroy()
     res.status(e.status && e.status < 600 ? e.status : 500).json({ error: e.message || padrao })
@@ -49,6 +51,13 @@ function mount(app, deps, opcoes = {}) {
       uso: biblioteca.uso(DATA, userId)
     }
   }
+  const lerPedido = async (userId, url) => {
+    const link = String(url || '')
+    if (videos.detectar(link)) return videos.info(userId, link)
+    if (ytdlp.detectar(link)) return ytdlp.info(userId, link)
+    throw Object.assign(new Error('Cole um link de vídeo da Shopee, do Pinterest ou do YouTube.'), { status: 400 })
+  }
+  const abrirPedido = (userId, id) => (ytdlp.tem(id) ? ytdlp.abrir(userId, id) : videos.abrir(userId, id))
 
   // ---------------------------------------------------------------- baixador
 
@@ -56,7 +65,9 @@ function mount(app, deps, opcoes = {}) {
     try {
       if (!conta(req, res)) return
       if (!podeLer(req.user.id)) return res.status(429).json({ error: 'Muitos links seguidos. Espere um minuto.' })
-      res.json(Object.assign({ ok: true }, await videos.info(req.user.id, (req.body || {}).url)))
+      const url = (req.body || {}).url
+      if (ytdlp.detectar(url) && !podeYt(req.user.id)) return res.status(429).json({ error: 'Você chegou ao limite de vídeos do YouTube nesta hora. Tente mais tarde.' })
+      res.json(Object.assign({ ok: true }, await lerPedido(req.user.id, url)))
     } catch (e) { falha(res, e, 'Não consegui ler o link') }
   })
 
@@ -64,7 +75,7 @@ function mount(app, deps, opcoes = {}) {
     try {
       if (!conta(req, res)) return
       if (!podeBaixar(req.user.id)) return res.status(429).json({ error: 'Você chegou ao limite de 40 downloads por hora. Tente mais tarde.' })
-      const v = await videos.abrir(req.user.id, (req.body || {}).id)
+      const v = await abrirPedido(req.user.id, (req.body || {}).id)
       res.set('Content-Type', v.tipo)
       res.set('Content-Disposition', 'attachment; filename="' + v.nome + '"')
       res.set('Cache-Control', 'no-store')
@@ -83,13 +94,17 @@ function mount(app, deps, opcoes = {}) {
   })
 
   app.post('/videos/salvar', auth, async (req, res) => {
+    let v
     try {
       if (!conta(req, res)) return
       if (!podeBaixar(req.user.id)) return res.status(429).json({ error: 'Você chegou ao limite de 40 downloads por hora. Tente mais tarde.' })
-      const v = await videos.abrir(req.user.id, (req.body || {}).id)
+      v = await abrirPedido(req.user.id, (req.body || {}).id)
       const item = await biblioteca.salvar(DATA, req.user.id, v.stream, { nome: (req.body || {}).nome || v.nome, origem: v.plataforma, tamanhoDeclarado: v.tamanho })
       res.json(Object.assign({ ok: true, item }, comUso(req.user.id)))
-    } catch (e) { falha(res, e, 'Não consegui salvar o vídeo') }
+    } catch (e) {
+      if (v && v.stream) v.stream.destroy()
+      falha(res, e, 'Não consegui salvar o vídeo')
+    }
   })
 
   // ---------------------------------------------------------------- biblioteca

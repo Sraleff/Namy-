@@ -10,19 +10,20 @@ import * as ep from '../services/endpoints';
 import { cx } from '../lib/format';
 
 const mb = (b) => `${(Number(b || 0) / 1048576).toFixed(1).replace('.', ',')} MB`;
-const ORIGEM = { upload: 'Enviado por você', shopee: 'Da Shopee', pinterest: 'Do Pinterest' };
+const ORIGEM = { upload: 'Enviado por você', shopee: 'Da Shopee', pinterest: 'Do Pinterest', youtube: 'Do YouTube' };
 
 // Só para acender a plataforma enquanto a pessoa cola; quem decide é o servidor
 const PLATAFORMAS = [
   { id: 'shopee', nome: 'Shopee', re: /(^|[./])(sv\.shopee\.com\.br|shp\.ee|shopee\.com\.br)\b/i, cor: 'border-orange-500/60 bg-orange-500/20' },
   { id: 'pinterest', nome: 'Pinterest', re: /(^|[./])(pinterest\.com(\.br)?|pin\.it)\b/i, cor: 'border-rose-500/60 bg-rose-500/20' },
+  { id: 'youtube', nome: 'YouTube', re: /https:\/\/(?:(?:www|m|music)\.)?youtube\.com\/(?:watch\?|shorts\/|embed\/|live\/|v\/)|https:\/\/(?:www\.)?youtu\.be\/|https:\/\/(?:(?:www|m)\.)?youtube-nocookie\.com\/embed\//i, cor: 'border-red-500/60 bg-red-500/20' },
 ];
 
 const PERGUNTAS = [
   ['Que vídeo posso usar?', 'Vídeos seus, do produto que você divulga ou que você tem permissão para usar. Repostar o vídeo de outra pessoa sem autorização pode gerar reclamação de direitos autorais, e a responsabilidade é de quem publica.'],
   ['Quais formatos e tamanhos?', 'MP4 de até 64 MB por arquivo, até 30 vídeos e 500 MB no total. Vídeos .mov do iPhone são aceitos, mas podem não tocar em todos os celulares: se der problema, envie em MP4.'],
   ['Como o vídeo vai para os grupos?', 'Escolha “Usar numa oferta” e marque uma oferta do Banco. Quando a automação enviar essa oferta, o vídeo vai no lugar da foto, com o mesmo texto e o seu link de afiliado. Se o envio do vídeo falhar, a oferta sai com a foto.'],
-  ['De quais sites dá para importar pelo link?', 'Shopee (Shopee Vídeo) e Pinterest, só vídeos públicos. Para vídeos de outros lugares, envie o arquivo.'],
+  ['De quais sites dá para importar pelo link?', 'Shopee (Shopee Vídeo), Pinterest e YouTube, só vídeos públicos. O YouTube depende do programa yt-dlp no servidor: se ele não estiver instalado, a Namy avisa e os outros dois sites continuam funcionando. Vídeo ao vivo, com login ou acima de 64 MB não entra. Para qualquer outro lugar, envie o arquivo.'],
   ['O vídeo vem com marca d’água?', 'Vem do jeito que a plataforma publicou. A Namy não tira nem coloca marca.'],
 ];
 
@@ -184,7 +185,7 @@ function Biblioteca({ dados, onMudou }) {
   };
 
   if (!dados.itens.length) {
-    return <div className="mt-4"><EmptyState>Nenhum vídeo ainda. Envie um arquivo acima ou importe pelo link da Shopee ou do Pinterest.</EmptyState></div>;
+    return <div className="mt-4"><EmptyState>Nenhum vídeo ainda. Envie um arquivo acima ou importe pelo link da Shopee, do Pinterest ou do YouTube.</EmptyState></div>;
   }
   return (
     <>
@@ -266,7 +267,7 @@ function ImportarLink({ onSalvo }) {
     <form onSubmit={ler} className="card relative mt-4 overflow-hidden p-5 sm:max-w-xl" aria-labelledby="imp-tit">
       <div aria-hidden="true" className="pointer-events-none absolute -right-16 -top-20 h-48 w-48 rounded-full bg-violet-500/20 blur-3xl" />
       <h2 id="imp-tit" className="relative text-lg font-bold text-cream">Importar pelo link</h2>
-      <p className="relative mt-0.5 text-[13px] text-muted">Vídeo público da Shopee ou do Pinterest. Use o “Compartilhar → Copiar link” do app.</p>
+      <p className="relative mt-0.5 text-[13px] text-muted">Vídeo público da Shopee, do Pinterest ou do YouTube. Use o “Compartilhar → Copiar link” do app.</p>
       <ul className="relative mt-3 flex flex-wrap gap-2" aria-label="Sites aceitos">
         {PLATAFORMAS.map((p) => (
           <li key={p.id} className={cx('flex h-8 items-center gap-1.5 rounded-full border px-3 text-[13px] font-semibold transition', achou?.id === p.id ? `${p.cor} text-white` : 'border-line text-muted')}>
@@ -344,7 +345,7 @@ export default function BaixarVideo() {
             </details>
           ))}
         </div>
-        <p className="mt-6 text-center text-[11px] text-subtle">A Namy não é ligada à Shopee nem ao Pinterest. Use só conteúdo que você pode publicar.</p>
+        <p className="mt-6 text-center text-[11px] text-subtle">A Namy não é ligada à Shopee, ao Pinterest nem ao YouTube. Use só conteúdo que você pode publicar. A Namy não entra em conta, não usa cookie e não tira proteção do vídeo.</p>
       </section>
     </div>
   );

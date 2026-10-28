@@ -1,6 +1,6 @@
 /**
  * Biblioteca de vídeos do cliente: arquivos enviados pelo painel ou salvos do baixador
- * (Shopee/Pinterest), para anexar às ofertas do banco.
+ * (Shopee, Pinterest ou YouTube), para anexar às ofertas do banco.
  *
  *   data/videos/<userId>.json                índice (nome, tamanho, origem, data)
  *   data/videos-arquivos/<userId>/<uuid>.mp4 arquivos (cada conta na sua pasta)
@@ -24,7 +24,7 @@ const LIMITES = {
 const ID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/
 // Marcas da caixa ftyp: família MP4 toca em qualquer WhatsApp; "qt" (MOV do iPhone) pode não tocar em todos
 const MARCAS_MP4 = ['isom', 'iso2', 'iso4', 'iso5', 'iso6', 'mp41', 'mp42', 'avc1', 'M4V ', 'M4VP', 'dash', 'msnv', '3gp4', '3gp5', '3g2a']
-const ORIGENS = ['upload', 'shopee', 'pinterest']
+const ORIGENS = ['upload', 'shopee', 'pinterest', 'youtube']
 
 const vazio = () => ({ itens: [] })
 const emAndamento = new Map() // userId -> quantos uploads agora
