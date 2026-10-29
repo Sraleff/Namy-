@@ -25,6 +25,7 @@ const noticias = require('./noticias')
 const stats = require('./stats')
 const jogos = require('./jogos')
 const shopee = require('../shopee/commands')
+const link = require('./link')
 
 const plugins = {
     menu,
@@ -105,7 +106,8 @@ const plugins = {
     rank: jogos.rank,
     ranking: jogos.rank,
 
-    shopee
+    shopee,
+    link
 }
 
 module.exports = plugins

@@ -1,0 +1,87 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  html { color-scheme: dark; background-color: #080c17; }
+  body {
+    @apply font-sans text-cream antialiased;
+    font-feature-settings: 'cv11', 'ss01';
+    -webkit-tap-highlight-color: transparent;
+  }
+  /* Aurora: as manchas de cor que o vidro desfoca. Fixa atrás de tudo (o fundo sólido fica no html). */
+  body::before {
+    content: '';
+    position: fixed;
+    inset: 0;
+    z-index: -1;
+    pointer-events: none;
+    background:
+      radial-gradient(420px 380px at 8% -4%, rgb(79 70 229 / 0.42), transparent 70%),
+      radial-gradient(380px 340px at 100% 38%, rgb(124 58 237 / 0.28), transparent 70%),
+      radial-gradient(360px 320px at 12% 100%, rgb(14 116 144 / 0.22), transparent 70%);
+  }
+  @media (min-width: 1024px) {
+    body::before {
+      background:
+        radial-gradient(620px 520px at 26% -10%, rgb(79 70 229 / 0.34), transparent 70%),
+        radial-gradient(560px 480px at 100% 30%, rgb(124 58 237 / 0.24), transparent 70%),
+        radial-gradient(520px 440px at 40% 110%, rgb(14 116 144 / 0.18), transparent 70%);
+    }
+  }
+  :focus-visible { @apply outline-none ring-2 ring-brand-400 ring-offset-2 ring-offset-ink-950; }
+  /* Item de grade pode encolher: tabela larga ou texto longo rola dentro do card,
+     em vez de esticar a coluna e criar rolagem lateral na página do celular */
+  .grid > * { min-width: 0; }
+  /* A lista nativa do <select> não herda o vidro: fundo sólido para ler */
+  option, optgroup { background-color: #0f172a; color: #f8fafc; }
+}
+
+@layer components {
+  /* Vidro: superfície translúcida que desfoca a aurora do fundo */
+  .glass {
+    @apply border border-line bg-ink-800 shadow-card;
+    -webkit-backdrop-filter: blur(20px) saturate(150%);
+    backdrop-filter: blur(20px) saturate(150%);
+  }
+  .card { @apply glass rounded-2xl; }
+  /* Superfície clicável: no mouse sobe 2px e clareia; no toque só encolhe ao apertar */
+  .glass-hover { @apply transition duration-200 active:scale-[0.98]; }
+  @media (hover: hover) {
+    .glass-hover:hover { @apply -translate-y-0.5 border-line-strong bg-ink-750 shadow-lift; }
+  }
+  .icon-btn {
+    @apply glass inline-flex h-10 w-10 items-center justify-center rounded-xl text-muted transition
+           hover:border-line-strong hover:bg-ink-750 hover:text-cream active:scale-95;
+  }
+  .link-subtle { @apply text-xs font-medium text-brand-400 transition-colors hover:text-brand-300 hover:underline hover:underline-offset-2; }
+  /* Popover/menu por cima do conteúdo: vidro mais opaco para o texto de baixo não atrapalhar */
+  .glass-pop {
+    @apply rounded-2xl border border-line-strong shadow-lift;
+    background-color: rgb(15 23 42 / 0.88);
+    -webkit-backdrop-filter: blur(24px) saturate(160%);
+    backdrop-filter: blur(24px) saturate(160%);
+  }
+}
+
+@layer utilities {
+  .tabular { font-variant-numeric: tabular-nums; }
+  .scrollbar-thin { scrollbar-width: thin; scrollbar-color: #232c42 transparent; }
+  .scrollbar-none { scrollbar-width: none; }
+  .scrollbar-none::-webkit-scrollbar { display: none; }
+  .pt-safe { padding-top: env(safe-area-inset-top, 0px); }
+  .pb-safe { padding-bottom: env(safe-area-inset-bottom, 0px); }
+  .bottom-safe { bottom: calc(env(safe-area-inset-bottom, 0px) + 10px); }
+  /* Espaço para o conteúdo nunca ficar atrás da barra inferior */
+  .pb-nav { padding-bottom: calc(env(safe-area-inset-bottom, 0px) + 100px); }
+}
+
+/* Sem suporte a desfoque (navegador antigo): vidro mais opaco para manter o contraste */
+@supports not ((backdrop-filter: blur(1px)) or (-webkit-backdrop-filter: blur(1px))) {
+  .glass, .card { background-color: rgb(19 26 43 / 0.94); }
+  .glass-pop { background-color: rgb(15 23 42 / 0.98); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after { animation: none !important; transition: none !important; }
+}
