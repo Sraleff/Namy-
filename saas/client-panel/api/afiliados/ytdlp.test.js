@@ -143,6 +143,54 @@ test('info: playlist, ao vivo, vídeo longo e MP4 acima de 64 MB', async () => {
   }
 })
 
+test('avaliarFormatos: só aceita MP4 com imagem e som juntos; sem lista, quem decide é o download', () => {
+  const lim = biblioteca.LIMITES.arquivo
+  assert.equal(ytdlp.avaliarFormatos({}), 'ok')
+  assert.equal(ytdlp.avaliarFormatos({ formats: [] }), 'ok')
+  // Faixas separadas (comum em Shorts): imagem sem som e som sem imagem
+  const separados = [{ ext: 'mp4', vcodec: 'avc1', acodec: 'none', filesize: 5000 }, { ext: 'm4a', vcodec: 'none', acodec: 'mp4a', filesize: 900 }, { ext: 'webm', vcodec: 'vp9', acodec: 'opus' }]
+  assert.equal(ytdlp.avaliarFormatos({ formats: separados }), 'sem-mp4')
+  assert.equal(ytdlp.avaliarFormatos({ formats: separados.concat([{ ext: 'mp4', vcodec: 'avc1', acodec: 'mp4a', filesize: 8000 }]) }), 'ok')
+  assert.equal(ytdlp.avaliarFormatos({ formats: [{ ext: 'mp4', vcodec: 'avc1', acodec: 'mp4a' }] }), 'ok', 'sem tamanho: deixa o download decidir')
+  assert.equal(ytdlp.avaliarFormatos({ formats: [{ ext: 'mp4', vcodec: 'avc1', acodec: 'mp4a', filesize_approx: lim + 1 }] }), 'grande')
+})
+
+test('info: vídeo sem MP4 pronto é recusado já na busca, sem criar pedido de download', async () => {
+  ytdlp._dep.executar = async () => ({
+    code: 0,
+    stdout: JSON.stringify({ title: 'Short', duration: 30, formats: [{ ext: 'mp4', vcodec: 'avc1', acodec: 'none', filesize: 4000 }, { ext: 'm4a', vcodec: 'none', acodec: 'mp4a', filesize: 500 }] }),
+    stderr: ''
+  })
+  await assert.rejects(ytdlp.info('u1', 'https://www.youtube.com/shorts/dQw4w9WgXcQ'), (e) => e.status === 422 && e.message === ytdlp.MSG_SEM_MP4)
+  assert.equal(ytdlp._pendentes.size, 0, 'não fica id esperando um download que vai falhar')
+})
+
+test('erro inesperado do sistema vira frase simples: sem caminho do servidor nem id da conta', async () => {
+  const conta = 'conta-teste-' + process.pid
+  const base = path.join(os.tmpdir(), 'namy-ytdlp')
+  fs.mkdirSync(base, { recursive: true })
+  const bloqueio = path.join(base, conta)
+  fs.writeFileSync(bloqueio, 'arquivo no lugar da pasta da conta') // mkdir da pasta temporária falha
+  const erroLog = console.error
+  const logs = []
+  console.error = (...a) => logs.push(a.join(' '))
+  try {
+    const i = await ytdlp.info(conta, URL)
+    await assert.rejects(ytdlp.abrir(conta, i.id), (e) => {
+      assert.equal(e.status, 500)
+      assert.equal(e.message, 'Não consegui preparar o download. Tente de novo em instantes.')
+      assert.equal(e.message.includes(os.tmpdir()), false)
+      assert.equal(e.message.includes(conta), false)
+      return true
+    })
+    assert.equal(logs.length, 1)
+    assert.equal(logs[0].includes(conta) || logs[0].includes(os.tmpdir()) || logs[0].includes('youtube.com'), false, 'o log também não leva caminho, conta nem URL')
+  } finally {
+    console.error = erroLog
+    fs.rmSync(bloqueio, { force: true })
+  }
+})
+
 test('abrir: grava na pasta da conta, confere o MP4, apaga a pasta e o id é de uso único', async () => {
   let dir = ''
   preparar((args, op) => {

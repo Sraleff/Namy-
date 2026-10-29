@@ -163,14 +163,28 @@ function tituloDe(meta) {
   return String(meta && meta.title || '').replace(/[\u0000-\u001f]/g, ' ').replace(/\s+/g, ' ').trim().slice(0, 140)
 }
 
-function cabeNoLimite(meta) {
+// O download só aceita um MP4 pronto, com imagem e som juntos (sem ffmpeg para juntar faixas).
+// 'sem-mp4': a lista de formatos veio e não tem nenhum assim; 'grande': todos passam de 64 MB.
+// Sem lista de formatos não dá para saber antes: quem decide é o download.
+function avaliarFormatos(meta) {
   const lim = biblioteca.LIMITES.arquivo
   const formatos = Array.isArray(meta.formats) ? meta.formats : []
+  if (!formatos.length) return 'ok'
   const progressivos = formatos.filter((f) => f && f.vcodec && f.vcodec !== 'none' && f.acodec && f.acodec !== 'none' && String(f.ext || '').toLowerCase() === 'mp4')
-  if (!progressivos.length) return true
+  if (!progressivos.length) return 'sem-mp4'
   const comTamanho = progressivos.map((f) => Number(f.filesize || f.filesize_approx) || 0).filter(Boolean)
-  if (!comTamanho.length) return true
-  return comTamanho.some((n) => n <= lim)
+  if (!comTamanho.length) return 'ok'
+  return comTamanho.some((n) => n <= lim) ? 'ok' : 'grande'
+}
+
+const MSG_SEM_MP4 = 'Esse vídeo do YouTube não tem um arquivo MP4 pronto para baixar. Envie o arquivo pela aba Meus vídeos.'
+
+// Erro inesperado (disco, permissão, pasta temporária): a tela recebe uma frase simples e o log
+// fica só com o código do erro, sem caminho do servidor, URL nem id da conta.
+function semDetalhe(e, contexto, msg) {
+  if (e && e.status) return e
+  console.error('[YTDLP] ' + contexto + ':', (e && e.code) || 'erro')
+  return erro(msg, 500)
 }
 
 function ocupar(userId) {
@@ -321,13 +335,17 @@ async function info(userId, url, agora = Date.now()) {
     if (meta.is_live || meta.live_status === 'is_live') throw erro('Vídeo ao vivo não dá para importar. Use um vídeo já publicado.', 422)
     const duracao = Number(meta.duration) || 0
     if (duracao > 20 * 60) throw erro('Esse vídeo passa de 20 minutos. O limite da Namy é 64 MB: escolha um vídeo mais curto ou envie o arquivo.', 413)
-    if (!cabeNoLimite(meta)) throw erro('Vídeo grande demais: o limite é 64 MB por arquivo.', 413)
+    const formatos = avaliarFormatos(meta)
+    if (formatos === 'sem-mp4') throw erro(MSG_SEM_MP4, 422)
+    if (formatos === 'grande') throw erro('Vídeo grande demais: o limite é 64 MB por arquivo.', 413)
     limparVencidos(agora)
     if (pendentes.size > 5000) throw erro('Muitos pedidos ao mesmo tempo. Tente em instantes.', 429)
     const id = crypto.randomBytes(12).toString('hex')
     const nome = 'namy-youtube-' + id.slice(0, 8) + '.mp4'
     pendentes.set(id, { userId, url: link, nome, exp: agora + ID_TTL })
     return { id, plataforma: 'youtube', rotulo: 'YouTube', titulo: tituloDe(meta), capa: capaSegura(meta.thumbnail), nome }
+  } catch (e) {
+    throw semDetalhe(e, 'info', 'Não consegui ler esse vídeo agora. Tente de novo em instantes.')
   } finally {
     liberar(userId)
   }
@@ -360,7 +378,7 @@ async function abrir(userId, id, agora = Date.now()) {
     return { nome: item.nome, plataforma: 'youtube', tamanho, tipo: 'video/mp4', stream }
   } catch (e) {
     if (dir) apagarPasta(dir)
-    throw e
+    throw semDetalhe(e, 'download', 'Não consegui preparar o download. Tente de novo em instantes.')
   } finally {
     liberar(userId)
   }
@@ -378,6 +396,6 @@ function _reset() {
 }
 
 module.exports = {
-  HOSTS, detectar, validarUrl, info, abrir, tem, argsInfo, argsBaixar, MSG_SEM,
+  HOSTS, detectar, validarUrl, info, abrir, tem, argsInfo, argsBaixar, MSG_SEM, MSG_SEM_MP4, avaliarFormatos,
   _dep, _pendentes: pendentes, _emAndamento: emAndamento, _reset
 }
