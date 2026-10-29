@@ -30,17 +30,20 @@ const TIMEOUT_BAIXAR = 120 * 1000
 const LIM_CONTA = 1
 const LIM_SERVIDOR = 2
 const MSG_SEM = 'O yt-dlp não está instalado neste servidor. Shopee e Pinterest continuam funcionando. Peça para quem administra a Namy instalar o programa yt-dlp.'
+const MSG_FFMPEG = 'O YouTube separou a imagem e o som deste vídeo. Instale o ffmpeg no mesmo usuário que roda o painel e reinicie. No Ubuntu ou WSL: sudo apt install -y ffmpeg'
 
 const pendentes = new Map()
 const emAndamento = new Map()
 let noServidor = 0
 let cacheBin = { exp: 0, ok: false }
+let cacheFfmpeg = { exp: 0, ok: false }
 
 // Trocados nos testes. executar(args, opcoes) nunca recebe string de comando.
 const _dep = {
   executar: null,
   disponivel: null,
   binario: null,
+  ffmpeg: null,
   resolver: (hostname) => dns.lookup(hostname, { all: true })
 }
 
@@ -60,11 +63,26 @@ function argsInfo(url) {
 
 function argsBaixar(url) {
   const mb = mbLimite()
+  const n = Math.max(1, Math.floor(biblioteca.LIMITES.arquivo / (1024 * 1024)))
+  const videoMb = Math.max(1, n - 8) + 'M'
+  const audioMb = '8M'
+  // Primeiro um MP4 que já vem com imagem e som. Se o YouTube só entregar faixas
+  // separadas, o yt-dlp junta com ffmpeg (--merge-output-format) num único MP4.
+  const formato = [
+    'b[ext=mp4][filesize<' + mb + ']',
+    'b[ext=mp4][filesize_approx<' + mb + ']',
+    'bv*[vcodec^=avc1][ext=mp4][height<=480][filesize<' + videoMb + ']+ba[ext=m4a][filesize<' + audioMb + ']',
+    'bv*[vcodec^=avc1][ext=mp4][height<=480][filesize_approx<' + videoMb + ']+ba[ext=m4a]',
+    'bv*[ext=mp4][height<=360]+ba[ext=m4a]',
+    'bv*[ext=mp4][height<=240]+ba[ext=m4a]',
+    'b[ext=mp4]'
+  ].join('/')
   return BASE.concat([
     '--no-mtime',
     '--restrict-filenames',
     '--max-filesize', mb,
-    '-f', 'b[ext=mp4][filesize<' + mb + ']/b[ext=mp4][filesize_approx<' + mb + ']/b[ext=mp4]',
+    '--merge-output-format', 'mp4',
+    '-f', formato,
     '-o', 'video.%(ext)s',
     '--', url
   ])
@@ -135,6 +153,7 @@ function mensagemFalha(stderr) {
     return erro('Esse vídeo exige login ou confirmação de idade. A Namy não usa conta nem cookie.', 422)
   }
   if (/file is larger than max-filesize|max-filesize/i.test(s)) return erro('Vídeo grande demais: o limite é 64 MB por arquivo.', 413)
+  if (/ffmpeg (?:is )?not installed|merging of multiple formats but ffmpeg/i.test(s)) return erro(MSG_FFMPEG, 503)
   if (/requested format is not available|no video formats found/i.test(s)) return erro('Esse vídeo não tem um MP4 público abaixo de 64 MB.', 422)
   if (/unsupported url/i.test(s)) return erro('Esse link não é de um vídeo do YouTube.', 422)
   return erro('O YouTube não entregou o vídeo agora. Tente de novo em instantes.', 502)
@@ -163,18 +182,30 @@ function tituloDe(meta) {
   return String(meta && meta.title || '').replace(/[\u0000-\u001f]/g, ' ').replace(/\s+/g, ' ').trim().slice(0, 140)
 }
 
-// O download só aceita um MP4 pronto, com imagem e som juntos (sem ffmpeg para juntar faixas).
-// 'sem-mp4': a lista de formatos veio e não tem nenhum assim; 'grande': todos passam de 64 MB.
+// 'ok': já existe um MP4 com imagem e som, abaixo de 64 MB.
+// 'juntar': o YouTube só manda faixas separadas (MP4 + M4A); o download usa ffmpeg.
+// 'grande': tudo que serve passa de 64 MB. 'sem-mp4': não há vídeo MP4 nem áudio M4A.
 // Sem lista de formatos não dá para saber antes: quem decide é o download.
+function temVideo(f) { return !!(f && f.vcodec && f.vcodec !== 'none') }
+function temAudio(f) { return !!(f && f.acodec && f.acodec !== 'none') }
+function tamanhoDe(f) { return Number(f && (f.filesize || f.filesize_approx)) || 0 }
+
 function avaliarFormatos(meta) {
   const lim = biblioteca.LIMITES.arquivo
-  const formatos = Array.isArray(meta.formats) ? meta.formats : []
+  const formatos = Array.isArray(meta && meta.formats) ? meta.formats : []
   if (!formatos.length) return 'ok'
-  const progressivos = formatos.filter((f) => f && f.vcodec && f.vcodec !== 'none' && f.acodec && f.acodec !== 'none' && String(f.ext || '').toLowerCase() === 'mp4')
-  if (!progressivos.length) return 'sem-mp4'
-  const comTamanho = progressivos.map((f) => Number(f.filesize || f.filesize_approx) || 0).filter(Boolean)
-  if (!comTamanho.length) return 'ok'
-  return comTamanho.some((n) => n <= lim) ? 'ok' : 'grande'
+  const progressivos = formatos.filter((f) => temVideo(f) && temAudio(f) && String(f.ext || '').toLowerCase() === 'mp4')
+  const tamanhosP = progressivos.map(tamanhoDe).filter(Boolean)
+  if (progressivos.length && (!tamanhosP.length || tamanhosP.some((n) => n <= lim))) return 'ok'
+  const videos = formatos.filter((f) => temVideo(f) && !temAudio(f) && String(f.ext || '').toLowerCase() === 'mp4')
+  const audios = formatos.filter((f) => temAudio(f) && !temVideo(f) && /^(m4a|mp4|aac)$/i.test(String(f.ext || '')))
+  if (videos.length && audios.length) {
+    const tvs = videos.map(tamanhoDe).filter(Boolean)
+    const tas = audios.map(tamanhoDe).filter(Boolean)
+    if (!tvs.length || !tas.length || Math.min(...tvs) + Math.min(...tas) <= lim) return 'juntar'
+    return 'grande'
+  }
+  return progressivos.length ? 'grande' : 'sem-mp4'
 }
 
 const MSG_SEM_MP4 = 'Esse vídeo do YouTube não tem um arquivo MP4 pronto para baixar. Envie o arquivo pela aba Meus vídeos.'
@@ -278,6 +309,28 @@ async function disponivel(agora = Date.now()) {
   return ok
 }
 
+function temFfmpeg(agora = Date.now()) {
+  if (_dep.ffmpeg) return Promise.resolve(_dep.ffmpeg()).then(Boolean)
+  if (agora < cacheFfmpeg.exp) return Promise.resolve(cacheFfmpeg.ok)
+  return new Promise((resolve) => {
+    const child = spawn('ffmpeg', ['-version'], {
+      shell: false,
+      stdio: ['ignore', 'pipe', 'ignore'],
+      env: { PATH: process.env.PATH || '/usr/bin:/bin', LANG: 'C.UTF-8' }
+    })
+    let out = ''
+    const timer = setTimeout(() => { try { child.kill('SIGKILL') } catch { /* já saiu */ } }, 5000)
+    if (child.stdout) child.stdout.on('data', (p) => { if (out.length < 300) out += p.toString('utf8') })
+    const fim = (ok) => {
+      clearTimeout(timer)
+      cacheFfmpeg = { exp: Date.now() + (ok ? 5 * 60 * 1000 : 20 * 1000), ok }
+      resolve(ok)
+    }
+    child.on('error', () => fim(false))
+    child.on('close', (code) => fim(code === 0 && /\d/.test(out)))
+  })
+}
+
 function limparVencidos(agora) {
   for (const [k, v] of pendentes) if (v.exp < agora) pendentes.delete(k)
 }
@@ -338,6 +391,7 @@ async function info(userId, url, agora = Date.now()) {
     const formatos = avaliarFormatos(meta)
     if (formatos === 'sem-mp4') throw erro(MSG_SEM_MP4, 422)
     if (formatos === 'grande') throw erro('Vídeo grande demais: o limite é 64 MB por arquivo.', 413)
+    if (formatos === 'juntar' && !(await temFfmpeg())) throw erro(MSG_FFMPEG, 503)
     limparVencidos(agora)
     if (pendentes.size > 5000) throw erro('Muitos pedidos ao mesmo tempo. Tente em instantes.', 429)
     const id = crypto.randomBytes(12).toString('hex')
@@ -393,9 +447,10 @@ function _reset() {
   emAndamento.clear()
   noServidor = 0
   cacheBin = { exp: 0, ok: false }
+  cacheFfmpeg = { exp: 0, ok: false }
 }
 
 module.exports = {
-  HOSTS, detectar, validarUrl, info, abrir, tem, argsInfo, argsBaixar, MSG_SEM, MSG_SEM_MP4, avaliarFormatos,
+  HOSTS, detectar, validarUrl, info, abrir, tem, argsInfo, argsBaixar, MSG_SEM, MSG_SEM_MP4, MSG_FFMPEG, avaliarFormatos,
   _dep, _pendentes: pendentes, _emAndamento: emAndamento, _reset
 }

@@ -30,6 +30,7 @@ function preparar(responder) {
   ytdlp._reset()
   ytdlp._dep.binario = null
   ytdlp._dep.disponivel = async () => true
+  ytdlp._dep.ffmpeg = async () => true
   ytdlp._dep.resolver = async () => [{ address: '142.250.219.14', family: 4 }]
   ytdlp._dep.executar = async (args, op) => {
     pedidos.push({ args, op })
@@ -75,6 +76,9 @@ test('o programa roda com argumentos em lista, sem shell, sem cookie e sem a URL
   assert.match(src, /shell:\s*false/)
   assert.doesNotMatch(src, /child_process['"]\)\.exec\(/)
   assert.doesNotMatch(src, /--cookies/)
+  assert.equal(baixar.includes('--merge-output-format'), true)
+  assert.equal(baixar[baixar.indexOf('--merge-output-format') + 1], 'mp4')
+  assert.match(baixar[baixar.indexOf('-f') + 1], /\+ba\[ext=m4a\]/)
 })
 
 test('info: id de uso único, capa só de host de miniatura, e a URL do arquivo não sai', async () => {
@@ -143,26 +147,39 @@ test('info: playlist, ao vivo, vídeo longo e MP4 acima de 64 MB', async () => {
   }
 })
 
-test('avaliarFormatos: só aceita MP4 com imagem e som juntos; sem lista, quem decide é o download', () => {
+test('avaliarFormatos: MP4 pronto, ou imagem MP4 e som M4A para juntar', () => {
   const lim = biblioteca.LIMITES.arquivo
   assert.equal(ytdlp.avaliarFormatos({}), 'ok')
   assert.equal(ytdlp.avaliarFormatos({ formats: [] }), 'ok')
-  // Faixas separadas (comum em Shorts): imagem sem som e som sem imagem
   const separados = [{ ext: 'mp4', vcodec: 'avc1', acodec: 'none', filesize: 5000 }, { ext: 'm4a', vcodec: 'none', acodec: 'mp4a', filesize: 900 }, { ext: 'webm', vcodec: 'vp9', acodec: 'opus' }]
-  assert.equal(ytdlp.avaliarFormatos({ formats: separados }), 'sem-mp4')
+  assert.equal(ytdlp.avaliarFormatos({ formats: separados }), 'juntar')
   assert.equal(ytdlp.avaliarFormatos({ formats: separados.concat([{ ext: 'mp4', vcodec: 'avc1', acodec: 'mp4a', filesize: 8000 }]) }), 'ok')
   assert.equal(ytdlp.avaliarFormatos({ formats: [{ ext: 'mp4', vcodec: 'avc1', acodec: 'mp4a' }] }), 'ok', 'sem tamanho: deixa o download decidir')
   assert.equal(ytdlp.avaliarFormatos({ formats: [{ ext: 'mp4', vcodec: 'avc1', acodec: 'mp4a', filesize_approx: lim + 1 }] }), 'grande')
+  assert.equal(ytdlp.avaliarFormatos({ formats: [{ ext: 'webm', vcodec: 'vp9', acodec: 'none' }, { ext: 'webm', vcodec: 'none', acodec: 'opus' }] }), 'sem-mp4')
+  assert.equal(ytdlp.avaliarFormatos({ formats: [{ ext: 'mp4', vcodec: 'avc1', acodec: 'none', filesize: lim }, { ext: 'm4a', vcodec: 'none', acodec: 'mp4a', filesize: lim }] }), 'grande')
 })
 
-test('info: vídeo sem MP4 pronto é recusado já na busca, sem criar pedido de download', async () => {
-  ytdlp._dep.executar = async () => ({
-    code: 0,
-    stdout: JSON.stringify({ title: 'Short', duration: 30, formats: [{ ext: 'mp4', vcodec: 'avc1', acodec: 'none', filesize: 4000 }, { ext: 'm4a', vcodec: 'none', acodec: 'mp4a', filesize: 500 }] }),
-    stderr: ''
-  })
+test('info: faixas separadas exigem ffmpeg; sem MP4 nenhum, recusa e não cria pedido', async () => {
+  const separados = { title: 'Short', duration: 30, formats: [{ ext: 'mp4', vcodec: 'avc1', acodec: 'none', filesize: 4000 }, { ext: 'm4a', vcodec: 'none', acodec: 'mp4a', filesize: 500 }] }
+  ytdlp._dep.ffmpeg = async () => false
+  ytdlp._dep.executar = async () => ({ code: 0, stdout: JSON.stringify(separados), stderr: '' })
+  await assert.rejects(ytdlp.info('u1', 'https://www.youtube.com/shorts/dQw4w9WgXcQ'), (e) => e.status === 503 && e.message === ytdlp.MSG_FFMPEG && !e.message.includes('youtube.com'))
+  assert.equal(ytdlp._pendentes.size, 0)
+
+  preparar()
+  ytdlp._dep.executar = async () => ({ code: 0, stdout: JSON.stringify({ title: 'Webm', duration: 12, formats: [{ ext: 'webm', vcodec: 'vp9', acodec: 'none' }, { ext: 'webm', vcodec: 'none', acodec: 'opus' }] }), stderr: '' })
   await assert.rejects(ytdlp.info('u1', 'https://www.youtube.com/shorts/dQw4w9WgXcQ'), (e) => e.status === 422 && e.message === ytdlp.MSG_SEM_MP4)
-  assert.equal(ytdlp._pendentes.size, 0, 'não fica id esperando um download que vai falhar')
+  assert.equal(ytdlp._pendentes.size, 0)
+
+  preparar()
+  ytdlp._dep.executar = async () => ({ code: 0, stdout: JSON.stringify(separados), stderr: '' })
+  const i = await ytdlp.info('u1', 'https://www.youtube.com/shorts/dQw4w9WgXcQ')
+  assert.match(i.id, /^[0-9a-f]{24}$/)
+
+  preparar()
+  ytdlp._dep.executar = async () => ({ code: 1, stdout: '', stderr: 'ERROR: ffmpeg is not installed. ' + URL })
+  await assert.rejects(ytdlp.info('u1', 'https://youtu.be/dQw4w9WgXcQ'), (e) => e.status === 503 && e.message === ytdlp.MSG_FFMPEG && !e.message.includes('dQw4w9WgXcQ'))
 })
 
 test('erro inesperado do sistema vira frase simples: sem caminho do servidor nem id da conta', async () => {

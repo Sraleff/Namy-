@@ -89,16 +89,19 @@ Implementado em `ytdlp.js`, no mesmo desenho (`info` / `abrir`, id amarrado ao `
   erro ou depois de ler o stream. Confere a caixa `ftyp`, recusa acima de 64 MB, ao vivo e vídeo
   com mais de 20 minutos. No máximo 1 processo por conta e 2 no servidor, e 12 infos de YouTube
   por hora (além do limite geral de downloads).
-- Formato: MP4 progressivo (`-f b[ext=mp4]...`), para não depender do ffmpeg. Origem `youtube`.
+- Formato: um MP4 que já venha com imagem e som, ou imagem MP4 e som M4A juntados pelo
+  ffmpeg (`--merge-output-format mp4`). Sem o ffmpeg, vídeo que o YouTube separa em duas faixas
+  responde pedindo a instalação. Origem `youtube`.
 
 ## Implantar
 
 1. `git pull` no servidor.
 2. `cd saas/client-panel/dashboard && npm run build` (o `ligar-tudo.sh` faz isso se o código mudou).
 3. Reinicie o client-panel (`npm start` em `saas/client-panel`, ou o seu gerenciador de processo).
-4. Nenhuma dependência npm nova nem variável nova no `.env`. Para o YouTube, instale o programa
-   `yt-dlp` no servidor e deixe no `PATH` (sem cookies e sem conta). Sem ele, Shopee e Pinterest
-   seguem iguais e o link do YouTube responde que o programa não está instalado.
+4. Nenhuma dependência npm nova nem variável nova no `.env`. Para o YouTube, instale o `yt-dlp`
+   e o `ffmpeg` no servidor e deixe os dois no `PATH` (sem cookies e sem conta). Sem o yt-dlp,
+   Shopee e Pinterest seguem iguais. Sem o ffmpeg, só entra vídeo que o YouTube já entregue em
+   um único MP4.
 5. Confira: `cd saas/client-panel/api && node --test` (esperado: 0 falhas).
 6. Primeiro envio de vídeo: faça num grupo de teste. O envio real de vídeo no WhatsApp ainda não
    foi testado; o fluxo foi testado com o envio simulado.
